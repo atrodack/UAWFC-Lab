@@ -14,7 +14,7 @@
 clear all;
 clc;
 close all;
-DEBUG_FLAG = true;
+DEBUG_FLAG = false;
 
 %% Create dOTF Object
 cd('/home/lab/Desktop/Alex_AOSim2/AOSim2-rodack/AOSim2')
@@ -376,7 +376,6 @@ srcscim.FrameRate='30';
                     if isempty(p2)
                         fprintf('Pick the centers of the useful segments\n');
                         clf;
-%                         dOTF.unwrapphase('gold');
                         imagesc(abs(dOTF.storeddOTF{1}).^0.5);
                         colormap(jet);
                         daspect([1,1,1]);
@@ -395,56 +394,72 @@ srcscim.FrameRate='30';
                         points{5} = p8;
                         points{6} = p9;
                     end
-                    dOTF.unwrapphase('gold');
-                    phase = dOTF.Phase;
+                    shift_point = dOTF.pupil_center;
+                    [sizex,sizey] = size(dOTF.Phase);
+                    center = [round(sizex/2),round(sizey/2)];
+                                        
+                    phase_ref = dOTF.Phase(center(1),center(2));
                     
-                    %convert to OPL?
-%                     phase = phase ./ ((2*pi)/0.6);
+                    dOTF.unwrapphase('gold');
+                    phase = dOTF.Phase - phase_ref;
+                                     
+                    %Tip / Tilt calculation
+                    
+                    
+                    
+%                     convert to OPL
+                    OPL = phase ./ ((2*pi)/0.6);
 
-                    [sizey,sizex] = size(phase);
+                    [sizey,sizex] = size(OPL);
                     xx = linspace(1,sizex,sizex);
                     yy = linspace(1,sizey,sizey);
                     [X,Y] = meshgrid(xx,yy);
                     
                     R2 = sqrt((X-points{1}(2)).^2 + (Y-points{1}(1)).^2);
                     M2 = R2<=mask_radius;
-                    seg2 = M2.*phase;
-                    seg2Prop = seg2(seg2>0);
+                    seg2 = M2.*OPL;
+                    seg2phase = M2.*phase;
+                    seg2Prop = seg2(abs(seg2)>0);
                     seg2piston = mean(seg2Prop);
 %                     seg2piston = mean(seg2(:));
                     
                     R1 = sqrt((X-points{2}(2)).^2 + (Y-points{2}(1)).^2);
                     M1 = R1<=mask_radius;
-                    seg1 = M1.*phase;
-                    seg1Prop = seg1(seg1>0);
+                    seg1 = M1.*OPL;
+                    seg1phase = M2.*phase;
+                    seg1Prop = seg1(abs(seg1)>0);
                     seg1piston = mean(seg1Prop);
 %                     seg1piston = mean(seg1(:));
                     
                     R3 = sqrt((X-points{3}(2)).^2 + (Y-points{3}(1)).^2);
                     M3 = R3<=mask_radius;
-                    seg3 = M3.*phase;
-                    seg3Prop = seg3(seg3>0);
+                    seg3 = M3.*OPL;
+                    seg3phase = M2.*phase;
+                    seg3Prop = seg3(abs(seg3)>0);
                     seg3piston = mean(seg3Prop);
 %                     seg3piston = mean(seg3(:));
                     
                     R7 = sqrt((X-points{4}(2)).^2 + (Y-points{4}(1)).^2);
                     M7 = R7<=mask_radius;
-                    seg7 = M7.*phase;
-                    seg7Prop = seg7(seg7>0);
+                    seg7 = M7.*OPL;
+                    seg7phase = M2.*phase;
+                    seg7Prop = seg7(abs(seg7)>0);
                     seg7piston = mean(seg7Prop);
 %                     seg7piston = mean(seg7(:));
                     
                     R8 = sqrt((X-points{5}(2)).^2 + (Y-points{5}(1)).^2);
                     M8 = R8<=mask_radius;
-                    seg8 = M8.*phase;
-                    seg8Prop = seg8(seg8>0);
+                    seg8 = M8.*OPL;
+                    seg8phase = M2.*phase;
+                    seg8Prop = seg8(abs(seg8)>0);
                     seg8piston = mean(seg8Prop);
 %                     seg8piston = mean(seg8(:));
                     
                     R9 = sqrt((X-points{6}(2)).^2 + (Y-points{6}(1)).^2);
                     M9 = R9<=mask_radius;
-                    seg9 = M9.*phase;
-                    seg9Prop = seg9(seg9>0);
+                    seg9 = M9.*OPL;
+                    seg9phase = M2.*phase;
+                    seg9Prop = seg9(abs(seg9)>0);
                     seg9piston = mean(seg9Prop);
 %                     seg9piston = mean(seg9(:));
                     
