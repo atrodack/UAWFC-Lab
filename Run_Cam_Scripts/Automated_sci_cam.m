@@ -14,6 +14,7 @@
 clear all;
 clc;
 close all;
+DEBUG_FLAG = true;
 
 %% Create dOTF Object
 cd('/home/lab/Desktop/Alex_AOSim2/AOSim2-rodack/AOSim2')
@@ -45,9 +46,9 @@ total_loops_max = 4;
 p2 = [];
 %% loop the program
 while(counter_ <= total_loops_max)
-    cd /home/lab/Desktop
+    cd /home/lab/Desktop/
     %% Clear All Existing variables, previews and figures
-    clearvars -except dOTF counter_ counterloop total_loops_max restartcam select scim bg cSb SCIbkgd Datasubfolderbydate nframes dirnamebkgrnddark extratitle filterselection bkgrnddarkload B p2 p1 p3 p7 p8 p9 points
+    clearvars -except dOTF counter_ counterloop total_loops_max restartcam select scim bg cSb SCIbkgd Datasubfolderbydate nframes dirnamebkgrnddark extratitle filterselection bkgrnddarkload B p2 p1 p3 p7 p8 p9 points DEBUG_FLAG
     close all
     closepreview
     clc
@@ -93,7 +94,7 @@ srcscim.FrameRate='30';
                     nframes=input('Number of frames: ');
                     
                     %Changes into Data folder
-                    cd Data
+                    cd /home/lab/Desktop/Data
                     
                     %Create variable of all files/folders in Data Directory
                     listing=ls('/home/lab/Desktop/Data');
@@ -267,22 +268,23 @@ srcscim.FrameRate='30';
             end
               
             %% Check if Mirror is updated
-            if mod(counter_,2) == 0
-                tempdir = pwd;
-                cd /home/lab/Desktop/Shared_Stuff
-                checkmirrorupdated = false;
-                while(checkmirrorupdated == false)
-                    CMD_FILES = dir('PTTpos.mat');
-                    if(~isempty(CMD_FILES))
-                        pause(0.1);
-                    else
-                        checkmirrorupdated = true;
+            if DEBUG_FLAG == false
+                if mod(counter_,2) == 0
+                    tempdir = pwd;
+                    cd /home/lab/Desktop/Shared_Stuff
+                    checkmirrorupdated = false;
+                    while(checkmirrorupdated == false)
+                        CMD_FILES = dir('PTTpos.mat');
+                        if(~isempty(CMD_FILES))
+                            pause(0.1);
+                        else
+                            checkmirrorupdated = true;
+                        end
                     end
+                    cd(tempdir);
+                    clear tempdir;
                 end
-                cd(tempdir);
-                clear tempdir;
             end
-            
             
             disp(' ')
             %% Imaging
@@ -359,10 +361,10 @@ srcscim.FrameRate='30';
                 dOTF.useData;
                 pause(5);
                 dOTF.cleardOTF;
-                cd /home/lab/Desktop
+                cd /home/lab/Desktop/
                 decision = 1;
             else
-                cd /home/lab/Desktop
+                cd /home/lab/Desktop/
                 decision = 0;
             end
             
@@ -435,7 +437,8 @@ srcscim.FrameRate='30';
                     R8 = sqrt((X-points{5}(2)).^2 + (Y-points{5}(1)).^2);
                     M8 = R8<=mask_radius;
                     seg8 = M8.*phase;
-                    seg3piston = mean(seg3Prop);
+                    seg8Prop = seg8(seg8>0);
+                    seg8piston = mean(seg8Prop);
 %                     seg8piston = mean(seg8(:));
                     
                     R9 = sqrt((X-points{6}(2)).^2 + (Y-points{6}(1)).^2);
@@ -497,5 +500,5 @@ if select == 2
     cd('/home/lab/Desktop/dOTF_saved_structures')
     textstring = [num2str(t(1)),'_',num2str(t(2)),'_',num2str(t(3)),'_',num2str(t(4)),'_',num2str(t(5)),'_','dOTFstructure_data_run_',num2str(B)];
     save(textstring,'dOTF')
-    cd /home/lab/Desktop
+    cd /home/lab/Desktop/
 end
