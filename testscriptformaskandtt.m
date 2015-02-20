@@ -18,3 +18,5 @@ p3 = pickPoint;
 p1(1,3) = seg8(p1(2),p1(1));
 p2(1,3) = seg8(p2(2),p2(1));
 p3(1,3) = seg8(p3(2),p3(1));
+
+[fx,fy] = gradient(dOTF_phase,0.1);
