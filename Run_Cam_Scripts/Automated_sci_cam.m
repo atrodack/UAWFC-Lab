@@ -83,9 +83,15 @@ srcscim.FrameRate='30';
             %         preview(fpm);
                 %Choose shutter speed
                 disp(' ')
-                disp('Science image shutter speed = 15')
-
-                sSpeed=15;
+                
+                
+                if counterloop == 1
+                    sSpeed=15;
+                else
+                    sSpeed = 15;
+                end
+                
+                fprintf('Science image shutter speed = %g',sSpeed)
                 srcscim.Shutter=sSpeed;
                 
                 if counterloop == 1
@@ -418,55 +424,51 @@ srcscim.FrameRate='30';
                     R2 = sqrt((X-points{1}(2)).^2 + (Y-points{1}(1)).^2);
                     M2 = R2<=mask_radius;
                     seg2 = M2.*OPL;
-                    seg2phase = M2.*phase;
+                    [tip2,tilt2] = calctiptiltdOTF(M2.*phase,p2,[3,3]);
                     seg2Prop = seg2(abs(seg2)>0);
                     seg2piston = mean(seg2Prop);
-%                     seg2piston = mean(seg2(:));
+
                     
                     R1 = sqrt((X-points{2}(2)).^2 + (Y-points{2}(1)).^2);
                     M1 = R1<=mask_radius;
                     seg1 = M1.*OPL;
-                    seg1phase = M2.*phase;
+                    [tip1,tilt1] = calctiptiltdOTF(M1.*phase,p1,[3,3]);
                     seg1Prop = seg1(abs(seg1)>0);
                     seg1piston = mean(seg1Prop);
-%                     seg1piston = mean(seg1(:));
+
                     
                     R3 = sqrt((X-points{3}(2)).^2 + (Y-points{3}(1)).^2);
                     M3 = R3<=mask_radius;
                     seg3 = M3.*OPL;
-                    seg3phase = M2.*phase;
+                    [tip3,tilt3] = calctiptiltdOTF(M3.*phase,p3,[3,3]);
                     seg3Prop = seg3(abs(seg3)>0);
                     seg3piston = mean(seg3Prop);
-%                     seg3piston = mean(seg3(:));
+
                     
                     R7 = sqrt((X-points{4}(2)).^2 + (Y-points{4}(1)).^2);
                     M7 = R7<=mask_radius;
                     seg7 = M7.*OPL;
-                    seg7phase = M2.*phase;
+                    [tip7,tilt7] = calctiptiltdOTF(M7.*phase,p7,[3,3]);
                     seg7Prop = seg7(abs(seg7)>0);
                     seg7piston = mean(seg7Prop);
-%                     seg7piston = mean(seg7(:));
+
                     
                     R8 = sqrt((X-points{5}(2)).^2 + (Y-points{5}(1)).^2);
                     M8 = R8<=mask_radius;
                     seg8 = M8.*OPL;
-                    seg8phase = M2.*phase;
+                    [tip8,tilt8] = calctiptiltdOTF(M8.*phase,p8,[3,3]);
                     seg8Prop = seg8(abs(seg8)>0);
                     seg8piston = mean(seg8Prop);
-%                     seg8piston = mean(seg8(:));
+                    
                     
                     R9 = sqrt((X-points{6}(2)).^2 + (Y-points{6}(1)).^2);
                     M9 = R9<=mask_radius;
                     seg9 = M9.*OPL;
-                    seg9phase = M2.*phase;
+                    [tip9,tilt9] = calctiptiltdOTF(M9.*phase,p9,[3,3]);
                     seg9Prop = seg9(abs(seg9)>0);
                     seg9piston = mean(seg9Prop);
-%                     seg9piston = mean(seg9(:));
                     
                     
-%                     clf;
-%                     imagesc(seg2+seg1+seg3+seg7+seg8+seg9);
-%                     daspect([1,1,1]);
                     
                     PTTpos = zeros(37,3);
                     PTTpos(2,1) = seg2piston;
@@ -475,13 +477,24 @@ srcscim.FrameRate='30';
                     PTTpos(7,1) = seg7piston;
                     PTTpos(8,1) = seg8piston;
                     PTTpos(9,1) = seg9piston;
-                    
+                    PTTpos(1,2) = tip1;
+                    PTTpos(1,3) = tilt1;
+                    PTTpos(2,2) = tip2;
+                    PTTpos(2,3) = tilt2;
+                    PTTpos(3,2) = tip3;
+                    PTTpos(3,3) = tilt3;
+                    PTTpos(7,2) = tip7;
+                    PTTpos(7,3) = tilt7;
+                    PTTpos(8,2) = tip8;
+                    PTTpos(8,3) = tilt8;
+                    PTTpos(9,2) = tip9;
+                    PTTpos(9,3) = tilt9;
                     if segfinger == 1
                         PTTpos(19,1) = -pokeval;
                     end
                     PTTpos
                     input('Press Enter to Send to DM');
-
+                    
                     cd /home/lab/Desktop/Shared_Stuff
                     save('PTTpos','PTTpos');
                 else
