@@ -13,16 +13,26 @@ if nargin == 1
     pistonList = zeros(37,1);
     tipList = zeros(37,1);
     tiltList = zeros(37,1);
+    bump = false;
     fprintf('Flattening the Mirror\n');
 elseif nargin == 3
     tipList = zeros(37,1);
     tiltList = zeros(37,1);
+    bump = false;
     fprintf('Applying Piston Only\n');
 elseif nargin == 4
     tiltList = zeros(37,1);
+    bump = false;
     fprintf('Applying Piston and Tip\n');
 elseif nargin == 5
     fprintf('Applying Piston, Tip, and Tilt\n');
+    bump = false;
+elseif nargin == 6
+    if bump == true
+        fprintf('Bumping Segments\n');
+    else
+        fprintf('Applying Piston, Tip, and Tilt\n');
+    end
 else
     error('Number of input arguments is incorrect');
 end
@@ -36,20 +46,38 @@ end
 load('IrisAO_STUFF.mat');
 
 %% Do the Mapping and Apply PTT
-jj = 1;
-for ii = 1:37
-    while(jj <= 37)
-        if IrisAO_MAP(jj) == segList(ii)
-            mapped_segment = jj;
-            jj = 50;
-        else
-            jj = jj + 1;
-        end
-    end
-    
-    DM.segList{ii}.piston = pistonList(mapped_segment);
-    DM.segList{ii}.tiptilt = [tipList(mapped_segment),tiltList(mapped_segment)];
+if bump == false
     jj = 1;
+    for ii = 1:37
+        while(jj <= 37)
+            if IrisAO_MAP(jj) == segList(ii)
+                mapped_segment = jj;
+                jj = 50;
+            else
+                jj = jj + 1;
+            end
+        end
+        
+        DM.segList{ii}.piston = pistonList(mapped_segment);
+        DM.segList{ii}.tiptilt = [tipList(mapped_segment),tiltList(mapped_segment)];
+        jj = 1;
+    end
+else
+    jj = 1;
+    for ii = 1:37
+        while(jj <= 37)
+            if IrisAO_MAP(jj) == segList(ii)
+                mapped_segment = jj;
+                jj = 50;
+            else
+                jj = jj + 1;
+            end
+        end
+        
+        DM.segList{ii}.piston = DM.segList{ii}.piston + pistonList(mapped_segment);
+        DM.segList{ii}.tiptilt = DM.segList{ii}.tiptilt + [tipList(mapped_segment),tiltList(mapped_segment)];
+        jj = 1;
+    end
 end
 
 %% Go Ahead and Render It
