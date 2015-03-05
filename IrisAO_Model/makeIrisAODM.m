@@ -1,12 +1,19 @@
-function [varargout] = makeIrisAODM(MAGNIFICATION, SegPitch, Scalloped_Field)
+function [varargout] = makeIrisAODM(MAGNIFICATION, verbose, Scalloped_Field)
 % [DM] = makeIrisAODM(MAGNIFICATION, ACTUAL_D, SegPitch)
-% Makes a 37 Segment IrisAO DM. SegPitch sets the Segment "Diameter",
-% Magnification scales this, Scalloped_Field also returns a Scalloped Field
+% Makes a 37 Segment IrisAO DM. 
+% Magnification scales the DM, Scalloped_Field also returns a Scalloped Field
+
+SegPitch = 606e-6;
 
 if nargin == 0
     MAGNIFICATION = 1;
     SegPitch = MAGNIFICATION * 606e-6;
+    verbose = true;
     Scalloped_Field = false;
+elseif nargin == 1
+    SegPitch = MAGNIFICATION * SegPitch;
+    Scalloped_Field = false;
+    verbose = false;
 elseif nargin == 2
     SegPitch = MAGNIFICATION * SegPitch;
     Scalloped_Field = false;
@@ -27,19 +34,21 @@ SCALLOPING = 100e-9;
 [x,y] = Seg.coords;
 [X,Y] = Seg.COORDS;
 
-Q = (SegPitch/2)*exp(2*pi*1i*(0:6)'/6);
-V = [real(Q) imag(Q)];
-dV = diff(V,1,1);
+% Q = (SegPitch/2)*exp(2*pi*1i*(0:6)'/6);
+% V = [real(Q) imag(Q)];
+% dV = diff(V,1,1);
 
 SEG = 1;
 
 for n=1:6
     th = 60/180*pi*n;
     SEG=SEG.*smoothedge(SegPitch/2- (X*cos(th)-Y*sin(th)),dx);
-    imagesc(x,y,SEG);sqar;axis xy;
-    colormap(gray);
-    drawnow;
-    pause(0.2)
+    if verbose == true
+        imagesc(x,y,SEG);sqar;axis xy;
+        colormap(gray);
+        drawnow;
+        pause(0.2)
+    end
 end
 
 Seg.grid(SEG);
@@ -58,7 +67,7 @@ c = cos(th1); s = sin(th1);
 ub = ([c -s; s c] * ua')';
 ub_ = ([c s; -s c] * ua')';
 
-figure(2)
+
 for nrow=-3:0
     NumCol = 7-abs(nrow);
     
@@ -66,8 +75,10 @@ for nrow=-3:0
     
     for ncol=1:NumCol
         DM.addSegment(Seg,START+ncol*ua);
-        DM.show;
-        drawnow;
+        if verbose == true
+            DM.show;
+            drawnow;
+        end
     end
 end
 
@@ -77,8 +88,10 @@ for nrow=1:3
     
     for ncol=1:NumCol
         DM.addSegment(Seg,START+ncol*ua);
-        DM.show;
-        drawnow;
+        if verbose == true
+            DM.show;
+            drawnow;
+        end
     end
 end
 
@@ -88,6 +101,7 @@ for n=1:37
     SEGCOORDS(n,:) = DM.segList{n}.Offset;
 end
 varargout{1} = DM;
+
 %% Scalloping on Field
 if Scalloped_Field == true;
     F = AOField(DM);
@@ -115,7 +129,9 @@ if Scalloped_Field == true;
     
     DM.trueUp.touch.make;
     F.planewave*DM.touch.make*PS;
-    F.show;
+    if verbose == true;
+        F.show;
+    end
     varargout{2} = F;
 end
 end
