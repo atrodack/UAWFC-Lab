@@ -22,22 +22,25 @@ end
 
 clc;
 [x,y] = DM.coords;
-extentx = (abs(min(x)) + abs(max(x))) * 10^3; %mm
-extenty = (abs(min(y)) + abs(max(y))) * 10^3; %mm
-fprintf('X Width = %0.4f mm\n',extentx);
-fprintf('Y Width = %0.4f mm\n',extenty);
+
+extentx = (abs(min(x)) + abs(max(x)));
+extenty = (abs(min(y)) + abs(max(y)));
+% DM.Offset = [-x(ceil(length(x)/2)), 0];
+fprintf('X Width = %0.4f mm\n',extentx * 10^3);
+fprintf('Y Width = %0.4f mm\n',extenty * 10^3);
 
 %% Make an Aperture and a Field
 A = AOSegment(DM);
-D = extentx *10^-3;
+D = (extentx);
 dx = (magnification *segpitch) / 100;
 PNECO = [0 0 D 1 1.5*dx 0 0 0 0 0];
 A.pupils = PNECO;
 A.make;
 
 DM.trueUp;
+A.centerOn(DM);
 
-F = AOField(DM);
+F = AOField(A);
 F.name = 'Centered IrisAO DM';
 F.FFTSize = [2048 2048];
 F.lambda = lambda;
@@ -49,6 +52,12 @@ PTTpos = PTTPositionArray;
 % DM = IrisAOPTT(DM,1:37,PTTpos(:,1)*10^-6,PTTpos(:,2)*10^-3,PTTpos(:,3)*10^-3,false);
 % DM = IrisAOPTT(DM,1:37,zeros(37,1),PTTpos(:,2)*10^-3,PTTpos(:,3)*10^-3,false);
 DM = IrisAOPTT(DM,1:37,zeros(37,1),zeros(37,1),zeros(37,1),false);
+DM.show;
+DM = IrisAOPTT(DM,1:37,zeros(37,1),zeros(37,1),ones(37,1)*-10^-3,true);
+figure; DM.show;
+DM = IrisAOPTT(DM,1:37,zeros(37,1),ones(37,1) *-10^-3,zeros(37,1),true);
+figure; DM.show;
+DM.grid;
 F.planewave * DM * A;
 F.show
 colormap(gray);

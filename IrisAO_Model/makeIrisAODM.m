@@ -71,7 +71,7 @@ ub_ = ([c s; -s c] * ua')';
 for nrow=-3:0
     NumCol = 7-abs(nrow);
     
-    START = -3*ua - nrow*ub;
+    START = -4*ua - nrow*ub;
     
     for ncol=1:NumCol
         DM.addSegment(Seg,START+ncol*ua);
@@ -84,7 +84,7 @@ end
 
 for nrow=1:3
     NumCol = 7-abs(nrow);
-    START = -3*ua + nrow*ub_;
+    START = -4*ua + nrow*ub_;
     
     for ncol=1:NumCol
         DM.addSegment(Seg,START+ncol*ua);
