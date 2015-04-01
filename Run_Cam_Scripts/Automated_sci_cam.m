@@ -14,8 +14,9 @@
 clear all;
 clc;
 close all;
-DEBUG_FLAG = false;
 
+DEBUG_FLAG = true;
+Send2DM = false;
 %% Create dOTF Object
 cd('/home/lab/Desktop/Alex_AOSim2/AOSim2-rodack/AOSim2')
 directory_dOTFclass = pwd;
@@ -28,7 +29,7 @@ imaqtool
 
 %% Camera Acquistion and Settings
 %Recognizes and labels FPM and Science Image and sources
-scim = videoinput('dcam',2,'Y16_640x480'); %updated adaptorname to match matlab adaptorname from imaqhwinfo on 2/4/2015 by Justin
+scim = videoinput('dcam',1,'Y16_640x480'); %updated adaptorname to match matlab adaptorname from imaqhwinfo on 2/4/2015 by Justin
 % srcscim=getselectedsource(scim);
 % 
 % %Sets camera settings
@@ -48,7 +49,7 @@ p2 = [];
 while(counter_ <= total_loops_max)
     cd /home/lab/Desktop/
     %% Clear All Existing variables, previews and figures
-    clearvars -except dOTF counter_ counterloop total_loops_max restartcam select scim bg cSb SCIbkgd Datasubfolderbydate nframes dirnamebkgrnddark extratitle filterselection bkgrnddarkload B p2 p1 p3 p7 p8 p9 points DEBUG_FLAG
+    clearvars -except dOTF counter_ counterloop total_loops_max restartcam Send2DM select scim bg cSb SCIbkgd Datasubfolderbydate nframes dirnamebkgrnddark extratitle filterselection bkgrnddarkload B p2 p1 p3 p7 p8 p9 points DEBUG_FLAG
     close all
     closepreview
     clc
@@ -86,9 +87,9 @@ srcscim.FrameRate='30';
                 
                 
                 if counterloop == 1
-                    sSpeed=15;
+                    sSpeed=10;
                 else
-                    sSpeed = 15;
+                    sSpeed = 10;
                 end
                 
                 fprintf('Science image shutter speed = %g',sSpeed)
@@ -374,134 +375,135 @@ srcscim.FrameRate='30';
                 decision = 0;
             end
             
-            %% Send to DM
-            if decision == 1
-                sendtoDM = 1;
-                if sendtoDM == 1
-                    mask_radius = 5; %pixels
-                    if isempty(p2)
-                        fprintf('Pick the centers of the useful segments\n');
-                        clf;
-                        imagesc(abs(dOTF.storeddOTF{1}).^0.5);
-                        colormap(jet);
-                        daspect([1,1,1]);
-                        p2 = pickPoint;
-                        p1 = pickPoint;
-                        p3 = pickPoint;
-                        p7 = pickPoint;
-                        p8 = pickPoint;
-                        p9 = pickPoint;
+            if Send2DM == true
+                %% Send to DM
+                if decision == 1
+                    sendtoDM = 1;
+                    if sendtoDM == 1
+                        mask_radius = 5; %pixels
+                        if isempty(p2)
+                            fprintf('Pick the centers of the useful segments\n');
+                            clf;
+                            imagesc(abs(dOTF.storeddOTF{1}).^0.5);
+                            colormap(jet);
+                            daspect([1,1,1]);
+                            p2 = pickPoint;
+                            p1 = pickPoint;
+                            p3 = pickPoint;
+                            p7 = pickPoint;
+                            p8 = pickPoint;
+                            p9 = pickPoint;
+                            
+                            points = cell(1,3);
+                            points{1} = p2;
+                            points{2} = p1;
+                            points{3} = p3;
+                            points{4} = p7;
+                            points{5} = p8;
+                            points{6} = p9;
+                        end
+                        shift_point = dOTF.pupil_center;
+                        [sizex,sizey] = size(dOTF.Phase);
+                        center = [round(sizex/2),round(sizey/2)];
                         
-                        points = cell(1,3);
-                        points{1} = p2;
-                        points{2} = p1;
-                        points{3} = p3;
-                        points{4} = p7;
-                        points{5} = p8;
-                        points{6} = p9;
+                        phase_ref = dOTF.Phase(center(1),center(2));
+                        
+                        dOTF.unwrapphase('gold');
+                        phase = dOTF.Phase - phase_ref;
+                        
+                        %Tip / Tilt calculation
+                        
+                        
+                        
+                        %                     convert to OPL
+                        OPL = phase ./ ((2*pi)/0.6);
+                        
+                        [sizey,sizex] = size(OPL);
+                        xx = linspace(1,sizex,sizex);
+                        yy = linspace(1,sizey,sizey);
+                        [X,Y] = meshgrid(xx,yy);
+                        
+                        R2 = sqrt((X-points{1}(2)).^2 + (Y-points{1}(1)).^2);
+                        M2 = R2<=mask_radius;
+                        seg2 = M2.*OPL;
+                        [tip2,tilt2] = calctiptiltdOTF(M2.*phase,p2,[3,3]);
+                        seg2Prop = seg2(abs(seg2)>0);
+                        seg2piston = mean(seg2Prop);
+                        
+                        
+                        R1 = sqrt((X-points{2}(2)).^2 + (Y-points{2}(1)).^2);
+                        M1 = R1<=mask_radius;
+                        seg1 = M1.*OPL;
+                        [tip1,tilt1] = calctiptiltdOTF(M1.*phase,p1,[3,3]);
+                        seg1Prop = seg1(abs(seg1)>0);
+                        seg1piston = mean(seg1Prop);
+                        
+                        
+                        R3 = sqrt((X-points{3}(2)).^2 + (Y-points{3}(1)).^2);
+                        M3 = R3<=mask_radius;
+                        seg3 = M3.*OPL;
+                        [tip3,tilt3] = calctiptiltdOTF(M3.*phase,p3,[3,3]);
+                        seg3Prop = seg3(abs(seg3)>0);
+                        seg3piston = mean(seg3Prop);
+                        
+                        
+                        R7 = sqrt((X-points{4}(2)).^2 + (Y-points{4}(1)).^2);
+                        M7 = R7<=mask_radius;
+                        seg7 = M7.*OPL;
+                        [tip7,tilt7] = calctiptiltdOTF(M7.*phase,p7,[3,3]);
+                        seg7Prop = seg7(abs(seg7)>0);
+                        seg7piston = mean(seg7Prop);
+                        
+                        
+                        R8 = sqrt((X-points{5}(2)).^2 + (Y-points{5}(1)).^2);
+                        M8 = R8<=mask_radius;
+                        seg8 = M8.*OPL;
+                        [tip8,tilt8] = calctiptiltdOTF(M8.*phase,p8,[3,3]);
+                        seg8Prop = seg8(abs(seg8)>0);
+                        seg8piston = mean(seg8Prop);
+                        
+                        
+                        R9 = sqrt((X-points{6}(2)).^2 + (Y-points{6}(1)).^2);
+                        M9 = R9<=mask_radius;
+                        seg9 = M9.*OPL;
+                        [tip9,tilt9] = calctiptiltdOTF(M9.*phase,p9,[3,3]);
+                        seg9Prop = seg9(abs(seg9)>0);
+                        seg9piston = mean(seg9Prop);
+                        
+                        
+                        
+                        PTTpos = zeros(37,3);
+                        PTTpos(2,1) = seg2piston;
+                        PTTpos(1,1) = seg1piston;
+                        PTTpos(3,1) = seg3piston;
+                        PTTpos(7,1) = seg7piston;
+                        PTTpos(8,1) = seg8piston;
+                        PTTpos(9,1) = seg9piston;
+                        PTTpos(1,2) = tip1;
+                        PTTpos(1,3) = tilt1;
+                        PTTpos(2,2) = tip2;
+                        PTTpos(2,3) = tilt2;
+                        PTTpos(3,2) = tip3;
+                        PTTpos(3,3) = tilt3;
+                        PTTpos(7,2) = tip7;
+                        PTTpos(7,3) = tilt7;
+                        PTTpos(8,2) = tip8;
+                        PTTpos(8,3) = tilt8;
+                        PTTpos(9,2) = tip9;
+                        PTTpos(9,3) = tilt9;
+                        if segfinger == 1
+                            PTTpos(19,1) = -pokeval;
+                        end
+                        PTTpos
+                        input('Press Enter to Send to DM');
+                        
+                        cd /home/lab/Desktop/Shared_Stuff
+                        save('PTTpos','PTTpos');
+                    else
+                        fprintf('Not Sending Data to DM\n');
                     end
-                    shift_point = dOTF.pupil_center;
-                    [sizex,sizey] = size(dOTF.Phase);
-                    center = [round(sizex/2),round(sizey/2)];
-                                        
-                    phase_ref = dOTF.Phase(center(1),center(2));
-                    
-                    dOTF.unwrapphase('gold');
-                    phase = dOTF.Phase - phase_ref;
-                                     
-                    %Tip / Tilt calculation
-                    
-                    
-                    
-%                     convert to OPL
-                    OPL = phase ./ ((2*pi)/0.6);
-
-                    [sizey,sizex] = size(OPL);
-                    xx = linspace(1,sizex,sizex);
-                    yy = linspace(1,sizey,sizey);
-                    [X,Y] = meshgrid(xx,yy);
-                    
-                    R2 = sqrt((X-points{1}(2)).^2 + (Y-points{1}(1)).^2);
-                    M2 = R2<=mask_radius;
-                    seg2 = M2.*OPL;
-                    [tip2,tilt2] = calctiptiltdOTF(M2.*phase,p2,[3,3]);
-                    seg2Prop = seg2(abs(seg2)>0);
-                    seg2piston = mean(seg2Prop);
-
-                    
-                    R1 = sqrt((X-points{2}(2)).^2 + (Y-points{2}(1)).^2);
-                    M1 = R1<=mask_radius;
-                    seg1 = M1.*OPL;
-                    [tip1,tilt1] = calctiptiltdOTF(M1.*phase,p1,[3,3]);
-                    seg1Prop = seg1(abs(seg1)>0);
-                    seg1piston = mean(seg1Prop);
-
-                    
-                    R3 = sqrt((X-points{3}(2)).^2 + (Y-points{3}(1)).^2);
-                    M3 = R3<=mask_radius;
-                    seg3 = M3.*OPL;
-                    [tip3,tilt3] = calctiptiltdOTF(M3.*phase,p3,[3,3]);
-                    seg3Prop = seg3(abs(seg3)>0);
-                    seg3piston = mean(seg3Prop);
-
-                    
-                    R7 = sqrt((X-points{4}(2)).^2 + (Y-points{4}(1)).^2);
-                    M7 = R7<=mask_radius;
-                    seg7 = M7.*OPL;
-                    [tip7,tilt7] = calctiptiltdOTF(M7.*phase,p7,[3,3]);
-                    seg7Prop = seg7(abs(seg7)>0);
-                    seg7piston = mean(seg7Prop);
-
-                    
-                    R8 = sqrt((X-points{5}(2)).^2 + (Y-points{5}(1)).^2);
-                    M8 = R8<=mask_radius;
-                    seg8 = M8.*OPL;
-                    [tip8,tilt8] = calctiptiltdOTF(M8.*phase,p8,[3,3]);
-                    seg8Prop = seg8(abs(seg8)>0);
-                    seg8piston = mean(seg8Prop);
-                    
-                    
-                    R9 = sqrt((X-points{6}(2)).^2 + (Y-points{6}(1)).^2);
-                    M9 = R9<=mask_radius;
-                    seg9 = M9.*OPL;
-                    [tip9,tilt9] = calctiptiltdOTF(M9.*phase,p9,[3,3]);
-                    seg9Prop = seg9(abs(seg9)>0);
-                    seg9piston = mean(seg9Prop);
-                    
-                    
-                    
-                    PTTpos = zeros(37,3);
-                    PTTpos(2,1) = seg2piston;
-                    PTTpos(1,1) = seg1piston;
-                    PTTpos(3,1) = seg3piston;
-                    PTTpos(7,1) = seg7piston;
-                    PTTpos(8,1) = seg8piston;
-                    PTTpos(9,1) = seg9piston;
-                    PTTpos(1,2) = tip1;
-                    PTTpos(1,3) = tilt1;
-                    PTTpos(2,2) = tip2;
-                    PTTpos(2,3) = tilt2;
-                    PTTpos(3,2) = tip3;
-                    PTTpos(3,3) = tilt3;
-                    PTTpos(7,2) = tip7;
-                    PTTpos(7,3) = tilt7;
-                    PTTpos(8,2) = tip8;
-                    PTTpos(8,3) = tilt8;
-                    PTTpos(9,2) = tip9;
-                    PTTpos(9,3) = tilt9;
-                    if segfinger == 1
-                        PTTpos(19,1) = -pokeval;
-                    end
-                    PTTpos
-                    input('Press Enter to Send to DM');
-                    
-                    cd /home/lab/Desktop/Shared_Stuff
-                    save('PTTpos','PTTpos');
-                else
-                    fprintf('Not Sending Data to DM\n');
                 end
             end
-                
                 input('Press Enter to Continue');
             %% Restart Program
             
