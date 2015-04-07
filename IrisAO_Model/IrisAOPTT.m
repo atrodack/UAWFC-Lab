@@ -38,13 +38,13 @@ else
 end
 
 if ~isa(DM,'AOAperture')
-    error('DM must be AOSim2 class AODM');
+    error('DM must be AOSim2 class AOAperture');
 end
 
 %% Load in the Mapping Vector
 % load('IrisAO_MAP.mat');
 load('IrisAO_STUFF.mat');
-
+figure;
 %% Do the Mapping and Apply PTT
 if bump == false
     jj = 1;

@@ -5,7 +5,7 @@ function [  ] = ModelIrisAOsurf( DM,PTTpos )
 %   the surface profile of the DM from 2 perspectives
 
 
-if ~isa('DM','AOAperture')
+if ~isa(DM,'AOAperture')
     error('DM needs to be an IrisAO Model');
 end
 
