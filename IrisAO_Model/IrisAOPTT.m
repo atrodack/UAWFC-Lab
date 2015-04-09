@@ -25,13 +25,64 @@ elseif nargin == 4
     bump = false;
     fprintf('Applying Piston and Tip\n');
 elseif nargin == 5
-    fprintf('Applying Piston, Tip, and Tilt\n');
+    maxval1 = max(abs(pistonList));
+    maxval2 = max(abs(tipList));
+    maxval3 = max(abs(tiltList));
+    if maxval1 <= 1e-10
+        if maxval2 == 0
+            if maxval3 == 0
+                fprintf('Flattening the Mirror\n')
+            else
+                fprintf('Applying Piston and Tilt\n');
+            end
+        else
+            if maxval3 == 0
+                fprintf('Applying Piston and Tip\n');
+            else
+                fprintf('Applying Piston, Tip, and Tilt\n');
+            end
+        end
+        fprintf('Applying Piston\n');
+    end
+    
     bump = false;
 elseif nargin == 6
-    if bump == true
-        fprintf('Bumping Segments\n');
+    maxval1 = max(abs(pistonList));
+    maxval2 = max(abs(tipList));
+    maxval3 = max(abs(tiltList));
+    if maxval1 <= 1e-10
+        if maxval2 == 0
+            if maxval3 == 0
+                fprintf('Flattening the Mirror\n')
+            else
+                fprintf('Applying Tilt\n');
+            end
+        else
+            if maxval3 == 0
+                fprintf('Applying Tip\n');
+            else
+                fprintf('Applying Tip and Tilt\n');
+            end
+        end
     else
-        fprintf('Applying Piston, Tip, and Tilt\n');
+        if maxval2 == 0
+            if maxval3 == 0
+                fprintf('Applying Piston\n')
+            else
+                fprintf('Applying Piston and Tilt\n');
+            end
+        else
+            if maxval3 == 0
+                fprintf('Applying Piston and Tip\n');
+            else
+                fprintf('Applying Piston, Tip, and Tilt\n');
+            end
+        end
+    end
+    if bump == true
+        fprintf('*****Bumping Segments*****\n');
+    else
+        fprintf('*****Overwriting Piston, Tip, and Tilt*****\n');
     end
 else
     error('Number of input arguments is incorrect');
