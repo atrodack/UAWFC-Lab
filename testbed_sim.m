@@ -17,7 +17,7 @@ FOV = 300; % arcsecs
 PLATE_SCALE = THld/15;
 
 % Flags
-useturbulence = true;
+InjectAb = true;
 
 
 %% Pupil Mask
@@ -40,11 +40,10 @@ drawnow;
 pause(1);
 
 [x,y] = A.coords;
-[X,Y] = A.COORDS;
 
 %% IrisAO DM
 segpitch = 606e-6;
-magnification = 1.5;
+magnification = 1;
 
 %Flags
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
@@ -62,12 +61,18 @@ IrisAO_DM.lambdaRef = lambda;
 
 % clc; %clears the command window of the text generated from adding segments to the AOAperture object
 fprintf('IrisAO Mirror Constructed\n');
+
+
+% Set a Random Mirror Shape
+% PTTpos = horzcat(horzcat(randn(37,1)*10^-6,randn(37,1)*10^-3),randn(37,1)*10^-3);
+
+% Use a Zernike on the mirror
 Zernike_Number = [2,3];
-Zernike_Coefficient_waves = [1,2];
+Zernike_Coefficient_waves = randn(2,1);
 PTTpos = IrisAOComputeZernPositions( lambda, Zernike_Number, Zernike_Coefficient_waves);
 
 
-%% Map the PTTpos Matrix
+%
 load('IrisAO_SegMap.mat');
 PTT = zeros(37,3);
 
@@ -79,7 +84,7 @@ end
 IrisAO_DM.PTT(PTT);
 IrisAO_DM.touch;
 IrisAO_DM.render;
-figure(1)
+figure(1);
 IrisAO_DM.show;
 colormap(gray);
 drawnow;
@@ -90,19 +95,19 @@ pause(1);
 nActs = 1020; %32x32 minus 4 in the corners
 Max_Stroke = 1.5e-6;
 Pitch = 300e-6;
-sidelength = (4.65)*10^-3;
+radius_BMC = (4.65)*10^-3;
 
 %Coordinate System
-xmin = -sidelength;
-xmax = sidelength;
+xmin = -radius_BMC;
+xmax = radius_BMC;
 BMC_x = (xmin:SPACING:xmax);
-ymin = -sidelength;
-ymax = sidelength;
+ymin = -radius_BMC;
+ymax = radius_BMC;
 BMC_y = (ymin:SPACING:ymax);
 [BMC_X,BMC_Y] = meshgrid(BMC_x,BMC_y);
 
 BMC_pupil = ones(size(BMC_X));
-BMC_pupil = padarray(BMC_pupil,[250,250],1,'both'); %put 250 pixels on both sides outside of active area
+% BMC_pupil = padarray(BMC_pupil,[250,250],1,'both'); %put 250 pixels on both sides outside of active area
 
 %Construct the Pupil
 Seg = AOSegment(length(BMC_pupil));
@@ -121,10 +126,6 @@ drawnow;
 %Make it an AODM
 BMC_DM = AODM(A_BMC);
 [X,Y] = BMC_DM.COORDS;
-BMC_DM.show;
-colormap(gray);
-title('BMC Pupil');
-drawnow;
 
 % Create Actuator Locations
 actuator_x = xmin:Pitch:xmax;
@@ -140,38 +141,38 @@ BMC_ACTS(:,2) = ACTUATOR_Y(:);
 
 % Add Actuators
 BMC_DM.addActs(BMC_ACTS);
-BMC_DM.defineBC(sidelength,7,'square');
+BMC_DM.defineBC(radius_BMC+Pitch,7,'square');
+BMC_DM.flatten;
+BMC_DM.show;
+colormap(gray);
+title('BMC Pupil');
 BMC_DM.plotActuators;
+drawnow;
+
 pause(1);
-BMC_DM.plotRegions;
-pause(1);
-fprintf('BMC DM Constructed\n');
-
-%% Focal Plane Mask
+% BMC_DM.plotRegions;
+% pause(1);
+% fprintf('BMC DM Constructed\n');
 
 
-%% Lyot Stop
 
 
-%% Make some turbulence
+%% Inject Random Zernike Aberration to simulate system errors
 
-if useturbulence == true
-    turbulence = AOScreen(A);
-    turbulence.spacing(0.04);
-    turbulence.setR0(0.75);
-    turbulence.make;
-    
-    
-    %Workaround for small spacing errors in Screen
-    TURB = AOScreen(A);
-    TURB.grid(turbulence.grid);
-    
-    BMC_DM.setActs(-TURB);
-    BMC_DM.render;
-    BMC_DM.show;
-    pause(2);
-else
-    BMC_DM.bumpActs(ones(1020,1)*10^-6);
+if InjectAb == true
+    ABER = AOScreen(A);
+    nzerns = 2;
+    n = sort((randi(4,1,nzerns)),'ascend');
+    m = zeros(1,nzerns);
+    for ii = 1:nzerns
+        m_pos = -n(ii):2:n(ii);
+        choice = randi(length(m_pos),1,1);
+        m(ii) = m_pos(choice);
+    end
+    ABER.zero;
+    for ii = 1:nzerns
+        ABER.addZernike(n(ii),m(ii),randn(1)*lambda,D);
+    end
 end
 
 %% Go Through the System
@@ -187,8 +188,8 @@ else
 end
 F.lambda = lambda;
 
-if useturbulence == true
-    F * TURB * A * IrisAO_DM * BMC_DM;
+if InjectAb == true
+    F * ABER * A * IrisAO_DM * BMC_DM;
 else
     F * A * IrisAO_DM * BMC_DM;
 end
@@ -200,13 +201,10 @@ title('Field After IrisAO DM');
 figure(2)
 [PSF,thx,thy] = F.mkPSF(FOV,PLATE_SCALE);
 PSFmax = max(PSF(:));
-imagesc(thx,thy,log10(PSF/PSFmax),[-3,0]);
+imagesc(thx,thy,PSF/PSFmax);
+% imagesc(thx,thy,log10(PSF/PSFmax),[-3,0]);
 colormap(gray);
 axis xy;
 sqar;
 title(sprintf('PSF\n'));
-
-% figure(3)
-% mesh(X,Y,BMC_DM.grid);
-% % daspect([1,1,1e-2]);
 
