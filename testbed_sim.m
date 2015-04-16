@@ -201,10 +201,16 @@ title('Field After IrisAO DM');
 figure(2)
 [PSF,thx,thy] = F.mkPSF(FOV,PLATE_SCALE);
 PSFmax = max(PSF(:));
+subplot(1,2,1)
 imagesc(thx,thy,PSF/PSFmax);
-% imagesc(thx,thy,log10(PSF/PSFmax),[-3,0]);
 colormap(gray);
 axis xy;
 sqar;
 title(sprintf('PSF\n'));
+subplot(1,2,2)
+imagesc(thx,thy,log10(PSF/PSFmax),[-2,0]);
+colormap(gray);
+axis xy;
+sqar;
+title(sprintf('Log Scale PSF\n'));
 
