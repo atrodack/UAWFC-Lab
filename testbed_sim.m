@@ -19,8 +19,8 @@ nzerns = 4; %number of zernikes to inject
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
-FOV = 300; % arcsecs
-PLATE_SCALE = THld/5;
+FOV = 400; % arcsecs
+PLATE_SCALE = THld/10;
 
 %% Run Simulation/Testbed Flags
 RunSIM = true; %Run the simulation
@@ -32,6 +32,8 @@ verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.                  
 % Aberration Flag
 InjectAb = true; %Injects some random Zernikes
+% Coronagraph Flag
+coronagraph = true; % turns on going through coronagraph elemens
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
 
@@ -86,8 +88,8 @@ if RunSIM == true
     % clc; %clears the command window of the text generated from adding segments to the AOAperture object
     fprintf('\nIrisAO Mirror Constructed\n');
 end
-%% Set the Initial Piston, Tip, Tilt of IrisAO Mirror
 
+%% Set the Initial Piston, Tip, Tilt of IrisAO Mirror
 % Flatten the IrisAO
 PTTpos = zeros(37,3);
 
@@ -270,34 +272,39 @@ if RunSIM == true
 end
 
 %% Make the Coronagraph Elements
-F_coronagraph = AOField(2048);
-F_coronagraph.FFTSize = 2048;
-F_coronagraph.spacing(SPACING);
-F_coronagraph.planewave * A;
-F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the focal plane.
-
-FPMASK = AOSegment(F_coronagraph);
-FPMASK.grid(exp(-normalize(F_coronagraph.mag2)/0.001) ); % This is pretty ad hoc.
-
-F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the Lyot pupil plane.
-
-LYOT = AOSegment(F_coronagraph);
-
-% This is a better way...
-LYOTSTOP_DEFN = [
-   0 0 (D*0.8)         1 aa 0 0 0 0 0  % undersize the Lyot stop
-   0 0 (secondary*1.1) 0 aa/2 0 0 0 0 0 % oversize the secondary
-   0 0 spider         -2 aa 4 0 D/1.9 0 0
-   ];
-
-LYOT.pupils = LYOTSTOP_DEFN;
-LYOT.make;
-
-[PSF0,thx,thy] = F_coronagraph.mkPSF(FOV,PLATE_SCALE); % This is the reference PSF.
-PSFmax = max(PSF0(:)); % Save for normalizing.
-
-PSF0 = PSF0/PSFmax; % make the brightest value =1.
-
+if RunSIM == true
+    if coronagraph == true
+        F_coronagraph = AOField(2048);
+        F_coronagraph.FFTSize = 2048;
+        F_coronagraph.spacing(SPACING);
+        F_coronagraph.planewave * A;
+        F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the focal plane.
+        
+        FPMASK = AOSegment(F_coronagraph);
+        FPMASK.grid(exp(-normalize(F_coronagraph.mag2)/0.05) ); % This is pretty ad hoc.
+        fprintf('\nFPM Constructed\n\n');
+        
+        F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the Lyot pupil plane.
+        
+        LYOT = AOSegment(F_coronagraph);
+        
+        % This is a better way...
+        LYOTSTOP_DEFN = [
+            0 0 (D*0.8)         1 aa 0 0 0 0 0  % undersize the Lyot stop
+            0 0 (secondary*1.1) 0 aa/2 0 0 0 0 0 % oversize the secondary
+            0 0 spider         -2 aa 4 0 D/1.9 0 0
+            ];
+        
+        LYOT.pupils = LYOTSTOP_DEFN;
+        LYOT.make;
+        fprintf('Lyot Stop Constructed\n');
+        
+        [PSF0,thx,thy] = F_coronagraph.mkPSF(FOV,PLATE_SCALE); % This is the reference PSF.
+        PSFmax = max(PSF0(:)); % Save for normalizing.
+        
+        PSF0 = PSF0/PSFmax; % make the brightest value =1.
+    end
+end
 %**************************************************************************
 %                    Model Light through the System
 %**************************************************************************
@@ -320,17 +327,20 @@ if RunSIM == true
         F * A * IrisAO_DM * BMC_DM;
     end
     
-    F.grid(F.fft/F.nx); % Go to the focal plane.
-    F*FPMASK; % Pass through the focal plane mask.
-    F.grid(F.fft/F.nx); % Go to the Lyot pupil plane.
-    F*LYOT; % Pass through the Lyot Stop.
-
+    if coronagraph == true
+        F.grid(F.fft/F.nx); % Go to the focal plane.
+        F*FPMASK; % Pass through the focal plane mask.
+        F.grid(F.fft/F.nx); % Go to the Lyot pupil plane.
+        F*LYOT; % Pass through the Lyot Stop.
+    end
+    
     figure(1);
     F.show;
     drawnow;
-    title('Field After IrisAO DM');
+    title('Field in Final Pupil Plane');
     
     figure(2)
+    F.touch;
     [PSF,thx,thy] = F.mkPSF(FOV,PLATE_SCALE);
     PSFmax2 = max(PSF(:));
     subplot(1,2,1)
@@ -340,7 +350,7 @@ if RunSIM == true
     sqar;
     title(sprintf('PSF\n'));
     subplot(1,2,2)
-    imagesc(thx,thy,log10(PSF/PSFmax2),[-2,0]);
+    imagesc(thx,thy,log10(PSF/PSFmax2),[-3,0]);
     colormap(gray);
     axis xy;
     sqar;
