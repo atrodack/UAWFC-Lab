@@ -37,10 +37,10 @@ coronagraph = true; % turns on going through coronagraph elemens
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
 
-%% Testbed Flags
+% Testbed Flags
 
 
-%**************************************************************************
+%% ************************************************************************
 %                      Construct System Elements
 %**************************************************************************
 if RunSIM == true
@@ -96,7 +96,7 @@ PTTpos = zeros(37,3);
 % Set a Random Mirror Shape
 % PTTpos = horzcat(randn(37,1)*10^-6,randn(37,1)*10^-3,randn(37,1)*10^-3);
 
-% Use a Zernike on the mirror
+% Use a Zernike on the mirror....magnification must be equal to 1 for this!
 % Zernike_Number = [2,3];
 % Zernike_Coefficient_waves = randn(2,1);
 % PTTpos = IrisAOComputeZernPositions( lambda, Zernike_Number, Zernike_Coefficient_waves);
@@ -182,19 +182,30 @@ if RunSIM == true
     
     % Create Actuator Locations
     actuator_x = xmin:Pitch:xmax;
+    actuator_x = actuator_x - mean(actuator_x);
     actuator_y = ymin:Pitch:ymax;
+    actuator_y = actuator_y - mean(actuator_y);
     [ACTUATOR_X,ACTUATOR_Y] = meshgrid(actuator_x,actuator_y);
     ACTUATOR_X(1,1) = 0; ACTUATOR_X(32,32) = 0; ACTUATOR_X(32,1) = 0; ACTUATOR_X(1,32) = 0;
     ACTUATOR_Y(1,1) = 0; ACTUATOR_Y(32,32) = 0; ACTUATOR_Y(32,1) = 0; ACTUATOR_Y(1,32) = 0;
     ACTUATOR_X(ACTUATOR_X==0) = [];
     ACTUATOR_Y(ACTUATOR_Y==0) = [];
-    BMC_ACTS = zeros(1020,2);
-    BMC_ACTS(:,1) = ACTUATOR_X(:);
-    BMC_ACTS(:,2) = ACTUATOR_Y(:);
+    BMC_ACTS = [ACTUATOR_X(:),ACTUATOR_Y(:)];
+    nacts = length(BMC_ACTS(:,1));
     
     % Add Actuators
     BMC_DM.addActs(BMC_ACTS);
-    BMC_DM.defineBC(radius_BMC+Pitch,7,'square');
+    %Remove Actuators that Aren't Illuminated
+    for ii = 1:nacts
+        RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
+        if RHO(ii) > D/2.1
+            BMC_DM.actuators(ii,5) = 0;
+        elseif RHO(ii) < secondary/1.9
+            BMC_DM.actuators(ii,5) = 0;
+        end
+    end
+
+    BMC_DM.defineBC(D/2+Pitch,28,'circle');
     BMC_DM.flatten;
     
     if system_verbose == true
