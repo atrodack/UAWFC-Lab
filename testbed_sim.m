@@ -15,6 +15,7 @@ spider = 0.02*D; % 2% of Pupil Diameter
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = SPACING;  % for antialiasing.
+nzerns = 4; %number of zernikes to inject
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
@@ -41,6 +42,10 @@ system_verbose = false; %Plots Created System Elements
 %                      Construct System Elements
 %**************************************************************************
 if RunSIM == true
+    load alright.mat;
+    John = audioplayer(y,Fs);
+    play(John);
+    
     %% Pupil Mask
     PUPIL_DEFN = [
         0 0 D         1 aa 0 0 0 0 0
@@ -218,10 +223,11 @@ else
         dOTF_Testbed = AOdOTF(1);
         fprintf('\ndOTF Object Created for Testbed\n');
     else
-        while(1)
-            fprintf('WHY WOULD YOU EVEN BOTHER RUNNING THIS?\n');
-            pause(0.15);
-        end
+        load easily_achieved.mat;
+        John = audioplayer(y,Fs);
+        play(John);
+        pause(3);
+        fprintf('WHY WOULD YOU EVEN BOTHER RUNNING THIS?\n');
     end
 end
 
@@ -229,7 +235,6 @@ end
 %% Inject Random Zernike Aberration to simulate system errors
 if RunSIM == true
     if InjectAb == true
-        nzerns = 2; %number of zernikes to add
         ABER = AOScreen(A);
         n = sort((randi(4,1,nzerns)),'ascend'); %zernike mode order (from lowest to highest)
         m = zeros(1,nzerns); %zernike mode initialization
@@ -263,6 +268,36 @@ if RunSIM == true
         disp(T);
     end
 end
+
+%% Make the Coronagraph Elements
+F_coronagraph = AOField(2048);
+F_coronagraph.FFTSize = 2048;
+F_coronagraph.spacing(SPACING);
+F_coronagraph.planewave * A;
+F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the focal plane.
+
+FPMASK = AOSegment(F_coronagraph);
+FPMASK.grid(exp(-normalize(F_coronagraph.mag2)/0.001) ); % This is pretty ad hoc.
+
+F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the Lyot pupil plane.
+
+LYOT = AOSegment(F_coronagraph);
+
+% This is a better way...
+LYOTSTOP_DEFN = [
+   0 0 (D*0.8)         1 aa 0 0 0 0 0  % undersize the Lyot stop
+   0 0 (secondary*1.1) 0 aa/2 0 0 0 0 0 % oversize the secondary
+   0 0 spider         -2 aa 4 0 D/1.9 0 0
+   ];
+
+LYOT.pupils = LYOTSTOP_DEFN;
+LYOT.make;
+
+[PSF0,thx,thy] = F_coronagraph.mkPSF(FOV,PLATE_SCALE); % This is the reference PSF.
+PSFmax = max(PSF0(:)); % Save for normalizing.
+
+PSF0 = PSF0/PSFmax; % make the brightest value =1.
+
 %**************************************************************************
 %                    Model Light through the System
 %**************************************************************************
@@ -285,6 +320,11 @@ if RunSIM == true
         F * A * IrisAO_DM * BMC_DM;
     end
     
+    F.grid(F.fft/F.nx); % Go to the focal plane.
+    F*FPMASK; % Pass through the focal plane mask.
+    F.grid(F.fft/F.nx); % Go to the Lyot pupil plane.
+    F*LYOT; % Pass through the Lyot Stop.
+
     figure(1);
     F.show;
     drawnow;
@@ -292,18 +332,23 @@ if RunSIM == true
     
     figure(2)
     [PSF,thx,thy] = F.mkPSF(FOV,PLATE_SCALE);
-    PSFmax = max(PSF(:));
+    PSFmax2 = max(PSF(:));
     subplot(1,2,1)
-    imagesc(thx,thy,PSF/PSFmax);
+    imagesc(thx,thy,PSF/PSFmax2);
     colormap(gray);
     axis xy;
     sqar;
     title(sprintf('PSF\n'));
     subplot(1,2,2)
-    imagesc(thx,thy,log10(PSF/PSFmax),[-2,0]);
+    imagesc(thx,thy,log10(PSF/PSFmax2),[-2,0]);
     colormap(gray);
     axis xy;
     sqar;
     title(sprintf('Log Scale PSF\n'));
     
+    load ok.mat;
+    John = audioplayer(y,Fs);
+    play(John);
+
 end
+
