@@ -16,24 +16,24 @@ spider = 0.02*D; % 2% of Pupil Diameter
 SPACING = 1e-5; % fine spacing
 aa = SPACING;  % for antialiasing.
 nzerns = 4; %number of zernikes to inject
-
+fftsize = 4096;
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
-FOV = 400; % arcsecs
-PLATE_SCALE = THld/10;
+FOV = 100*THld; % arcsecs
+PLATE_SCALE = THld/4;
 
 %% Run Simulation/Testbed Flags
 RunSIM = true; %Run the simulation
-RunTESTBED = false;%Run the testbed equipment
+RunTESTBED = false; %Run the testbed equipment
 
 %% Simulation Flags
 % IrisAO Flags
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.                  
 % Aberration Flag
-InjectAb = true; %Injects some random Zernikes
+InjectAb = false; %Injects some random Zernikes
 % Coronagraph Flag
-coronagraph = true; % turns on going through coronagraph elemens
+coronagraph = false; % turns on going through coronagraph elemens
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
 
@@ -79,11 +79,12 @@ if RunSIM == true
 
     % Make the Mirror
     if Scalloped_Field == true
-        [IrisAO_DM,F_scal] = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
+        [DM1,F_scal] = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
+        F_scal.grid(padarray(F_scal.grid,[ceil(271/2),ceil(207/2)]));
     else
-        IrisAO_DM = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
+        DM1 = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
     end
-    IrisAO_DM.lambdaRef = lambda;
+    DM1.lambdaRef = lambda;
     
     % clc; %clears the command window of the text generated from adding segments to the AOAperture object
     fprintf('\nIrisAO Mirror Constructed\n');
@@ -131,13 +132,13 @@ if RunSIM == true
     end
     
     % Send to DM Model
-    IrisAO_DM.PTT(PTT);
-    IrisAO_DM.touch;
-    IrisAO_DM.render;
+    DM1.PTT(PTT);
+    DM1.touch;
+    DM1.render;
     
     if system_verbose == true
         figure(1);
-        IrisAO_DM.show;
+        DM1.show;
         colormap(gray);
         drawnow;
         pause(1);
@@ -147,7 +148,7 @@ end
 %% Boston MircroMachines DM
 %DM Specs
 nActs = 1020; %32x32 minus 4 in the corners
-Max_Stroke = 1.5e-6;
+STROKE = 1.5e-6;
 Pitch = 300e-6;
 radius_BMC = (4.65)*10^-3;
 
@@ -177,8 +178,8 @@ if RunSIM == true
     A_BMC.addSegment(Seg);
     
     %Make an AODM
-    BMC_DM = AODM(A_BMC);
-    [X,Y] = BMC_DM.COORDS;
+    DM2 = AODM(A_BMC);
+    [X,Y] = DM2.COORDS;
     
     % Create Actuator Locations
     actuator_x = xmin:Pitch:xmax;
@@ -186,35 +187,77 @@ if RunSIM == true
     actuator_y = ymin:Pitch:ymax;
     actuator_y = actuator_y - mean(actuator_y);
     [ACTUATOR_X,ACTUATOR_Y] = meshgrid(actuator_x,actuator_y);
-    ACTUATOR_X(1,1) = 0; ACTUATOR_X(32,32) = 0; ACTUATOR_X(32,1) = 0; ACTUATOR_X(1,32) = 0;
-    ACTUATOR_Y(1,1) = 0; ACTUATOR_Y(32,32) = 0; ACTUATOR_Y(32,1) = 0; ACTUATOR_Y(1,32) = 0;
-    ACTUATOR_X(ACTUATOR_X==0) = [];
-    ACTUATOR_Y(ACTUATOR_Y==0) = [];
+%     ACTUATOR_X(1,1) = 0; ACTUATOR_X(32,32) = 0; ACTUATOR_X(32,1) = 0; ACTUATOR_X(1,32) = 0;
+%     ACTUATOR_Y(1,1) = 0; ACTUATOR_Y(32,32) = 0; ACTUATOR_Y(32,1) = 0; ACTUATOR_Y(1,32) = 0;
+%     ACTUATOR_X(ACTUATOR_X==0) = [];
+%     ACTUATOR_Y(ACTUATOR_Y==0) = [];
     BMC_ACTS = [ACTUATOR_X(:),ACTUATOR_Y(:)];
     nacts = length(BMC_ACTS(:,1));
     
     % Add Actuators
-    BMC_DM.addActs(BMC_ACTS);
-    %Remove Actuators that Aren't Illuminated
+    DM2.addActs(BMC_ACTS,1,A_BMC);
+    
+    % Turn Off Actuators that Aren't Illuminated
+    RHO = zeros(nacts,1);
     for ii = 1:nacts
         RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
         if RHO(ii) > D/2.1
-            BMC_DM.actuators(ii,5) = 0;
+            DM2.actuators(ii,5) = 0;
         elseif RHO(ii) < secondary/1.9
-            BMC_DM.actuators(ii,5) = 0;
+            DM2.actuators(ii,5) = 0;
         end
     end
-
-    BMC_DM.defineBC(D/2+Pitch,28,'circle');
-    BMC_DM.flatten;
+    
+    % Get Lists of Which Actuators are Being Used
+    counter_off = 1;
+    counter_on = 1;
+    OffActs = zeros(length(DM2.actuators(DM2.actuators(:,5) == 0)),1);
+    OnActs = zeros(nacts - length(OffActs),1);
+    
+    for ii = 1:nacts
+        if DM2.actuators(ii,5) == 0
+            OffActs(counter_off) = ii;
+            counter_off = counter_off+1;
+        elseif DM2.actuators(ii,5) == 1
+            OnActs(counter_on) = ii;
+            counter_on = counter_on+1;
+        end
+    end
+    
+    % Set the Convex Hull Boundary Conditions
+    DM2.defineBC(D/2+Pitch,28,'circle');
+    
+    %% Set the Initial Piston Values of the BMC DM
+    DM2.flatten;
+    
+%     DM2.actuators(OnActs,3) = ((randn(length(OnActs),1).*10^-6));
+    DM2.removeMean;
+    
+    if RunTESTBED == true
+       DM_Pistons = reshape(DM2.actuators(:,3),[32,32]);
+       
+       tempdir = pwd;
+       cd C:\Users\atrod_000\Documents\GitHub\UAWFC\fits_files;
+       fitswrite(DM_Pistons,'DM_Pistons.fits');
+       img = fitsread('DM_Pistons.fits');
+       figure(5);
+       imagesc(img);
+       input('Press Enter');
+       close
+       cd(tempdir);
+       
+       % DO STUFF TO SEND TO MIRROR
+       
+       
+    end
     
     if system_verbose == true
-        BMC_DM.show;
+        DM2.show;
         colormap(gray);
         title('BMC Pupil');
-        BMC_DM.plotActuators;
+        DM2.plotActuators;
         pause(1);
-        BMC_DM.plotRegions;
+        DM2.plotRegions;
         pause(1);
     end
     
@@ -224,12 +267,15 @@ end
 %% Initialize dOTF Object
 if RunSIM == true 
     if RunTESTBED == true
-        dOTF_Sim = AOdOTF(A_BMC,FOV,PLATE_SCALE);
+        dOTF_Sim = AOdOTF(A,FOV,PLATE_SCALE);
         dOTF_Testbed = AOdOTF(1);
         fprintf('\ndOTF Objects Created for Sim and Testbed\n');
+        dOTF_Sim.create_finger(1.788e-3,0.3212e-3,0.1e-3);
     else
-        dOTF_Sim = AOdOTF(A_BMC,FOV,PLATE_SCALE);
+        dOTF_Sim = AOdOTF(A,FOV,PLATE_SCALE);
         fprintf('\ndOTF Object Created for Sim\n');
+        dOTF_Sim.create_finger(1.788e-3,0.3212e-3,0.1e-3);
+%         dOTF_Sim.create_finger(3.25e-3,0.3212e-3,0.1e-3);
     end
 else
     if RunTESTBED == true
@@ -243,7 +289,6 @@ else
         fprintf('WHY WOULD YOU EVEN BOTHER RUNNING THIS?\n');
     end
 end
-
 
 %% Inject Random Zernike Aberration to simulate system errors
 if RunSIM == true
@@ -285,14 +330,27 @@ end
 %% Make the Coronagraph Elements
 if RunSIM == true
     if coronagraph == true
-        F_coronagraph = AOField(2048);
-        F_coronagraph.FFTSize = 2048;
+        F_coronagraph = AOField(A);
+        F_coronagraph.FFTSize = fftsize;
         F_coronagraph.spacing(SPACING);
         F_coronagraph.planewave * A;
         F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the focal plane.
         
         FPMASK = AOSegment(F_coronagraph);
-        FPMASK.grid(exp(-normalize(F_coronagraph.mag2)/0.05) ); % This is pretty ad hoc.
+        FPMASK.spacing(SPACING);
+        D_FPM = 10e-5;
+        
+        FPM_DEFN = [
+        0 0 D_FPM         1 aa 0 0 0 0 0
+        ];
+    
+        FPMASK.pupils= FPM_DEFN;
+        FPMASK.make;
+        fpmask = FPMASK.grid;
+        fpmask = padarray(fpmask,[floor((fftsize-length(fpmask))/2),floor((fftsize-length(fpmask))/2)]);
+        fpmask = double(~fpmask);
+        FPMASK.grid(fpmask);
+%         FPMASK.grid(exp(-normalize(F_coronagraph.mag2)/0.05) ); % This is pretty ad hoc.
         fprintf('\nFPM Constructed\n\n');
         
         F_coronagraph.grid(F_coronagraph.fft/F_coronagraph.nx); % Go to the Lyot pupil plane.
@@ -322,20 +380,22 @@ end
 if RunSIM == true
     if Scalloped_Field == true
         F = F_scal.copy;
-        F.FFTSize = 2048; % Used to compute PSFs, etc.
+        F.FFTSize = fftsize; % Used to compute PSFs, etc.
     else
         F = AOField(A);
-        F.spacing(SPACING)
-        F.FFTSize = 2048; % Used to compute PSFs, etc.
+        F.spacing(SPACING);
+        F.FFTSize = fftsize; % Used to compute PSFs, etc.
         F.resize(F.FFTSize);
         F.planewave;
     end
     F.lambda = lambda;
     
     if InjectAb == true
-        F * ABER * A * IrisAO_DM * BMC_DM;
+        F * ABER * A * DM1 * DM2;
+%         F * ABER * A;
     else
-        F * A * IrisAO_DM * BMC_DM;
+        F * A * DM1 * DM2;
+%         F * A;
     end
     
     if coronagraph == true
@@ -343,6 +403,8 @@ if RunSIM == true
         F*FPMASK; % Pass through the focal plane mask.
         F.grid(F.fft/F.nx); % Go to the Lyot pupil plane.
         F*LYOT; % Pass through the Lyot Stop.
+    else
+        
     end
     
     figure(1);
@@ -350,10 +412,18 @@ if RunSIM == true
     drawnow;
     title('Field in Final Pupil Plane');
     
+    
+
     figure(2)
     F.touch;
     [PSF,thx,thy] = F.mkPSF(FOV,PLATE_SCALE);
     PSFmax2 = max(PSF(:));
+    
+    w = 55500;
+    [Xg,Yg] = meshgrid(thx,thy);
+    gaus = exp(-((Xg.^2 ./ (2*w)) + (Yg.^2 ./(2*w))));
+    
+    PSF = PSF.*gaus;
     subplot(1,2,1)
     imagesc(thx,thy,PSF/PSFmax2);
     colormap(gray);
@@ -366,6 +436,77 @@ if RunSIM == true
     axis xy;
     sqar;
     title(sprintf('Log Scale PSF\n'));
+    
+    F.touch;
+    F.grid(PSF);
+    F.touch;
+    OTF = F.mkOTF(1.7*FOV,PLATE_SCALE);
+    F.touch;
+    
+    if Scalloped_Field == true
+        F = F_scal.copy;
+        F.FFTSize = fftsize; % Used to compute PSFs, etc.
+    else
+        F = AOField(A);
+        F.spacing(SPACING);
+        F.FFTSize = fftsize; % Used to compute PSFs, etc.
+        F.resize(F.FFTSize);
+        F.planewave;
+    end
+    F.lambda = lambda;
+    if InjectAb == true
+        F * ABER * A * DM1 * DM2 * dOTF_Sim.finger;
+%         F * ABER * A * dOTF_Sim.finger;
+    else
+        F * A * DM1 * DM2 * dOTF_Sim.finger;
+%         F  * A * dOTF_Sim.finger;
+    end
+    
+    if coronagraph == true
+        F.grid(F.fft/F.nx); % Go to the focal plane.
+        F*FPMASK; % Pass through the focal plane mask.
+        F.grid(F.fft/F.nx); % Go to the Lyot pupil plane.
+        F*LYOT; % Pass through the Lyot Stop.
+    else
+        
+    end
+    
+    figure(1);
+    F.show;
+    drawnow;
+    title('Field in Final Pupil Plane');
+    
+    figure(3)
+    F.touch;
+    [PSF1,thx,thy] = F.mkPSF(FOV,PLATE_SCALE);
+    PSFmax3 = max(PSF1(:));
+    PSF1 = PSF1 .* gaus;
+    subplot(1,2,1)
+    imagesc(thx,thy,PSF1/PSFmax3);
+    colormap(gray);
+    axis xy;
+    sqar;
+    title(sprintf('PSF\n'));
+    subplot(1,2,2)
+    imagesc(thx,thy,log10(PSF1/PSFmax3),[-3,0]);
+    colormap(gray);
+    axis xy;
+    sqar;
+    title(sprintf('Log Scale PSF\n'));
+    
+    F.touch;
+    F.grid(PSF1);
+    OTF1 = F.mkOTF(1.7*FOV,PLATE_SCALE);
+    F.touch;
+    
+    input('Press Enter');
+    close all
+    figure(1)
+    dOTF = abs(OTF - OTF1);
+    maxval = max(max(dOTF));
+    imagesc(log10(dOTF/maxval),[-5,0]);
+    figure(2)
+    imagesc(angle(OTF-OTF1));
     
     load ok.mat;
     John = audioplayer(y,Fs);
