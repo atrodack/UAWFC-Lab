@@ -15,7 +15,7 @@ spider = 0.02*D; % 2% of Pupil Diameter
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 5; %number of zernikes to inject
+nzerns = 3; %number of zernikes to inject
 fftsize = 2^12;
 
 %% Scales
@@ -243,7 +243,7 @@ if RunSIM == true
     
     %% Set the Initial Piston Values of the BMC DM
     DM2.flatten;
-    
+%     DM2.actuators(343,3) = 1e-6;
 %     DM2.actuators(OnActs,3) = ((randn(length(OnActs),1).*10^-6));
     DM2.removeMean;
     
@@ -388,7 +388,7 @@ end
 %% *************************************************************************
 %                    Model Light through the System
 %**************************************************************************
-fprintf('\nSending Light through the System\n');
+fprintf('\nSending Light through the System and computing dOTF\n');
 if RunSIM == true
     if Scalloped_Field == true
         fprintf('Using a Scalloped Field to Simulate Segment Surfaces\n');
@@ -512,11 +512,19 @@ if RunSIM == true
         title(sprintf('Log Scale OTF\n'));
     end
     
-    input('Press Enter');
+%     input('Press Enter');
 
     
     close all
-    dOTF_Sim.aliasmasking;
+    figure(1);
+    imagesc(abs(dOTF_Sim.dOTF));
+    axis xy;
+    sqar;
+    figure(2);
+    imagesc(dOTF_Sim.Phase);
+    axis xy;
+    sqar;
+%     dOTF_Sim.aliasmasking;
     
     figure(3)
     imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/max(max(dOTF_Sim.PSF0))),[-4,0]);

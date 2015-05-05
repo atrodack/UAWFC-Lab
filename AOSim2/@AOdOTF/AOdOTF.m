@@ -167,8 +167,14 @@ classdef AOdOTF < AOField
             figure(1)
             % imagesc(log10(dOTF/maxval),[-5,0]);
             imagesc(abs(dotf));
+            axis off
+            axis xy;
+            title('Magnitude of dOTF');
             figure(2)
             imagesc(phase.*mask);
+            axis off
+            axis xy;
+            title('Phase of dOTF');
         end
         
         function AOdOTF = create_finger(AOdOTF,y_pos,x_pos,width)
