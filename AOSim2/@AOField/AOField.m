@@ -82,24 +82,48 @@ classdef AOField < AOGrid
             
         end
         
-        function [OTF,thx,thy] = mkOTF(F,FoV,dth,N0)
+        function [OTF,thx,thy] = mkOTF(F,FoV,dx,N0)
             % [PSF,thx,thy] = mkPSF(F,FoV,dth,N0)
             % N0 is optional.  If included then photonize the PSF.
             if(nargin<3)
                 [OTF,thx,thy] = mkHALO(F,FoV);
             else
-                [OTF,thx,thy] = mkHALO(F,FoV,dth);
+                [OTF,thx,thy] = mkHALO(F,FoV,dx);
+                
             end
             OTF(isnan(OTF)) = 0;
             
             if(nargin>3)
-            
+                
                 Sum0 = sum(OTF(:));
                 OTF = double(OTF)*(1e-12*N0/Sum0);
                 OTF = 1e12*imnoise(OTF,'poisson');
                 
             end
         end
+        
+        function OTF = mkOTF2(F,FoV,dx)
+            halo = F.fft;
+            
+            g = AOGrid(1);
+            g.spacing(F.spacing);
+            g.grid(halo);
+            [x_,y_] = g.coords;
+            Dx = F.dx;
+            
+            Selx = abs(x_)<=(FoV+2*Dx);
+            Sely = abs(y_)<=(FoV+2*Dx);
+            x_ = x_(Selx);
+            y_ = y_(Selx);
+            [X_,Y_] = meshgrid(x_,y_);
+            Nx = ceil(FoV/dx);
+            x = (-Nx:Nx)*dx;
+            y = x;
+            [X,Y] = meshgrid(x,y);
+            halo = halo(Selx,Sely);
+            OTF = qinterp2(X_,Y_,halo,X,Y);
+        end
+        
         
         function [PSF,thx,thy] = mkPSF(F,FoV,dth,N0)
             % [PSF,thx,thy] = mkPSF(F,FoV,dth,N0)
@@ -113,7 +137,7 @@ classdef AOField < AOGrid
             PSF(isnan(PSF)) = 0;
             
             if(nargin>3)
-            
+                
                 Sum0 = sum(PSF(:));
                 PSF = double(PSF)*(1e-12*N0/Sum0);
                 PSF = 1e12*imnoise(PSF,'poisson');
@@ -122,11 +146,11 @@ classdef AOField < AOGrid
         end
         
         function F = plotPSF(F,FoV,dexRange,dth)
-        % F = plotPSF(F,FoV,dexRange,dth)
+            % F = plotPSF(F,FoV,dexRange,dth)
             if(nargin<3)
                 dexRange = [-4 0];
             end
-
+            
             if(nargin<4)
                 [PSF,thx,thy] = F.mkPSF(FoV);
             else
@@ -135,57 +159,57 @@ classdef AOField < AOGrid
             maxPSF = max(PSF(:));
             imagesc(thx,thy,log10(PSF/maxPSF),dexRange);
             axis square;
-			axis xy;
+            axis xy;
         end
         
         function IMAGE = interferometer(F,ref)
             IMAGE = abs(F.grid+ref).^2;
         end
-
-		% returns angles in radians.
-		function [thx,thy] = thcoords(A)
-			[kx,ky] = kcoords(A);
-			k = 2*pi/A.lambda;
-			thx = kx/k;
-			thy = ky/k;
-		end
-		
-		function [THX,THY] = THCOORDS(A)
-			[KX,KY] = KCOORDS(A);
-			k = 2*pi/A.lambda;
-			THX = KX/k;
-			THY = KY/k;
-        end
-		
-		function a = mtimes(a,b)
-		% function a = mtimes(a,b)
-        % This is overloaded to compute smart "times" operations for AOFields.
         
-			if(isa(b,'AOPhaseScreen'))
-				if(isCommensurate(a,b))
-					if(isPhase(b))
-						% fprintf('DEBUG: AOField*AOPhaseScreen<phase>: commensurate grids.\n');
-						a.grid_ = a.grid_ .* exp((1i*b.lambdaRef/a.lambda)*b.grid_);
-					else
-						% fprintf('DEBUG: AOField*AOPhaseScreen<phasor>: commensurate grids.\n');
-						a.grid_ = a.grid_ .* b.grid_;
-					end
-				else
-					[X,Y] = a.COORDS;
-					
-					if(isPhase(b))
-						% fprintf('DEBUG: AOField*AOPhaseScreen<phase>: non-commensurate grids.\n');
-						bg = exp((1i*b.lambdaRef/a.lambda)*interpGrid(b,X,Y));
-					else
-						% fprintf('DEBUG: AOField*AOPhaseScreen<phasor>: non-commensurate grids.\n');
-						bg = interpGrid(b,X,Y);
-					end
-					
-					bg(isnan(bg)) = 1;
-					a.grid_ = a.grid_ .* bg;
-				end
-			end
-			
+        % returns angles in radians.
+        function [thx,thy] = thcoords(A)
+            [kx,ky] = kcoords(A);
+            k = 2*pi/A.lambda;
+            thx = kx/k;
+            thy = ky/k;
+        end
+        
+        function [THX,THY] = THCOORDS(A)
+            [KX,KY] = KCOORDS(A);
+            k = 2*pi/A.lambda;
+            THX = KX/k;
+            THY = KY/k;
+        end
+        
+        function a = mtimes(a,b)
+            % function a = mtimes(a,b)
+            % This is overloaded to compute smart "times" operations for AOFields.
+            
+            if(isa(b,'AOPhaseScreen'))
+                if(isCommensurate(a,b))
+                    if(isPhase(b))
+                        % fprintf('DEBUG: AOField*AOPhaseScreen<phase>: commensurate grids.\n');
+                        a.grid_ = a.grid_ .* exp((1i*b.lambdaRef/a.lambda)*b.grid_);
+                    else
+                        % fprintf('DEBUG: AOField*AOPhaseScreen<phasor>: commensurate grids.\n');
+                        a.grid_ = a.grid_ .* b.grid_;
+                    end
+                else
+                    [X,Y] = a.COORDS;
+                    
+                    if(isPhase(b))
+                        % fprintf('DEBUG: AOField*AOPhaseScreen<phase>: non-commensurate grids.\n');
+                        bg = exp((1i*b.lambdaRef/a.lambda)*interpGrid(b,X,Y));
+                    else
+                        % fprintf('DEBUG: AOField*AOPhaseScreen<phasor>: non-commensurate grids.\n');
+                        bg = interpGrid(b,X,Y);
+                    end
+                    
+                    bg(isnan(bg)) = 1;
+                    a.grid_ = a.grid_ .* bg;
+                end
+            end
+            
 			if(isa(b,'AOScreen'))
 				if(b.mirror)
 					MIRROR = 2;

@@ -11,8 +11,12 @@ classdef AOdOTF < AOField
         dOTF;
         Phase;
         A;
+        Field;
         FOV;
+        FoV;
         Plate_Scale;
+        thx;
+        thy;
         Mask;
         plotMask;
         Mask_interped;
@@ -33,7 +37,7 @@ classdef AOdOTF < AOField
     methods
         
         % Constructor
-        function obj = AOdOTF(A,FOV,Plate_Scale)
+        function obj = AOdOTF(A,FOV,Plate_Scale,FoV_OTF,Spacing)
             obj = obj@AOField(A);
             if nargin == 1
                 if isa(A,'double')
@@ -43,18 +47,28 @@ classdef AOdOTF < AOField
                 elseif isa(A,'AOAperture')
                     obj.A = A;
                     thld = (obj.lambda / (A.segList{1}.Segment.pupils(1,3)) * 206265);
-                    obj.FOV =  thld * 25; %make this kind of large to improve dOTF resolution
-                    obj.Plate_Scale = thld / 3;
+                    obj.FOV =  thld * 100; %make this kind of large to improve dOTF resolution
+                    obj.Plate_Scale = thld / 4;
                 end
             elseif nargin == 3
                 obj.A = A;
                 obj.FOV = FOV;
                 obj.Plate_Scale = Plate_Scale;
+            elseif nargin == 5
+                obj.A = A;
+                obj.FOV = FOV;
+                obj.Plate_Scale = Plate_Scale;
+                obj.FoV = FoV_OTF;
+                obj.spacing(Spacing);
             else
                 error('Incorrect Inputs');
             end
                 
         end
+        
+        function AOdOTF = setField(AOdOTF,Field)
+            AOdOTF.Field = Field;
+        end %setField
         
         function AOdOTF = calibrateWFS(AOdOTF,y_pos,x_pos,width,Field,ps)
             % This method calbirates the dOTF calculations.  It will create
@@ -106,7 +120,56 @@ classdef AOdOTF < AOField
                 AOdOTF.truephase(ALGO);
             end
         end %sense
-            
+        
+        function AOdOTF = sense2(AOdOTF,Field,ALGO)
+            if nargin == 2
+                SPACING = AOdOTF.spacing;
+                AOdOTF.setField(Field);
+                Field2 = Field.copy;
+                [AOdOTF.PSF0,AOdOTF.thx,AOdOTF.thy] = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                AOdOTF.setField(Field2 * AOdOTF.finger);
+                AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field.touch;
+                Field.grid(AOdOTF.PSF0);
+                Field2.touch;
+                Field2.grid(AOdOTF.PSF1);
+                AOdOTF.setField(Field);
+                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.setField(Field2);
+                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.mkdOTF;
+            elseif nargin == 3
+                SPACING = AOdOTF.spacing;
+                AOdOTF.setField(Field);
+                Field2 = Field.copy;
+                AOdOTF.PSF0 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                AOdOTF.setField(Field2 * AOdOTF.finger);
+                AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field.touch;
+                Field.grid(AOdOTF.PSF0);
+                Field2.touch;
+                Field2.grid(AOdOTF.PSF1);
+                AOdOTF.setField(Field);
+                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV_OTF,SPACING(1));
+                AOdOTF.setField(Field2);
+                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV_OTF,SPACING(1));
+                AOdOTF.mkdOTF;
+                AOdOTF.truephase(ALGO);
+            end
+        end %sense2
+        
+        function AOdOTF = aliasmasking(AOdOTF)
+            dotf = AOdOTF.OTF0 - AOdOTF.OTF1;
+            dotf(abs(AOdOTF.dOTF)<5e8) = 0;
+            phase = angle(dotf);
+            mask = abs(dotf);
+            mask(mask~=0) = 1;
+            figure(1)
+            % imagesc(log10(dOTF/maxval),[-5,0]);
+            imagesc(abs(dotf));
+            figure(2)
+            imagesc(phase.*mask);
+        end
         
         function AOdOTF = create_finger(AOdOTF,y_pos,x_pos,width)
             %Creates a pupil finger. y_pos is the height of the finger,
