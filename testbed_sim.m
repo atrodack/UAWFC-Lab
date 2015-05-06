@@ -15,7 +15,7 @@ spider = 0.02*D; % 2% of Pupil Diameter
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 3; %number of zernikes to inject
+nzerns = 5; %number of zernikes to inject
 fftsize = 2^12;
 
 %% Scales
@@ -98,7 +98,7 @@ if RunSIM == true
         FoV = FoV_withoutIrisAO;
         Scalloped_Field = false;
         fprintf('\nUsing a Flat instead of the IrisAO\n');
-        pupil_blocker = [3.26e-3,0.3212e-3,0.1e-3];
+        pupil_blocker = [3.28e-3,0.3212e-3,0.1e-3];
     end
 end
 
@@ -289,7 +289,7 @@ if RunSIM == true
         dOTF_Sim = AOdOTF(A,FOV,PLATE_SCALE,FoV,SPACING);
         fprintf('\ndOTF Object Created for Sim\n');
         dOTF_Sim.create_finger(pupil_blocker(1),pupil_blocker(2),pupil_blocker(3));
-%         dOTF_Sim.create_finger(3.25e-3,0.3212e-3,0.1e-3);
+        
     end
 else
     if RunTESTBED == true
@@ -336,6 +336,18 @@ if RunSIM == true
         disp(T);
     end
 end
+
+%% Get the Diffraction Limited PSF
+F = AOField(A);
+F.spacing(SPACING);
+F.FFTSize = fftsize; % Used to compute PSFs, etc.
+F.resize(F.FFTSize);
+F.planewave;
+F.lambda = lambda;
+F * A * DM1 * DM2;
+DLPSF = F.mkPSF(FOV,PLATE_SCALE);
+DLmax = max(DLPSF(:));
+clear F;
 
 %% Make the Coronagraph Elements
 if RunSIM == true
@@ -401,7 +413,6 @@ if RunSIM == true
         F.resize(F.FFTSize);
         F.planewave;
     end
-    fprintf('\nSending a planewave through the System\n');
     F.lambda = lambda;
     [x,y] = F.coords;
     
@@ -410,18 +421,21 @@ if RunSIM == true
     else
         F * A * DM1 * DM2;
     end
+    fprintf('\nCalibrating the dOTF WFS\n');
+    dOTF_Sim.calibrateWFS2(F);
+    F.touch;
     
     if coronagraph == true
-        fprintf('Going through the Coronagraph\n');
-        F.grid(F.fft/F.nx); % Go to the focal plane.
-        F*FPMASK; % Pass through the focal plane mask.
-        F.grid(F.fft/F.nx); % Go to the Lyot pupil plane.
-        F*LYOT; % Pass through the Lyot Stop.
+        dOTF_Sim.sense_coronagraph(F,FPMASK,LYOT);
     else
-        
+        fprintf('\nSending Planewave through System to do dOTF\n');
+        dOTF_Sim.sense2(F,'gold');
     end
     
-    dOTF_Sim.sense2(F);
+
+    
+    
+    
     if system_verbose == true
         PSF = dOTF_Sim.PSF0;
         PSFmax2 = max(PSF(:));
@@ -514,20 +528,55 @@ if RunSIM == true
     
 %     input('Press Enter');
 
+%% Plot Some Results
     
     close all
     figure(1);
-    imagesc(abs(dOTF_Sim.dOTF));
+    imagesc(abs(dOTF_Sim.dOTF).*dOTF_Sim.plotMask);
     axis xy;
     sqar;
+    title('Magnitude of dOTF');
     figure(2);
-    imagesc(dOTF_Sim.Phase);
+    imagesc(dOTF_Sim.OPL);
     axis xy;
     sqar;
+    colorbar;
+    title('OPL Computed from dOTF Phase');
+    
 %     dOTF_Sim.aliasmasking;
+%     
+%     figure(3)
+%     imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/max(max(dOTF_Sim.PSF0))),[-4,0]);
+%     axis xy;
+%     sqar;
+%     title('PSF of System');
+    
+    
+    %% Test the dOTF Result
+    CORRECTOR = AOScreen(1);
+    CORRECTOR.spacing(SPACING);
+    CORRECTOR.grid(dOTF_Sim.OPL);
+
+    F.planewave * ABER * CORRECTOR * A * DM1 * DM2;
+    PSFtest = F.mkPSF(FOV,PLATE_SCALE);
+    PSFtestmax = max(PSFtest(:));
     
     figure(3)
-    imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/max(max(dOTF_Sim.PSF0))),[-4,0]);
+    subplot(1,2,1)
+    imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/DLmax),[-4,0]);
+    axis xy;
+    colormap(gray);
+    sqar;
+    title('Uncorrected PSF');
+    
+    subplot(1,2,2)
+    imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(PSFtest/DLmax),[-4,0]);
+    colormap(gray)
+    sqar;
+    axis xy;
+    title('PSF with Perfect Correction');
+    
+    fprintf('Tip/Tilt Insensitive Strehl for Perfect Correction is %0.5f\n',(PSFtestmax/DLmax));
     
     load ok.mat;
     John = audioplayer(y,Fs);
