@@ -135,6 +135,7 @@ classdef AOdOTF < AOField
             AOdOTF.truephase(ALGO);
             AOdOTF.calibration = false;
             AOdOTF.cleardOTF;
+            fprintf('***Calibration Complete***\n');
         end %calibrateWFS2
         
         
@@ -435,19 +436,19 @@ classdef AOdOTF < AOField
             shift = [shift_point(1) - center(2),shift_point(2) - center(1)];
 
             phase_ref = phase(center(1),center(2));
-            
+            fprintf('Unwrapping the Phase\n');
             AOdOTF.unwrapphase(ALGO);
             phase = AOdOTF.Phase - phase_ref;
             
-            
-            AOdOTF.Phase = phase .* mask;
+           
+%             AOdOTF.Phase = phase .* mask;
 
             
-            AOdOTF.Phase = phase;
+%             AOdOTF.Phase = phase;
             
             phase = circshift(phase,-shift);
             
-            
+            fprintf('Cropping, Masking, and Resizing Computed Phase\n');
             % resize to edge of Pupil
             phase = phase(center(1)-radius-0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
             if AOdOTF.calibration == true
@@ -462,6 +463,7 @@ classdef AOdOTF < AOField
             
             lambda = AOdOTF.Field.lambda;
             k = (2*pi) / lambda;
+            fprintf('Computing the OPL\n');
             AOdOTF.OPL = AOdOTF.Phase / k;
 
         end
