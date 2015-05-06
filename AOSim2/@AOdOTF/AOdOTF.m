@@ -3,13 +3,14 @@ classdef AOdOTF < AOField
     %compute the wavefront phase.
     
     properties
-        finger;
+        finger = [];
         PSF0;
         PSF1;
         OTF0;
         OTF1;
         dOTF;
         Phase;
+        OPL;
         A;
         Field;
         FOV;
@@ -96,7 +97,9 @@ classdef AOdOTF < AOField
             elseif nargin == 5
                 ps = 1;
             end
-            AOdOTF.create_finger(y_pos,x_pos,width);
+            if AOdOTF.finger == empty
+                AOdOTF.create_finger(y_pos,x_pos,width);
+            end
             AOdOTF.mkPSF(Field,ps);
             AOdOTF.mkOTF(Field,ps);
             AOdOTF.mkdOTF;
@@ -121,6 +124,20 @@ classdef AOdOTF < AOField
             end
         end %sense
         
+        function AOdOTF = calibrateWFS2(AOdOTF,Field,ALGO)
+            if nargin == 2
+                ALGO = 'gold';
+            end
+            F = Field.copy;
+            AOdOTF.sense2(F);
+            AOdOTF.plotdOTFframe;
+            AOdOTF.mkMask;
+            AOdOTF.truephase(ALGO);
+            AOdOTF.calibration = false;
+            AOdOTF.cleardOTF;
+        end %calibrateWFS2
+        
+        
         function AOdOTF = sense2(AOdOTF,Field,ALGO)
             if nargin == 2
                 SPACING = AOdOTF.spacing;
@@ -142,21 +159,71 @@ classdef AOdOTF < AOField
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
                 Field2 = Field.copy;
+                fprintf('Computing PSF\n');
                 AOdOTF.PSF0 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
                 AOdOTF.setField(Field2 * AOdOTF.finger);
+                fprintf('Computing Modified PSF\n');
                 AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
                 Field.touch;
                 Field.grid(AOdOTF.PSF0);
                 Field2.touch;
                 Field2.grid(AOdOTF.PSF1);
                 AOdOTF.setField(Field);
-                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV_OTF,SPACING(1));
+                fprintf('Computing OTF\n');
+                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
                 AOdOTF.setField(Field2);
-                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV_OTF,SPACING(1));
+                fprintf('Computing Modified OTF\n');
+                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                fprintf('Computing dOTF\n');
                 AOdOTF.mkdOTF;
+                fprintf('Computing the WFS Phase using the %s Method\n',ALGO);
                 AOdOTF.truephase(ALGO);
             end
         end %sense2
+        
+        function AOdOTF = sense_coronagraph(AOdOTF,Field,FPM,Lyot,ALGO)
+            if nargin == 4
+                SPACING = AOdOTF.spacing;
+                Field2 = Field.copy;
+                Field = gothroughcoronagraph( Field,FPM,Lyot );
+                AOdOTF.setField(Field);
+                [AOdOTF.PSF0,AOdOTF.thx,AOdOTF.thy] = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field2*AOdOTF.finger;
+                Field2 = gothroughcoronagraph( Field2,FPM,Lyot );
+                AOdOTF.setField(Field2);
+                AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field.touch;
+                Field.grid(AOdOTF.PSF0);
+                Field2.touch;
+                Field2.grid(AOdOTF.PSF1);
+                AOdOTF.setField(Field);
+                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.setField(Field2);
+                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.mkdOTF;
+            elseif nargin == 5
+                SPACING = AOdOTF.spacing;
+                Field2 = Field.copy;
+                Field = gothroughcoronagraph( Field,FPM,Lyot );
+                AOdOTF.setField(Field);
+                [AOdOTF.PSF0,AOdOTF.thx,AOdOTF.thy] = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field2*AOdOTF.finger;
+                Field2 = gothroughcoronagraph( Field2,FPM,Lyot );
+                AOdOTF.setField(Field2);
+                AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field.touch;
+                Field.grid(AOdOTF.PSF0);
+                Field2.touch;
+                Field2.grid(AOdOTF.PSF1);
+                AOdOTF.setField(Field);
+                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.setField(Field2);
+                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.mkdOTF;
+                AOdOTF.truephase(ALGO);
+            end
+            
+        end %sense_coronagraph
         
         function AOdOTF = aliasmasking(AOdOTF)
             dotf = AOdOTF.OTF0 - AOdOTF.OTF1;
@@ -355,7 +422,7 @@ classdef AOdOTF < AOField
             %there is an upper left pupil and a lower right pupil. Other
             %configurations are UNTESTED.
             if nargin == 1
-                ALGO = 'unwt';
+                ALGO = 'gold';
             end
             
             phase = AOdOTF.Phase;
@@ -393,7 +460,9 @@ classdef AOdOTF < AOField
             AOdOTF.resize_phase_to_Pupil;
             AOdOTF.Phase = AOdOTF.Phase .* AOdOTF.Mask_interped;
             
-
+            lambda = AOdOTF.Field.lambda;
+            k = (2*pi) / lambda;
+            AOdOTF.OPL = AOdOTF.Phase / k;
 
         end
         
