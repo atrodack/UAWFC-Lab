@@ -317,10 +317,10 @@ if RunSIM == true
         % Find a coefficient between -1 and 1 waves, scale it to the number of
         % zernikes added to avoid unrealistic PSF deaths (fairly arbitrary,
         % probably uncessary)
-        if nzerns == 1
+        if nzerns < 3
             coeffs = (2*rand(1,nzerns)-1);
-        elseif nzerns > 1
-            coeffs = (2/nzerns) .* (2*rand(1,nzerns)-1);
+        elseif nzerns >= 3
+            coeffs = ((nzerns-2)/nzerns) .* (2*rand(1,nzerns)-1);
         end
         
         % Add the Zernikes into ABER
@@ -528,34 +528,34 @@ if RunSIM == true
     
 %     input('Press Enter');
 
-%% Plot Some Results
+    
+    %% Test the dOTF Result
+    CORRECTOR = AOScreen(1);
+    CORRECTOR.spacing(SPACING);
+    OPL = dOTF_Sim.OPL;
+    OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
+    CORRECTOR.grid(OPL);
+    CORRECTOR * A;
+    
     
     close all
     figure(1);
-    imagesc(abs(dOTF_Sim.dOTF).*dOTF_Sim.plotMask);
-    axis xy;
-    sqar;
-    title('Magnitude of dOTF');
+    ABER_copy = ABER.copy;
+    ABER_copy * A;
+    ABER_copy.show;
+    caxis([-5e-7,5e-7]);
+    title('Injected Aberration OPL');
     figure(2);
-    imagesc(dOTF_Sim.OPL);
-    axis xy;
-    sqar;
-    colorbar;
+    CORRECTOR.show;
+    caxis([-5e-7,5e-7]);
     title('OPL Computed from dOTF Phase');
     
-%     dOTF_Sim.aliasmasking;
 %     
 %     figure(3)
 %     imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/max(max(dOTF_Sim.PSF0))),[-4,0]);
 %     axis xy;
 %     sqar;
 %     title('PSF of System');
-    
-    
-    %% Test the dOTF Result
-    CORRECTOR = AOScreen(1);
-    CORRECTOR.spacing(SPACING);
-    CORRECTOR.grid(dOTF_Sim.OPL);
 
     F.planewave * ABER * CORRECTOR * A * DM1 * DM2;
     PSFtest = F.mkPSF(FOV,PLATE_SCALE);
