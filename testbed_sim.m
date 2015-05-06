@@ -15,7 +15,7 @@ spider = 0.02*D; % 2% of Pupil Diameter
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 5; %number of zernikes to inject
+nzerns = 8; %number of zernikes to inject
 fftsize = 2^12;
 
 %% Scales
@@ -217,7 +217,7 @@ if RunSIM == true
         RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
         if RHO(ii) > D/2.1
             DM2.actuators(ii,5) = 0;
-        elseif RHO(ii) < secondary/1.9
+        elseif RHO(ii) < secondary/2.1
             DM2.actuators(ii,5) = 0;
         end
     end
@@ -239,7 +239,7 @@ if RunSIM == true
     end
     
     % Set the Convex Hull Boundary Conditions
-    DM2.defineBC(D/2+Pitch,28,'circle');
+    DM2.defineBC(D/2,58,'circle');
     
     %% Set the Initial Piston Values of the BMC DM
     DM2.flatten;
@@ -433,12 +433,11 @@ if RunSIM == true
     end
     
 
-    
+    PSF = dOTF_Sim.PSF0;
+    PSFmax2 = max(PSF(:));
     
     
     if system_verbose == true
-        PSF = dOTF_Sim.PSF0;
-        PSFmax2 = max(PSF(:));
         PSF1 = dOTF_Sim.PSF1;
         PSFmax3 = max(PSF1(:));
         thx = dOTF_Sim.thx;
@@ -534,21 +533,30 @@ if RunSIM == true
     CORRECTOR.spacing(SPACING);
     OPL = dOTF_Sim.OPL;
     OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
+    OPL = padarray(OPL,[floor((932-701)/2),floor((932-701)/2)],'both');
     CORRECTOR.grid(OPL);
     CORRECTOR * A;
+    pistonvec = CORRECTOR.interpGrid(DM2.actuators(OnActs,1),DM2.actuators(OnActs,2));
+    DM2.actuators(OnActs,3) = pistonvec;
+    DM2.actuators(OffActs,3) = 0;
+    DM2.bumpActs(zeros(DM2.nActs,1)); %annoying, but yeah
+    DM2.render;
     
     
     close all
     figure(1);
-    ABER_copy = ABER.copy;
-    ABER_copy * A;
-    ABER_copy.show;
+    F.planewave * ABER * A;
+    F.show;
     caxis([-5e-7,5e-7]);
     title('Injected Aberration OPL');
     figure(2);
-    CORRECTOR.show;
+%     CORRECTOR.show;
+%     DM2.show;
+    F.planewave*A*DM2;
+    F.show;
     caxis([-5e-7,5e-7]);
-    title('OPL Computed from dOTF Phase');
+    title('BMC Induced Phase');
+
     
 %     
 %     figure(3)
@@ -557,7 +565,8 @@ if RunSIM == true
 %     sqar;
 %     title('PSF of System');
 
-    F.planewave * ABER * CORRECTOR * A * DM1 * DM2;
+%     F.planewave * ABER * CORRECTOR * A * DM1 * DM2;
+    F.planewave * ABER * A * DM1 * DM2;
     PSFtest = F.mkPSF(FOV,PLATE_SCALE);
     PSFtestmax = max(PSFtest(:));
     
@@ -576,7 +585,8 @@ if RunSIM == true
     axis xy;
     title('PSF with Perfect Correction');
     
-    fprintf('Tip/Tilt Insensitive Strehl for Perfect Correction is %0.5f\n',(PSFtestmax/DLmax));
+    fprintf('\nUnncorrected Tip/Tilt Insensitive Strehl is %0.5f \n',PSFmax2/DLmax);
+    fprintf('BMC DM Corrected Tip/Tilt Insensitive Strehl is %0.5f\n',(PSFtestmax/DLmax));
     
     load ok.mat;
     John = audioplayer(y,Fs);
