@@ -65,11 +65,13 @@ classdef AOdOTF < AOField
                 error('Incorrect Inputs');
             end
                 
-        end
+        end %Constructor
+        
         
         function AOdOTF = setField(AOdOTF,Field)
             AOdOTF.Field = Field;
         end %setField
+        
         
         function AOdOTF = calibrateWFS(AOdOTF,y_pos,x_pos,width,Field,ps)
             % This method calbirates the dOTF calculations.  It will create
@@ -110,6 +112,7 @@ classdef AOdOTF < AOField
             AOdOTF.cleardOTF;
         end %calibrateWFS
         
+        
         function AOdOTF = sense(AOdOTF,Field,ps,ALGO)
             if nargin == 3
                 AOdOTF.mkPSF(Field,ps);
@@ -124,37 +127,56 @@ classdef AOdOTF < AOField
             end
         end %sense
         
-        function AOdOTF = calibrateWFS2(AOdOTF,Field,ALGO)
-            if nargin == 2
-                ALGO = 'gold';
-            end
+        
+        function AOdOTF = calibrateWFS2(AOdOTF,Field)
+            fprintf('\n***Calibrating the dOTF WFS***\n');
             F = Field.copy;
             AOdOTF.sense2(F);
             AOdOTF.plotdOTFframe;
             AOdOTF.mkMask;
-            AOdOTF.truephase(ALGO);
+            AOdOTF.truephase;
             AOdOTF.calibration = false;
             AOdOTF.cleardOTF;
             fprintf('***Calibration Complete***\n');
         end %calibrateWFS2
         
         
+        function AOdOTF = precalibratedWFS(AOdOTF,calibration_number)
+            fprintf('Using Precalibrated dOTF WFS Object # %d\n',calibration_number);
+            switch calibration_number
+                case 1
+                    load('Calibration_1.mat');
+                    AOdOTF.pupil_center = [1552 1005];
+                    AOdOTF.pupil_radius = 522.2882;
+                    AOdOTF.Mask = MASK;
+                    AOdOTF.plotMask = PLOTMASK;
+                    AOdOTF.Mask_interped = MASK_INTERPED;
+                    AOdOTF.calibration = false;
+            end
+        end %precalibratedWFS
+                    
+            
         function AOdOTF = sense2(AOdOTF,Field,ALGO)
             if nargin == 2
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
                 Field2 = Field.copy;
+                fprintf('Computing PSF\n');
                 [AOdOTF.PSF0,AOdOTF.thx,AOdOTF.thy] = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
                 AOdOTF.setField(Field2 * AOdOTF.finger);
+                fprintf('Computing Modified PSF\n');
                 AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
                 Field.touch;
                 Field.grid(AOdOTF.PSF0);
                 Field2.touch;
                 Field2.grid(AOdOTF.PSF1);
                 AOdOTF.setField(Field);
+                fprintf('Computing OTF\n');
                 AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
                 AOdOTF.setField(Field2);
+                fprintf('Computing Modified OTF\n');
                 AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                fprintf('Computing dOTF\n');
                 AOdOTF.mkdOTF;
             elseif nargin == 3
                 SPACING = AOdOTF.spacing;
@@ -181,6 +203,7 @@ classdef AOdOTF < AOField
                 AOdOTF.truephase(ALGO);
             end
         end %sense2
+        
         
         function AOdOTF = sense_coronagraph(AOdOTF,Field,FPM,Lyot,ALGO)
             if nargin == 4
@@ -226,24 +249,6 @@ classdef AOdOTF < AOField
             
         end %sense_coronagraph
         
-        function AOdOTF = aliasmasking(AOdOTF)
-            dotf = AOdOTF.OTF0 - AOdOTF.OTF1;
-            dotf(abs(AOdOTF.dOTF)<5e8) = 0;
-            phase = angle(dotf);
-            mask = abs(dotf);
-            mask(mask~=0) = 1;
-            figure(1)
-            % imagesc(log10(dOTF/maxval),[-5,0]);
-            imagesc(abs(dotf));
-            axis off
-            axis xy;
-            title('Magnitude of dOTF');
-            figure(2)
-            imagesc(phase.*mask);
-            axis off
-            axis xy;
-            title('Phase of dOTF');
-        end
         
         function AOdOTF = create_finger(AOdOTF,y_pos,x_pos,width)
             %Creates a pupil finger. y_pos is the height of the finger,
@@ -262,6 +267,7 @@ classdef AOdOTF < AOField
             Finger.grid(~(Y<-y_pos & abs(X-x_pos)<width));
             AOdOTF.finger = Finger;
         end %create_finger
+        
         
         function AOdOTF = mkPSF(AOdOTF,Field,ps)
             %Makes PSFs and stores them in the properties.  The first uses
@@ -294,7 +300,7 @@ classdef AOdOTF < AOField
             Field * AOdOTF.finger;
             AOdOTF.PSF1 = Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
             Field.touch;
-        end
+        end %mkPSF
                 
         
         function AOdOTF = mkOTF(AOdOTF,Field,ps)
@@ -369,6 +375,7 @@ classdef AOdOTF < AOField
             end
         end %mkOTF
         
+        
         function AOdOTF = mkdOTF(AOdOTF)
             %Computes the dOTF and stores it as a complex numbered matrix.
             %It will also store the phase of the dOTF in the Phase
@@ -381,13 +388,14 @@ classdef AOdOTF < AOField
 %             AOdOTF.unwrapphase;
         end %mkdOTF
         
+        
         function plotPSFframe(AOdOTF)
             imagesc(AOdOTF.PSF0);
             bigtitle('PSF0',12);
             colormap(gray);
             daspect([1,1,1]);
             axis xy;
-        end
+        end %plotPSFframe
         
         
         function plotdOTFframe(AOdOTF)
@@ -400,18 +408,19 @@ classdef AOdOTF < AOField
             daspect([1 1 1]);
             axis xy;
 %             axis off;
-        end
+        end %plotdOTFframe
         
         
         function AOdOTF = unwrapphase(AOdOTF,ALGO)
             %Unwrapps Phase.  See function uwrap in AOSim2\utils for more
             %information.  Can only be run on Ubuntu 64-bit OS as compiled.
             if nargin == 1
-                AOdOTF.Phase = uwrap(AOdOTF.Phase,'unwt');
+                AOdOTF.Phase = uwrap(AOdOTF.Phase,'gold');
             elseif nargin == 2
                 AOdOTF.Phase = uwrap(AOdOTF.Phase,ALGO);
             end
         end %unwrapphase
+        
         
         function AOdOTF = truephase(AOdOTF,ALGO)
             %Retrieves the part of the dOTF phase that is important. This
@@ -428,27 +437,28 @@ classdef AOdOTF < AOField
             
             phase = AOdOTF.Phase;
             mask = AOdOTF.Mask;
+            
             shift_point = AOdOTF.pupil_center;
             radius = round(AOdOTF.pupil_radius);
-            
             [sizex,sizey] = size(phase);
             center = [round(sizex/2),round(sizey/2)];
             shift = [shift_point(1) - center(2),shift_point(2) - center(1)];
-
             phase_ref = phase(center(1),center(2));
-            fprintf('Unwrapping the Phase\n');
-            AOdOTF.unwrapphase(ALGO);
-            phase = AOdOTF.Phase - phase_ref;
             
-           
-%             AOdOTF.Phase = phase .* mask;
-
-            
-%             AOdOTF.Phase = phase;
+            if AOdOTF.calibration == false
+                fprintf('\nUnwrapping the Phase\n');
+                AOdOTF.unwrapphase(ALGO);
+                phase = AOdOTF.Phase - phase_ref;
+            end
             
             phase = circshift(phase,-shift);
             
-            fprintf('Cropping, Masking, and Resizing Computed Phase\n');
+            if AOdOTF.calibration == false
+                fprintf('Cropping, Masking, and Resizing Computed Phase\n');
+            else
+                fprintf('Creating Correctly Scaled Mask\n');
+            end
+            
             % resize to edge of Pupil
             phase = phase(center(1)-radius-0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
             if AOdOTF.calibration == true
@@ -461,12 +471,15 @@ classdef AOdOTF < AOField
             AOdOTF.resize_phase_to_Pupil;
             AOdOTF.Phase = AOdOTF.Phase .* AOdOTF.Mask_interped;
             
-            lambda = AOdOTF.Field.lambda;
-            k = (2*pi) / lambda;
-            fprintf('Computing the OPL\n');
-            AOdOTF.OPL = AOdOTF.Phase / k;
+            if AOdOTF.calibration == false
+                lambda = AOdOTF.Field.lambda;
+                k = (2*pi) / lambda;
+                fprintf('Computing the OPL\n');
+                AOdOTF.OPL = AOdOTF.Phase / k;
+            end
 
-        end
+        end %truephase
+        
         
         function AOdOTF = resize_phase_to_Pupil(AOdOTF)
             %Interpolates the stored phase to the size of the DM pupil
@@ -484,7 +497,7 @@ classdef AOdOTF < AOField
             if AOdOTF.calibration == true
                 AOdOTF.Mask_interped = interp2(X,Y,mask,Xq,Yq);
             end
-        end
+        end %resize_phase_to_Pupil
 
         
         function points = calibrate_pupil_mask(AOdOTF)
@@ -505,6 +518,7 @@ classdef AOdOTF < AOField
             AOdOTF.pupil_center = central_point;
             AOdOTF.pupil_radius = sqrt((points{2}(1) - points{1}(1))^2 + (points{2}(2) - points{1}(2))^2);
         end %calibrate_pupil_mask
+        
         
         function AOdOTF = mkMask(AOdOTF)
             %Creates Boolean logic masks for the dOTF. plotMask is the
@@ -531,6 +545,7 @@ classdef AOdOTF < AOField
             AOdOTF.Mask = A & ~B;  
         end %mkMask
         
+        
         function AOdOTF = centerpsfs(AOdOTF)
             if isempty(AOdOTF.psf_center)
                 fprintf('Pick the center of the PSF\n');
@@ -545,7 +560,8 @@ classdef AOdOTF < AOField
                 AOdOTF.PSF0 = circshift(AOdOTF.PSF0,1-p1);
                 AOdOTF.PSF1 = circshift(AOdOTF.PSF1,1-p1);
             end
-        end
+        end %centerpsfs
+        
         
         function AOdOTF = decenterpsfs(AOdOTF)
             p1 = AOdOTF.psf_center;
@@ -553,7 +569,8 @@ classdef AOdOTF < AOField
                 AOdOTF.PSF0 = circshift(AOdOTF.PSF0,-1+p1);
                 AOdOTF.PSF1 = circshift(AOdOTF.PSF1,-1+p1);
             end
-        end
+        end %decenterpsfs
+        
         
         function AOdOTF = useData(AOdOTF)
             if AOdOTF.usedata == true
@@ -565,29 +582,32 @@ classdef AOdOTF < AOField
             else
                 warning('This command is to be used for input images of PSFs');
             end
-        end
+        end %useData
+        
         
         function AOdOTF = storePSFimages(AOdOTF,image1,image2)
             AOdOTF.storedPSF0{AOdOTF.psfimage_counter} = image1;
             AOdOTF.storedPSF1{AOdOTF.psfimage_counter} = image2;
             AOdOTF.psfimage_counter = AOdOTF.psfimage_counter + 1;
-        end
+        end %storePSFimages
+        
         
         function AOdOTF = storedOTF(AOdOTF)
             AOdOTF.storeddOTF{AOdOTF.dOTFimage_counter} = AOdOTF.dOTF;
             AOdOTF.dOTFimage_counter = AOdOTF.dOTFimage_counter + 1;
-        end
+        end %storedOTF
+        
         
         function AOdOTF = clearPSFOTF(AOdOTF)
             AOdOTF.PSF0 = [];
             AOdOTF.PSF1 = [];
             AOdOTF.OTF0 = [];
             AOdOTF.OTF1 = [];
-        end
+        end %clearPSFOTF
+        
         
         function AOdOTF = cleardOTF(AOdOTF)
             %clears some of the properties
-            
             AOdOTF.PSF0 = [];
             AOdOTF.PSF1 = [];
             AOdOTF.OTF0 = [];
@@ -635,6 +655,6 @@ classdef AOdOTF < AOField
             drawnow;
         end %show
         
-    end
+    end %methods
     
 end
