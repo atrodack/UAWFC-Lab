@@ -231,7 +231,7 @@ if RunSIM == true
     DM2.disableActuators(DM2.OffActs);
     
     % Set the Convex Hull Boundary Conditions
-    DM2.defineBC(D/2,108,'circle');
+    DM2.defineBC(D/2.1,108,'circle');
     
     [x_DM,y_DM] = DM2.coords;
     %% Set the Initial Piston Values of the BMC DM
