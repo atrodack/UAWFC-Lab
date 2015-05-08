@@ -6,6 +6,8 @@ classdef AODM < AOScreen
 	properties
 		actuators=[]; % [x,y,z,segment_id,enabled]
 		bconds = []; % boundary condition points.
+        OnActs;
+        OffActs;
 	end
 	
 	methods
@@ -293,6 +295,36 @@ classdef AODM < AOScreen
         function DM = enableActuators(DM,THESE)
             DM.actuators(THESE,5) = 1;
         end
+        
+        function DM = setOnActs(DM)
+            counter_off = 1;
+            counter_on = 1;
+            OffActs = zeros(length(DM.actuators(DM.actuators(:,5) == 0)),1);
+            OnActs = zeros(DM.nActs - length(OffActs),1);
+            
+            for ii = 1:DM.nActs
+                if DM.actuators(ii,5) == 0
+                    OffActs(counter_off) = ii;
+                    counter_off = counter_off+1;
+                elseif DM.actuators(ii,5) == 1
+                    OnActs(counter_on) = ii;
+                    counter_on = counter_on+1;
+                end
+            end
+            
+            DM.OnActs = OnActs;
+            DM.OffActs = OffActs;
+        end
+        
+        
+        function DM = bumpOnActs(DM,VALUES)
+            if(length(VALUES) ~= length(DM.OnActs))
+                error('actuator list length mismatch.');
+            end
+            DM.actuators(DM.OnActs,3) = DM.actuators(DM.OnActs,3) + VALUES;
+            touch(DM);
+        end
+        
         
 		function DM = bumpActs(DM,VALUES)
             % DM = bumpActs(DM,VALUES)
