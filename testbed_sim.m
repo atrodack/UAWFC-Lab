@@ -15,7 +15,9 @@ spider = 0.02*D; % 2% of Pupil Diameter
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 8; %number of zernikes to inject
+nzerns = 9; %number of zernikes to inject
+goal_strehl = 0.9; %exit condition for loop
+gain = 0.7;
 fftsize = 2^12;
 
 %% Scales
@@ -218,29 +220,20 @@ if RunSIM == true
         if RHO(ii) > D/2.1
             DM2.actuators(ii,5) = 0;
         elseif RHO(ii) < secondary/2.1
-            DM2.actuators(ii,5) = 0;
+%             DM2.actuators(ii,5) = 0;
         end
     end
     
     % Get List of Which Actuators are Being Used
-    counter_off = 1;
-    counter_on = 1;
-    OffActs = zeros(length(DM2.actuators(DM2.actuators(:,5) == 0)),1);
-    OnActs = zeros(nacts - length(OffActs),1);
+    DM2.setOnActs;
     
-    for ii = 1:nacts
-        if DM2.actuators(ii,5) == 0
-            OffActs(counter_off) = ii;
-            counter_off = counter_off+1;
-        elseif DM2.actuators(ii,5) == 1
-            OnActs(counter_on) = ii;
-            counter_on = counter_on+1;
-        end
-    end
+    %Turn Off Actuators so the Program Knows they are off
+    DM2.disableActuators(DM2.OffActs);
     
     % Set the Convex Hull Boundary Conditions
-    DM2.defineBC(D/2,58,'circle');
+    DM2.defineBC(D/2,108,'circle');
     
+    [x_DM,y_DM] = DM2.coords;
     %% Set the Initial Piston Values of the BMC DM
     DM2.flatten;
 %     DM2.actuators(343,3) = 1e-6;
@@ -319,8 +312,10 @@ if RunSIM == true
         % probably uncessary)
         if nzerns < 3
             coeffs = (2*rand(1,nzerns)-1);
-        elseif nzerns >= 3
-            coeffs = ((nzerns-2)/nzerns) .* (2*rand(1,nzerns)-1);
+        elseif nzerns <= 5
+            coeffs = (((nzerns-(nzerns-2))/nzerns)) .* (2*rand(1,nzerns)-1);
+        elseif nzerns > 5
+            coeffs = (((nzerns-(nzerns-5))/nzerns)) .* (2*rand(1,nzerns)-1);
         end
         
         % Add the Zernikes into ABER
@@ -337,7 +332,7 @@ if RunSIM == true
     end
 end
 
-%% Get the Diffraction Limited PSF
+%% Get the Diffraction Limited PSF and Calibrate WFS
 F = AOField(A);
 F.spacing(SPACING);
 F.FFTSize = fftsize; % Used to compute PSFs, etc.
@@ -345,6 +340,11 @@ F.resize(F.FFTSize);
 F.planewave;
 F.lambda = lambda;
 F * A * DM1 * DM2;
+
+% dOTF_Sim.calibrateWFS2(F);
+dOTF_Sim.precalibratedWFS(1);
+
+
 DLPSF = F.mkPSF(FOV,PLATE_SCALE);
 DLmax = max(DLPSF(:));
 clear F;
@@ -401,196 +401,200 @@ end
 %                    Model Light through the System
 %**************************************************************************
 fprintf('\nSending Light through the System and computing dOTF\n');
-if RunSIM == true
-    if Scalloped_Field == true
-        fprintf('Using a Scalloped Field to Simulate Segment Surfaces\n');
-        F = F_scal.copy;
-        F.FFTSize = fftsize; % Used to compute PSFs, etc.
-    else
-        F = AOField(A);
-        F.spacing(SPACING);
-        F.FFTSize = fftsize; % Used to compute PSFs, etc.
-        F.resize(F.FFTSize);
-        F.planewave;
-    end
-    F.lambda = lambda;
-    [x,y] = F.coords;
-    
-    if InjectAb == true
-        F * ABER * A * DM1 * DM2;
-    else
-        F * A * DM1 * DM2;
-    end
-    fprintf('\nCalibrating the dOTF WFS\n');
-    dOTF_Sim.calibrateWFS2(F);
-    F.touch;
-    
-    if coronagraph == true
-        dOTF_Sim.sense_coronagraph(F,FPMASK,LYOT);
-    else
-        fprintf('\nSending Planewave through System to do dOTF\n');
-        dOTF_Sim.sense2(F,'gold');
-    end
-    
-
-    PSF = dOTF_Sim.PSF0;
-    PSFmax2 = max(PSF(:));
-    
-    
-    if system_verbose == true
-        PSF1 = dOTF_Sim.PSF1;
-        PSFmax3 = max(PSF1(:));
-        thx = dOTF_Sim.thx;
-        thy = dOTF_Sim.thy;
-        OTF = dOTF_Sim.OTF0;
-        OTF1 = dOTF_Sim.OTF1;
-        OTFmax = max(abs(OTF(:)));
-        OTF1max = max(abs(OTF1(:)));
-        dOTF = dOTF_Sim.dOTF;
-    end
-    
-    if system_verbose == true
-        figure(2)
-        subplot(1,2,1)
-        imagesc(thx,thy,PSF/PSFmax2);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('PSF\n'));
+n = 1;
+strehl = 0;
+while(strehl < goal_strehl)
+    fprintf('\nLoop # %d\n',n);
+    if RunSIM == true
+        if Scalloped_Field == true
+            fprintf('Using a Scalloped Field to Simulate Segment Surfaces\n');
+            F = F_scal.copy;
+            F.FFTSize = fftsize; % Used to compute PSFs, etc.
+        else
+            F = AOField(A);
+            F.spacing(SPACING);
+            F.FFTSize = fftsize; % Used to compute PSFs, etc.
+            F.resize(F.FFTSize);
+            F.planewave;
+        end
+        F.lambda = lambda;
         
-        subplot(1,2,2)
-        imagesc(thx,thy,log10(PSF/PSFmax2),[-3,0]);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('Log Scale PSF\n'));
-        input('Press Enter');
-    end
-  
-    
-    if system_verbose == true
-        figure(2)
-        clf;
-        subplot(1,2,1)
-        plotCAmpl(OTF/OTFmax,1);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('OTF\n'));
         
-        subplot(1,2,2)
-        plotCAmpl(log10(OTF/OTFmax),0.5);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('Log Scale OTF\n'));
-        input('Press Enter');
-    end
-    
-    
-    
-    if system_verbose == true
-        figure(3)
-        subplot(1,2,1)
-        imagesc(thx,thy,PSF1/PSFmax3);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('PSF\n'));
-        subplot(1,2,2)
-        imagesc(thx,thy,log10(PSF1/PSFmax3),[-3,0]);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('Log Scale PSF\n'));
-        input('Press Enter');
-    end
-    
-    
-    if system_verbose == true
-        figure(3)
-        clf;
-        subplot(1,2,1)
-        plotCAmpl((OTF1/OTF1max),1);
-        colormap(gray);
-        axis xy;
-        sqar;
-        title(sprintf('OTF\n'));
+        if InjectAb == true
+            F * ABER * A * DM1 * DM2;
+        else
+            F * A * DM1 * DM2;
+        end
         
-        subplot(1,2,2)
-        plotCAmpl(log10(OTF1/OTF1max),0.5);
+        figure(1);
+        subplot(2,3,1);
+        F.show;
+        title('Field Through System');
+        
+        if coronagraph == true
+            dOTF_Sim.sense_coronagraph(F,FPMASK,LYOT); %doesn't seem to work right for no IrisAO, but dOTF shouldn't be done with coronagraph in anyway
+        else
+            dOTF_Sim.sense2(F,'flyn');
+        end
+        
+        if n == 1
+            PSF = dOTF_Sim.PSF0;
+            PSFmax2 = max(PSF(:));
+        end
+        
+%         if system_verbose == true
+%             PSF1 = dOTF_Sim.PSF1;
+%             PSFmax3 = max(PSF1(:));
+%             thx = dOTF_Sim.thx;
+%             thy = dOTF_Sim.thy;
+%             OTF = dOTF_Sim.OTF0;
+%             OTF1 = dOTF_Sim.OTF1;
+%             OTFmax = max(abs(OTF(:)));
+%             OTF1max = max(abs(OTF1(:)));
+%             dOTF = dOTF_Sim.dOTF;
+%             
+%             figure(2)
+%             subplot(1,2,1)
+%             imagesc(thx,thy,PSF/PSFmax2);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('PSF\n'));
+%             
+%             subplot(1,2,2)
+%             imagesc(thx,thy,log10(PSF/PSFmax2),[-3,0]);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('Log Scale PSF\n'));
+%             input('Press Enter');
+%             
+%             figure(2)
+%             clf;
+%             subplot(1,2,1)
+%             plotCAmpl(OTF/OTFmax,1);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('OTF\n'));
+%             
+%             subplot(1,2,2)
+%             plotCAmpl(log10(OTF/OTFmax),0.5);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('Log Scale OTF\n'));
+%             input('Press Enter');
+%             
+%             figure(3)
+%             subplot(1,2,1)
+%             imagesc(thx,thy,PSF1/PSFmax3);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('PSF\n'));
+%             subplot(1,2,2)
+%             imagesc(thx,thy,log10(PSF1/PSFmax3),[-3,0]);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('Log Scale PSF\n'));
+%             input('Press Enter');
+%             
+%             figure(3)
+%             clf;
+%             subplot(1,2,1)
+%             plotCAmpl((OTF1/OTF1max),1);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('OTF\n'));
+%             
+%             subplot(1,2,2)
+%             plotCAmpl(log10(OTF1/OTF1max),0.5);
+%             colormap(gray);
+%             axis xy;
+%             sqar;
+%             title(sprintf('Log Scale OTF\n'));
+%         end
+        
+        if n > 20
+            strehl_previous = strehl;
+        end
+            
+        strehl = (max(max(dOTF_Sim.PSF0))/DLmax);
+        fprintf('Tip/Tilt Insensitive Strehl is %0.5f\n',strehl);
+        
+        
+%         if strehl > goal_strehl
+%             fprintf('The Strehl is above %0.2f, breaking loop\n',goal_strehl);
+%             strehl_final = strehl;
+%             break;
+%         end
+        
+        %% Test the dOTF Result
+        CORRECTOR = AOScreen(1);
+        CORRECTOR.spacing(SPACING);
+        OPL = dOTF_Sim.OPL;
+        OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
+        OPL = padarray(OPL,[floor((length(DM2.grid)-length(OPL))/2),floor((length(DM2.grid)-length(OPL))/2)],'both');
+        CORRECTOR.grid(OPL);
+        CORRECTOR * A;
+        pistonvec = CORRECTOR.interpGrid(DM2.actuators(DM2.OnActs,1),DM2.actuators(DM2.OnActs,2));
+        DM2.bumpOnActs(gain*pistonvec);
+        storeDMcommands{n} = DM2.actuators(:,3);
+        DM2.clip(1.5*STROKE);
+        DM2.removeMean;
+        DM2.render;
+                
+        
+        
+        subplot(2,3,2);
+        surf(x_DM,y_DM,DM2.grid,'LineStyle','none');
+        zlim([-1.5e-6,1.5e-6]);
+        daspect([1 1 1e-3]);
+        lt=light();
+        set(lt,'Position',[-15e-3 0 15e-3]);
         colormap(gray);
+       
+        subplot(2,3,3)
+        imagesc(x,y,dOTF_Sim.OPL);
         axis xy;
+        colormap(gray);
+%         caxis([-1.5e-6,1.5e-6]);
         sqar;
-        title(sprintf('Log Scale OTF\n'));
+        title('dOTF Computed OPL');
+        
+        subplot(2,2,3)
+        imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(PSF/DLmax),[-4,0]);
+        axis xy;
+        colormap(gray);
+        sqar;
+        title('Uncorrected PSF');
+        
+        subplot(2,2,4)
+        imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0 / DLmax),[-4,0]);
+        axis xy;
+        colormap(gray);
+        sqar;
+        title(sprintf('Loop # %d PSF',n));
+        drawnow;
+        
+        if n > 20
+            if(strehl - strehl_previous < 0.001)
+                strehl_final = strehl;
+                strehl = 1;
+            end
+        end
+        
+        n = n+1;
     end
-    
-%     input('Press Enter');
-
-    
-    %% Test the dOTF Result
-    CORRECTOR = AOScreen(1);
-    CORRECTOR.spacing(SPACING);
-    OPL = dOTF_Sim.OPL;
-    OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
-    OPL = padarray(OPL,[floor((932-701)/2),floor((932-701)/2)],'both');
-    CORRECTOR.grid(OPL);
-    CORRECTOR * A;
-    pistonvec = CORRECTOR.interpGrid(DM2.actuators(OnActs,1),DM2.actuators(OnActs,2));
-    DM2.actuators(OnActs,3) = pistonvec;
-    DM2.actuators(OffActs,3) = 0;
-    DM2.bumpActs(zeros(DM2.nActs,1)); %annoying, but yeah
-    DM2.render;
-    
-    
-    close all
-    figure(1);
-    F.planewave * ABER * A;
-    F.show;
-    caxis([-5e-7,5e-7]);
-    title('Injected Aberration OPL');
-    figure(2);
-%     CORRECTOR.show;
-%     DM2.show;
-    F.planewave*A*DM2;
-    F.show;
-    caxis([-5e-7,5e-7]);
-    title('BMC Induced Phase');
-
-    
-%     
-%     figure(3)
-%     imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/max(max(dOTF_Sim.PSF0))),[-4,0]);
-%     axis xy;
-%     sqar;
-%     title('PSF of System');
-
-%     F.planewave * ABER * CORRECTOR * A * DM1 * DM2;
-    F.planewave * ABER * A * DM1 * DM2;
-    PSFtest = F.mkPSF(FOV,PLATE_SCALE);
-    PSFtestmax = max(PSFtest(:));
-    
-    figure(3)
-    subplot(1,2,1)
-    imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(dOTF_Sim.PSF0/DLmax),[-4,0]);
-    axis xy;
-    colormap(gray);
-    sqar;
-    title('Uncorrected PSF');
-    
-    subplot(1,2,2)
-    imagesc(dOTF_Sim.thx,dOTF_Sim.thy,log10(PSFtest/DLmax),[-4,0]);
-    colormap(gray)
-    sqar;
-    axis xy;
-    title('PSF with Perfect Correction');
-    
-    fprintf('\nUnncorrected Tip/Tilt Insensitive Strehl is %0.5f \n',PSFmax2/DLmax);
-    fprintf('BMC DM Corrected Tip/Tilt Insensitive Strehl is %0.5f\n',(PSFtestmax/DLmax));
-    
-    load ok.mat;
-    John = audioplayer(y,Fs);
-    play(John);
-    
+end
+if n>20
+    strehl = strehl_final;
 end
 
+
+load ok.mat;
+John = audioplayer(y,Fs);
+play(John);
