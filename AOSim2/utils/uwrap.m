@@ -22,6 +22,10 @@ else
                 fprintf('\t%2d: %s\n',n,PROGRAMS{n});
             end
             return;
+        elseif(strcmp(ALGO,'off'))
+            fprintf('Not Phase Unwrapping\n');
+            uwphase = phase;
+            return;
         end
     else
         ALGO = PROGRAMS{ALGO};
