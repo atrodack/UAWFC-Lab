@@ -156,7 +156,7 @@ classdef AOdOTF < AOField
         end %precalibratedWFS
                     
             
-        function AOdOTF = sense2(AOdOTF,Field,ALGO)
+        function AOdOTF = sense2(AOdOTF,Field,ALGO,Noise)
             if nargin == 2
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
@@ -179,6 +179,29 @@ classdef AOdOTF < AOField
                 fprintf('Computing dOTF\n');
                 AOdOTF.mkdOTF;
             elseif nargin == 3
+                SPACING = AOdOTF.spacing;
+                AOdOTF.setField(Field);
+                Field2 = Field.copy;
+                fprintf('Computing PSF\n');
+                AOdOTF.PSF0 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                AOdOTF.setField(Field2 * AOdOTF.finger);
+                fprintf('Computing Modified PSF\n');
+                AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                Field.touch;
+                Field.grid(AOdOTF.PSF0);
+                Field2.touch;
+                Field2.grid(AOdOTF.PSF1);
+                AOdOTF.setField(Field);
+                fprintf('Computing OTF\n');
+                AOdOTF.OTF0 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                AOdOTF.setField(Field2);
+                fprintf('Computing Modified OTF\n');
+                AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
+                fprintf('Computing dOTF\n');
+                AOdOTF.mkdOTF;
+                fprintf('Computing the WFS Phase using the %s Method\n',ALGO);
+                AOdOTF.truephase(ALGO);
+            elseif nargin == 4
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
                 Field2 = Field.copy;

@@ -217,7 +217,7 @@ if RunSIM == true
     RHO = zeros(nacts,1);
     for ii = 1:nacts
         RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
-        if RHO(ii) > D/2.1
+        if RHO(ii) > D/1.8
             DM2.actuators(ii,5) = 0;
         elseif RHO(ii) < secondary/2.1
 %             DM2.actuators(ii,5) = 0;
@@ -403,6 +403,8 @@ end
 fprintf('\nSending Light through the System and computing dOTF\n');
 n = 1;
 strehl = 0;
+figure(1);
+drawnow;
 while(strehl < goal_strehl)
     fprintf('\nLoop # %d\n',n);
     if RunSIM == true
@@ -434,7 +436,7 @@ while(strehl < goal_strehl)
         if coronagraph == true
             dOTF_Sim.sense_coronagraph(F,FPMASK,LYOT); %doesn't seem to work right for no IrisAO, but dOTF shouldn't be done with coronagraph in anyway
         else
-            dOTF_Sim.sense2(F,'flyn');
+            dOTF_Sim.sense2(F,'gold');
         end
         
         if n == 1
@@ -518,7 +520,7 @@ while(strehl < goal_strehl)
 %             title(sprintf('Log Scale OTF\n'));
 %         end
         
-        if n > 20
+        if n > 10
             strehl_previous = strehl;
         end
             
@@ -539,7 +541,7 @@ while(strehl < goal_strehl)
         OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
         OPL = padarray(OPL,[floor((length(DM2.grid)-length(OPL))/2),floor((length(DM2.grid)-length(OPL))/2)],'both');
         CORRECTOR.grid(OPL);
-        CORRECTOR * A;
+%         CORRECTOR * A;
         pistonvec = CORRECTOR.interpGrid(DM2.actuators(DM2.OnActs,1),DM2.actuators(DM2.OnActs,2));
         DM2.bumpOnActs(gain*pistonvec);
         storeDMcommands{n} = DM2.actuators(:,3);
