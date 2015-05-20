@@ -7,8 +7,10 @@ close all;
 Num_Folders = 2;
 Num_Files_per_Folder = 10;
 
-varargin{1} = '/home/alex/Desktop/Git_Repos/UAWFC/Real_Data/201558_Batch1_bp10_Finger';
-varargin{2} = '/home/alex/Desktop/Git_Repos/UAWFC/Real_Data/201558_Batch2_bp10_No_Finger';
+% varargin{1} = '/home/alex/Desktop/Git_Repos/UAWFC/Real_Data/201558_Batch1_bp10_PSFWithFinger';
+% varargin{2} = '/home/alex/Desktop/Git_Repos/UAWFC/Real_Data/201558_Batch2_bp10_PSFWithoutFinger';
+varargin{1} = '/home/alex/Desktop/UAWFC/Real_Data/2015520_Batch1_bp10_PSFWithFinger/';
+varargin{2} = '/home/alex/Desktop/UAWFC/Real_Data/2015520_Batch2_bp10_PSFWithoutFinger/';
 varargin{3} = 'RAW_scienceIM_frame_';
 varargin{4} = 'RAW_scienceIM_frame_';
 

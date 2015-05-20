@@ -27,7 +27,7 @@ for n = 1:Num_Folders
             pause(1);
         end
         
-        img(:,:,m) = double(pic);
+        img(:,:,m) = im2double(pic);
     end
     
     varargout{n} = img;
