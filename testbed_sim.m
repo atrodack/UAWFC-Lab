@@ -38,6 +38,8 @@ verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
 % Aberration Flag
 InjectAb = true; %Injects some random Zernikes
+InjectRandAb = false;
+InjectKnownAb = true;
 % Coronagraph Flag
 coronagraph = false; % turns on going through coronagraph elemens
 % Plotting Flag
@@ -56,8 +58,8 @@ if RunSIM == true
     %% Pupil Mask
     PUPIL_DEFN = [
         0 0 D         1 aa 0 0 0 0 0
-        0 0 secondary 0 aa/2 0 0 0 0 0
-        0 0 spider   -2 aa 4 0 D/1.9 0 0
+%         0 0 secondary 0 aa/2 0 0 0 0 0
+%         0 0 spider   -2 aa 4 0 D/1.9 0 0
         ];
     
     A = AOSegment;
@@ -293,9 +295,9 @@ else
     end
 end
 
-%% Inject Random Zernike Aberration to simulate system errors
+%% Inject Zernike Aberration to simulate system errors
 if RunSIM == true
-    if InjectAb == true
+    if InjectAb == true && InjectRandAb == true
         ABER = AOScreen(A);
         n = sort((randi(4,1,nzerns)),'ascend'); %zernike mode order (from lowest to highest)
         m = zeros(1,nzerns); %zernike mode initialization
@@ -326,6 +328,22 @@ if RunSIM == true
         n = n';
         m = m';
         Number_of_waves = coeffs';
+        T = table(n,m,Number_of_waves);
+        fprintf('\nInjected Aberrations:\n');
+        disp(T);
+    elseif InjectAb == true && InjectKnownAb == true
+        ABER = AOScreen(A);
+        n = [2,2,3,3];
+        m = [-2,2,-1,1];
+        
+        coeffs = 2*rand(1,4)-1;
+        ABER.zero;
+        for ii = 1:4
+            ABER.addZernike(n(ii),m(ii),0.5*coeffs(ii)*lambda,D);
+        end
+        n = n';
+        m = m';
+        Number_of_waves = 0.5*coeffs';
         T = table(n,m,Number_of_waves);
         fprintf('\nInjected Aberrations:\n');
         disp(T);
@@ -535,13 +553,25 @@ while(strehl < goal_strehl)
 %         end
         
         %% Test the dOTF Result
+%         PUPIL_DEFN_Correction = [
+%         0 0 D/2.2         1 aa 0 0 0 0 0
+% %         0 0 secondary 0 aa/2 0 0 0 0 0
+% %         0 0 spider   -2 aa 4 0 D/1.9 0 0
+%         ];
+%     
+%     A_corrector = AOSegment;
+%     A_corrector.spacing(SPACING);
+%     A_corrector.name = 'Correction Mask';
+%     A_corrector.pupils = PUPIL_DEFN_Correction;
+%     A_corrector.make;
+        
         CORRECTOR = AOScreen(1);
         CORRECTOR.spacing(SPACING);
         OPL = dOTF_Sim.OPL;
         OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
         OPL = padarray(OPL,[floor((length(DM2.grid)-length(OPL))/2),floor((length(DM2.grid)-length(OPL))/2)],'both');
         CORRECTOR.grid(OPL);
-%         CORRECTOR * A;
+        CORRECTOR * A;
         pistonvec = CORRECTOR.interpGrid(DM2.actuators(DM2.OnActs,1),DM2.actuators(DM2.OnActs,2));
         DM2.bumpOnActs(gain*pistonvec);
         storeDMcommands{n} = DM2.actuators(:,3);
