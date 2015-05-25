@@ -673,21 +673,36 @@ classdef AOdOTF < AOField
         end %useData2
         
         function scanNumericalDefocus(AOdOTF,alpha_min,alpha_max,numpoints)
-            figure;
-            imagesc(AOdOTF.Phase);
+            fig1 = figure(1);
+            axis off;
             sqar;
+            
+            input('Press Enter when Ready');
+            sqar;
+            winsize = get(fig1,'Position');
+            winsize(1:2) = [0,0];
+            A = moviein(numpoints,fig1,winsize);
+            set(fig1,'NextPlot','replacechildren');
+            
+            imagesc(AOdOTF.Phase);
+%             sqar;
+            axis off;
             pt = pickPoint(1);
             [X,Y] = mkImageCoords(AOdOTF.dOTF,1,pt);
             R = sqrt(X.^2 + Y.^2);
+            counter = 1;
             for alpha = linspace(alpha_min,alpha_max,numpoints)
                 defocus = exp(alpha*1i.*R);
                 newphase = angle(defocus .* AOdOTF.dOTF);
                 imagesc(newphase);
-                sqar;
+                axis off;
                 title(sprintf('alpha = %0.4f ',alpha));
                 drawnow;
+                A(:,counter) = getframe(fig1,winsize);
+                counter = counter + 1;
             end
-        end %scanNumericalDefocus
+            
+            save scanDefocus.mat A winsize;
         
         function scanBinning(AOdOTF,bin_min,bin_max)
             figure;
