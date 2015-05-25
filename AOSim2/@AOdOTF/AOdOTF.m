@@ -156,7 +156,11 @@ classdef AOdOTF < AOField
         end %precalibratedWFS
                     
             
-        function AOdOTF = sense2(AOdOTF,Field,ALGO,Noise)
+        function AOdOTF = sense2(AOdOTF,Field,Noise,ALGO)
+            %AOdOTF = sense2(AOdOTF,Field,Noise,ALGO)
+            %Noise is a cell, Noise{1} = flag for using noise, Noise{2} is
+            %number of pictures to sum together
+            
             if nargin == 2
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
@@ -183,10 +187,24 @@ classdef AOdOTF < AOField
                 AOdOTF.setField(Field);
                 Field2 = Field.copy;
                 fprintf('Computing PSF\n');
-                AOdOTF.PSF0 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                [AOdOTF.PSF0,AOdOTF.thx,AOdOTF.thy] = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
                 AOdOTF.setField(Field2 * AOdOTF.finger);
                 fprintf('Computing Modified PSF\n');
                 AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                if Noise{1} == true;
+                    PSF0_Sum = 0;
+                    PSF1_Sum = 0;
+                    for n = 1:Noise{2}
+                        Noisy_PSF0 = addNoise(AOdOTF.PSF0,Field.grid,true,1,2);
+                        Noisy_PSF1 = addNoise(AOdOTF.PSF1,Field.grid,true,1,2);
+                        PSF0_Sum = PSF0_Sum + (Noisy_PSF0);
+                        PSF1_Sum = PSF1_Sum + (Noisy_PSF1);
+                        fprintf('Picture Number %d Complete\n',n);
+                    end
+                    AOdOTF.PSF0 = abs(PSF0_Sum);
+                    AOdOTF.PSF1 = abs(PSF1_Sum);
+                end
+                
                 Field.touch;
                 Field.grid(AOdOTF.PSF0);
                 Field2.touch;
@@ -199,8 +217,6 @@ classdef AOdOTF < AOField
                 AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
                 fprintf('Computing dOTF\n');
                 AOdOTF.mkdOTF;
-                fprintf('Computing the WFS Phase using the %s Method\n',ALGO);
-                AOdOTF.truephase(ALGO);
             elseif nargin == 4
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
@@ -210,6 +226,20 @@ classdef AOdOTF < AOField
                 AOdOTF.setField(Field2 * AOdOTF.finger);
                 fprintf('Computing Modified PSF\n');
                 AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
+                if Noise{1} == true;
+                    PSF0_Sum = 0;
+                    PSF1_Sum = 0;
+                    for n = 1:Noise{2}
+                        Noisy_PSF0 = addNoise(AOdOTF.PSF0,Field.grid,true,1,2.5);
+                        Noisy_PSF1 = addNoise(AOdOTF.PSF1,Field.grid,true,1,2.5);
+                        PSF0_Sum = PSF0_Sum + (Noisy_PSF0);
+                        PSF1_Sum = PSF1_Sum + (Noisy_PSF1);
+                        fprintf('Picture Number %d Complete\n',n);
+                    end
+                    AOdOTF.PSF0 = abs(PSF0_Sum);
+                    AOdOTF.PSF1 = abs(PSF1_Sum);
+                end
+                
                 Field.touch;
                 Field.grid(AOdOTF.PSF0);
                 Field2.touch;
@@ -607,6 +637,69 @@ classdef AOdOTF < AOField
             end
         end %useData
         
+        function AOdOTF = useData2(AOdOTF,Num_Folders,Num_files_per_folder,varargin)
+            if AOdOTF.usedata == true
+                testbedPSFs = BatchRead(Num_Folders,Num_files_per_folder, false, varargin{1,2});
+                img_Finger = testbedPSFs{1};
+                img_Finger = AddImages(img_Finger);
+                img_Finger = img_Finger(34:290,164:420);
+                img_Finger = img_Finger(1:end-1,1:end-1);
+                img_No_Finger = testbedPSFs{2};
+                img_No_Finger = AddImages(img_No_Finger);
+                img_No_Finger = img_No_Finger(34:290,164:420);
+                img_No_Finger = img_No_Finger(1:end-1,1:end-1);
+                
+                AOdOTF.PSF0 = img_No_Finger;
+                AOdOTF.PSF1 = img_Finger;
+                
+                imagesc(img_Finger);
+                sqar;
+                centerpoint = pickPoint(1);
+                
+                img_Finger = circshift(img_Finger,1-centerpoint);
+                img_No_Finger = circshift(img_No_Finger,1-centerpoint);
+                
+                OTF_Finger = fftshift(fft2(img_Finger));
+                OTF_Finger(centerpoint(1),centerpoint(2)) = 0;
+                OTF_No_Finger = fftshift(fft2(img_No_Finger));
+                OTF_No_Finger(centerpoint(1),centerpoint(2)) = 0;
+                
+                AOdOTF.OTF0 = OTF_No_Finger;
+                AOdOTF.OTF1 = OTF_Finger;
+                
+                AOdOTF.dOTF = AOdOTF.OTF1 - AOdOTF.OTF0;
+                AOdOTF.Phase = angle(AOdOTF.dOTF);
+            end
+        end %useData2
+        
+        function scanNumericalDefocus(AOdOTF,alpha_min,alpha_max,numpoints)
+            figure;
+            imagesc(AOdOTF.Phase);
+            sqar;
+            pt = pickPoint(1);
+            [X,Y] = mkImageCoords(AOdOTF.dOTF,1,pt);
+            R = sqrt(X.^2 + Y.^2);
+            for alpha = linspace(alpha_min,alpha_max,numpoints)
+                defocus = exp(alpha*1i.*R);
+                newphase = angle(defocus .* AOdOTF.dOTF);
+                imagesc(newphase);
+                sqar;
+                title(sprintf('alpha = %0.4f ',alpha));
+                drawnow;
+            end
+        end %scanNumericalDefocus
+        
+        function scanBinning(AOdOTF,bin_min,bin_max)
+            figure;
+            for binning = bin_min:bin_max
+                dOTF_binned = downsampleCCD(AOdOTF.dOTF,binning,binning);
+                plotComplex(dOTF_binned,2);
+                drawnow;
+                sqar;
+                title(sprintf('dOTF Signal with %d x %d binning',binning, binning));
+                input('continue?');
+            end
+        end%scanBinning
         
         function AOdOTF = storePSFimages(AOdOTF,image1,image2)
             AOdOTF.storedPSF0{AOdOTF.psfimage_counter} = image1;
