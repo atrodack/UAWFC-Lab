@@ -701,6 +701,19 @@ classdef AOdOTF < AOField
             end
         end%scanBinning
         
+        
+        function [Tipdiff,Tiltdiff] = calculateTT(AOdOTF)
+            g = AOdOTF.dOTF;
+            tipleft = circshift(g,[0,1]);
+            tipright = conj(circshift(g,[0,-1]));
+            tiltup = circshift(g,[-1,0]);
+            tiltdown = conj(circshift(g,[1,0]));
+            
+            Tipdiff = tipleft .* tipright;
+            Tiltdiff = tiltup .* tiltdown;
+        end %calculateTT
+        
+        
         function AOdOTF = storePSFimages(AOdOTF,image1,image2)
             AOdOTF.storedPSF0{AOdOTF.psfimage_counter} = image1;
             AOdOTF.storedPSF1{AOdOTF.psfimage_counter} = image2;
