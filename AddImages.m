@@ -9,5 +9,6 @@ for n = 1:z
     img = img + imgs(:,:,n);
 end
 
+img = img / z;
 end
 
