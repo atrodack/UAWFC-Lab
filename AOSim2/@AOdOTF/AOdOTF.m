@@ -642,11 +642,16 @@ classdef AOdOTF < AOField
                 testbedPSFs = BatchRead(Num_Folders,Num_files_per_folder, false, varargin{1,2});
                 img_Finger = testbedPSFs{1};
                 img_Finger = AddImages(img_Finger);
-                img_Finger = img_Finger(34:290,164:420);
+                
+                imagesc(img_Finger);
+                sqar;
+                centerpoint = pickPoint(1);
+                
+                img_Finger = img_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
                 img_Finger = img_Finger(1:end-1,1:end-1);
                 img_No_Finger = testbedPSFs{2};
                 img_No_Finger = AddImages(img_No_Finger);
-                img_No_Finger = img_No_Finger(34:290,164:420);
+                img_No_Finger = img_No_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
                 img_No_Finger = img_No_Finger(1:end-1,1:end-1);
                 
                 AOdOTF.PSF0 = img_No_Finger;
@@ -703,6 +708,7 @@ classdef AOdOTF < AOField
             end
             
             save scanDefocus.mat A winsize;
+        end
         
         function scanBinning(AOdOTF,bin_min,bin_max)
             figure;
