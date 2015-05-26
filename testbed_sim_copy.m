@@ -58,9 +58,9 @@ if UseRealPSF == true
     InjectAb = false;
     Num_Folders = 2;
     Num_files_per_folder = 100;
-    varargin{1} = '/home/alex/Desktop/UAWFC/Real_Data/2015520_Batch1_bp10_PSFWithFinger/';
+    varargin{1} = '/home/alex/Desktop/Data/2015526_Batch4_bp10_PSFWithoutFinger/';
     varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/UAWFC/Real_Data/2015520_Batch2_bp10_PSFWithoutFinger/';
+    varargin{2} = '/home/alex/Desktop/Data/2015526_Batch3_bp10_PSFWithFinger/';
     varargin{4} = 'RAW_scienceIM_frame_';
 end
 % Coronagraph Flag
@@ -503,6 +503,21 @@ while(strehl < goal_strehl)
             dOTF_Sim.useData2(Num_Folders,Num_files_per_folder,false,varargin);
             PSF = dOTF_Sim.PSF0;
             PSFmax2 = max(PSF(:));
+            mag = abs(dOTF_Sim.dOTF);
+            mag(129,129) = 0;
+            
+            subplot(1,3,1);
+            imagesc(PSF);
+            axis off;
+            sqar;
+            title('Testbed PSF');
+            
+            subplot(1,3,2);
+            imagesc(mag);
+            axis off;
+            sqar;
+            title('
+            
         end
         
         
@@ -568,7 +583,7 @@ while(strehl < goal_strehl)
             
         else
             strehl = 1;
-            dOTF_Sim.scanNumericalDefocus(-1.5,0.5,1000);
+%             dOTF_Sim.scanNumericalDefocus(-1.5,0.5,1000);
         end
     end
 end
