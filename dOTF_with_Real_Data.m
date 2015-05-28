@@ -1,13 +1,13 @@
 clear all;
-close all;
+% close all;
 clc;
 
 
 Num_Folders = 2;
 Num_files_per_folder = 100;
-varargin{1} = '/home/alex/Desktop/Data/2015526_Batch1_bp10_PSFWithoutFinger/';
+varargin{1} = '/home/alex/Desktop/Data/2015526_Batch7_bp10_PSFWithoutFinger/';
 varargin{3} = 'RAW_scienceIM_frame_';
-varargin{2} = '/home/alex/Desktop/Data/2015526_Batch2_bp10_PSFwithFinger/';
+varargin{2} = '/home/alex/Desktop/Data/2015526_Batch6_bp10_PSFWithFinger/';
 varargin{4} = 'RAW_scienceIM_frame_';
 
 images = BatchRead(Num_Folders,Num_files_per_folder, false, varargin);
@@ -25,6 +25,7 @@ img_No_Finger = img_No_Finger(1:end-1,1:end-1);
 % img_No_Finger = img_No_Finger(114:210,228:356);
 % img_No_Finger = padarray(img_No_Finger,[(210-114)/2,(356-228)/2],'both');
 
+figure;
 imagesc(img_Finger);
 sqar;
 pt = pickPoint(1);

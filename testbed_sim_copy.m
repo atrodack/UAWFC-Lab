@@ -1,6 +1,6 @@
 clear all;
 clc;
-close all;
+% close all;
 
 %**************************************************************************
 %                       UAWFC Testbed Simulation
@@ -58,9 +58,9 @@ if UseRealPSF == true
     InjectAb = false;
     Num_Folders = 2;
     Num_files_per_folder = 100;
-    varargin{1} = '/home/alex/Desktop/Data/2015526_Batch4_bp10_PSFWithoutFinger/';
+    varargin{1} = '/home/alex/Desktop/Data/2015527_Batch2_bp10_PSFWithoutFinger/';
     varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/Data/2015526_Batch3_bp10_PSFWithFinger/';
+    varargin{2} = '/home/alex/Desktop/Data/2015527_Batch2_bp10_PSFWithFinger/';
     varargin{4} = 'RAW_scienceIM_frame_';
 end
 % Coronagraph Flag
@@ -69,6 +69,11 @@ coronagraph = false; % turns on going through coronagraph elemens
 system_verbose = false; %Plots Created System Elements
 
 %% Testbed Flags
+
+
+
+
+
 
 
 %% ************************************************************************
@@ -243,7 +248,7 @@ if RunSIM == true
     RHO = zeros(nacts,1);
     for ii = 1:nacts
         RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
-        if RHO(ii) > D/1.8
+        if RHO(ii) > D/2
             DM2.actuators(ii,5) = 0;
         elseif RHO(ii) < secondary/2.1
 %             DM2.actuators(ii,5) = 0;
@@ -257,7 +262,7 @@ if RunSIM == true
     DM2.disableActuators(DM2.OffActs);
     
     % Set the Convex Hull Boundary Conditions
-    DM2.defineBC(D/2.1,108,'circle');
+    DM2.defineBC(D/2,4,'circle');
     
     [x_DM,y_DM] = DM2.coords;
     %% Set the Initial Piston Values of the BMC DM
@@ -361,17 +366,18 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-        n = [2,2,3,3];
-        m = [-2,2,-1,1];
+        n = [2,2,2,3,3];
+        m = [-2,0,2,-1,3];
         
-        coeffs = 2*rand(1,4)-1;
+%         coeffs = 1 * randn(1,length(n));
+        coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         ABER.zero;
-        for ii = 1:4
-            ABER.addZernike(n(ii),m(ii),0.5*coeffs(ii)*lambda,D);
+        for ii = 1:length(n)
+            ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
         end
         n = n';
         m = m';
-        Number_of_waves = 0.5*coeffs';
+        Number_of_waves = coeffs';
         T = table(n,m,Number_of_waves);
         fprintf('\nInjected Aberrations:\n');
         disp(T);
@@ -452,7 +458,7 @@ n = 1;
 strehl = 0;
 figure(1);
 drawnow;
-while(strehl < goal_strehl)
+while(n<=1)
     fprintf('\nLoop # %d\n',n);
     if RunSIM == true
         if UseRealPSF == false
@@ -516,7 +522,13 @@ while(strehl < goal_strehl)
             imagesc(mag);
             axis off;
             sqar;
-            title('
+            title('dOTF Magnitude');
+            
+            subplot(1,3,3)
+            imagesc(dOTF_Sim.Phase);
+            axis off;
+            sqar;
+            title('dOTF Phase');
             
         end
         
@@ -529,11 +541,11 @@ while(strehl < goal_strehl)
             OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
             OPL = padarray(OPL,[floor((length(DM2.grid)-length(OPL))/2),floor((length(DM2.grid)-length(OPL))/2)],'both');
             CORRECTOR.grid(OPL);
-            CORRECTOR * A;
+%             CORRECTOR * A;
             pistonvec = CORRECTOR.interpGrid(DM2.actuators(DM2.OnActs,1),DM2.actuators(DM2.OnActs,2));
             DM2.bumpOnActs(gain*pistonvec);
             storeDMcommands{n} = DM2.actuators(:,3);
-            DM2.clip(1.5*STROKE);
+            DM2.clip(STROKE);
             DM2.removeMean;
             DM2.render;
             
@@ -572,26 +584,16 @@ while(strehl < goal_strehl)
             title(sprintf('Loop # %d PSF',n));
             drawnow;
             
-            if n > 20
-                if(strehl - strehl_previous < 0.001)
-                    strehl_final = strehl;
-                    strehl = 1;
-                end
-            end
-            
+                        
             n = n+1;
             
         else
-            strehl = 1;
+            n = 1000;
 %             dOTF_Sim.scanNumericalDefocus(-1.5,0.5,1000);
         end
     end
 end
 
-
-if n>20
-    strehl = strehl_final;
-end
 
 
 load ok.mat;
