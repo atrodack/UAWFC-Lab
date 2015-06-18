@@ -2,7 +2,7 @@ clear all;
 clc;
 close all;
 
-% Closed-Loop dOTF Methods and Testing
+% Closed-Loop dOTF Methods and Testing 
 
 %**************************************************************************
 %                       SPIE dOTF Closed-Loop Methods Simulation
