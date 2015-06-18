@@ -8,6 +8,7 @@ classdef AODM < AOScreen
 		bconds = []; % boundary condition points.
         OnActs;
         OffActs;
+        SlaveActs;
 	end
 	
 	methods
@@ -299,8 +300,10 @@ classdef AODM < AOScreen
         function DM = setOnActs(DM)
             counter_off = 1;
             counter_on = 1;
+            counter_slave = 1;
             OffActs = zeros(length(DM.actuators(DM.actuators(:,5) == 0)),1);
-            OnActs = zeros(DM.nActs - length(OffActs),1);
+            OnActs = zeros(length(DM.actuators(DM.actuators(:,5) == 1)),1);
+            SlaveActs = zeros(length(DM.actuators(DM.actuators(:,5) == 2)),1);
             
             for ii = 1:DM.nActs
                 if DM.actuators(ii,5) == 0
@@ -309,11 +312,16 @@ classdef AODM < AOScreen
                 elseif DM.actuators(ii,5) == 1
                     OnActs(counter_on) = ii;
                     counter_on = counter_on+1;
+                elseif DM.actuators(ii,5) == 2
+                    SlaveActs(counter_slave) = ii;
+                    counter_slave = counter_slave+1;
+                    DM.actuators(ii,5) = 1;
                 end
             end
             
             DM.OnActs = OnActs;
             DM.OffActs = OffActs;
+            DM.SlaveActs = SlaveActs;
         end
         
         
@@ -322,6 +330,14 @@ classdef AODM < AOScreen
                 error('actuator list length mismatch.');
             end
             DM.actuators(DM.OnActs,3) = DM.actuators(DM.OnActs,3) + VALUES;
+            touch(DM);
+        end
+        
+        function DM = setSlaveActs(DM,VALUES)
+            if(length(VALUES) ~= length(DM.SlaveActs))
+                error('actuator list length mismatch.');
+            end
+            DM.actuators(DM.SlaveActs,3) = VALUES;
             touch(DM);
         end
         

@@ -183,6 +183,7 @@ classdef AOdOTF < AOField
                 fprintf('Computing dOTF\n');
                 AOdOTF.mkdOTF;
             elseif nargin == 3
+                ALGO = [];
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
                 Field2 = Field.copy;
@@ -191,20 +192,24 @@ classdef AOdOTF < AOField
                 AOdOTF.setField(Field2 * AOdOTF.finger);
                 fprintf('Computing Modified PSF\n');
                 AOdOTF.PSF1 = AOdOTF.Field.mkPSF(AOdOTF.FOV,AOdOTF.Plate_Scale);
-                if Noise{1} == true;
-                    PSF0_Sum = 0;
-                    PSF1_Sum = 0;
-                    for n = 1:Noise{2}
-                        Noisy_PSF0 = addNoise(AOdOTF.PSF0,Field.grid,true,1,2);
-                        Noisy_PSF1 = addNoise(AOdOTF.PSF1,Field.grid,true,1,2);
-                        PSF0_Sum = PSF0_Sum + (Noisy_PSF0);
-                        PSF1_Sum = PSF1_Sum + (Noisy_PSF1);
-                        fprintf('Picture Number %d Complete\n',n);
+                if iscell(Noise)
+                    if Noise{1} == true;
+                        PSF0_Sum = 0;
+                        PSF1_Sum = 0;
+                        for n = 1:Noise{2}
+                            Noisy_PSF0 = addNoise(AOdOTF.PSF0,Field.grid,true,1,2);
+                            Noisy_PSF1 = addNoise(AOdOTF.PSF1,Field.grid,true,1,2);
+                            PSF0_Sum = PSF0_Sum + (Noisy_PSF0);
+                            PSF1_Sum = PSF1_Sum + (Noisy_PSF1);
+                            fprintf('Picture Number %d Complete\n',n);
+                        end
+                        AOdOTF.PSF0 = abs(PSF0_Sum);
+                        AOdOTF.PSF1 = abs(PSF1_Sum);
                     end
-                    AOdOTF.PSF0 = abs(PSF0_Sum);
-                    AOdOTF.PSF1 = abs(PSF1_Sum);
+                else
+                    ALGO = Noise;
+                    
                 end
-                
                 Field.touch;
                 Field.grid(AOdOTF.PSF0);
                 Field2.touch;
@@ -217,6 +222,9 @@ classdef AOdOTF < AOField
                 AOdOTF.OTF1 = AOdOTF.Field.mkOTF2(AOdOTF.FoV,SPACING(1));
                 fprintf('Computing dOTF\n');
                 AOdOTF.mkdOTF;
+                if ~isempty(ALGO)
+                    AOdOTF.truephase(ALGO);
+                end
             elseif nargin == 4
                 SPACING = AOdOTF.spacing;
                 AOdOTF.setField(Field);
@@ -514,15 +522,12 @@ classdef AOdOTF < AOField
             
             % resize to edge of Pupil
             phase = phase(center(1)-radius-0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
-            if AOdOTF.calibration == true
-                mask = circshift(mask,-shift);
-                mask = mask(center(1)-radius - 0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
-                AOdOTF.Mask_interped = mask;
-
-            end
+            
             AOdOTF.Phase = phase;
             AOdOTF.resize_phase_to_Pupil;
+            
             AOdOTF.Phase = AOdOTF.Phase .* AOdOTF.Mask_interped;
+            
             
             if AOdOTF.calibration == false
                 lambda = AOdOTF.Field.lambda;
@@ -536,7 +541,6 @@ classdef AOdOTF < AOField
         
         function AOdOTF = resize_phase_to_Pupil(AOdOTF)
             %Interpolates the stored phase to the size of the DM pupil
-            mask = double(AOdOTF.Mask_interped);
             phase = AOdOTF.Phase;
             [sizex,sizey] = size(phase);
             [xx,yy] = AOdOTF.coords;
@@ -547,11 +551,35 @@ classdef AOdOTF < AOField
             [X,Y] = meshgrid(x,y);
             [Xq,Yq] = meshgrid(xq,yq);
             AOdOTF.Phase = interp2(X,Y,phase,Xq,Yq);
-            if AOdOTF.calibration == true
-                AOdOTF.Mask_interped = interp2(X,Y,mask,Xq,Yq);
-            end
+            
         end %resize_phase_to_Pupil
 
+        function AOdOTF = resize_mask_to_Pupil(AOdOTF)
+            mask = AOdOTF.Mask;
+            
+            shift_point = AOdOTF.pupil_center;
+            radius = round(AOdOTF.pupil_radius);
+            [sizex,sizey] = size(mask);
+            center = [round(sizex/2),round(sizey/2)];
+            shift = [shift_point(1) - center(2),shift_point(2) - center(1)];
+            
+            mask = circshift(mask,-shift);
+            mask = mask(center(1)-radius - 0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
+            
+            AOdOTF.Mask_interped = mask;
+            mask = double(AOdOTF.Mask_interped);           
+            [sizex,sizey] = size(mask);
+            [xx,yy] = AOdOTF.coords;
+            x = linspace(min(xx),max(xx),sizex);
+            y = x;
+            xq = linspace(min(x),max(x),length(xx));
+            yq = xq;
+            [X,Y] = meshgrid(x,y);
+            [Xq,Yq] = meshgrid(xq,yq);
+            AOdOTF.Mask_interped = interp2(X,Y,mask,Xq,Yq);
+            
+        end
+        
         
         function points = calibrate_pupil_mask(AOdOTF)
             %A quick method used to grab and store points off of an image.  
@@ -596,6 +624,7 @@ classdef AOdOTF < AOField
             mask(mask>0)=1;
             AOdOTF.plotMask = mask;
             AOdOTF.Mask = A & ~B;  
+            AOdOTF.resize_mask_to_Pupil;
         end %mkMask
         
         
@@ -639,35 +668,73 @@ classdef AOdOTF < AOField
         
         function AOdOTF = useData2(AOdOTF,Num_Folders,Num_files_per_folder,varargin)
             if AOdOTF.usedata == true
+%                 testbedPSFs = BatchRead(Num_Folders,Num_files_per_folder, false, varargin{1,2});
+%                 img_Finger = testbedPSFs{1};
+%                 img_Finger = AddImages(img_Finger);
+%                 
+%                 imagesc(img_Finger);
+%                 sqar;
+%                 centerpoint = pickPoint(1);
+%                 
+%                 img_Finger = img_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
+%                 img_Finger = img_Finger(1:end-1,1:end-1);
+%                 img_No_Finger = testbedPSFs{2};
+%                 img_No_Finger = AddImages(img_No_Finger);
+%                 img_No_Finger = img_No_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
+%                 img_No_Finger = img_No_Finger(1:end-1,1:end-1);
+%                 
+%                 AOdOTF.PSF0 = img_No_Finger;
+%                 AOdOTF.PSF1 = img_Finger;
+%                 
+%                 imagesc(img_Finger);
+%                 sqar;
+%                 centerpoint = pickPoint(1);
+%                 
+%                 img_Finger = circshift(img_Finger,1-centerpoint);
+%                 img_No_Finger = circshift(img_No_Finger,1-centerpoint);
+                
                 testbedPSFs = BatchRead(Num_Folders,Num_files_per_folder, false, varargin{1,2});
                 img_Finger = testbedPSFs{1};
                 img_Finger = AddImages(img_Finger);
+                img_No_Finger = testbedPSFs{2};
+                img_No_Finger = AddImages(img_No_Finger);
+                
+                
+                imagesc(img_Finger);
+                sqar;
+                centerpoint1 = pickPoint(1);
+                
+                
+                img_Finger = circshift(img_Finger,1-centerpoint1);
+                img_Finger = fftshift(img_Finger);
+                img_No_Finger = circshift(img_No_Finger,1-centerpoint1); 
+                img_No_Finger = fftshift(img_No_Finger);
+                
+                
                 
                 imagesc(img_Finger);
                 sqar;
                 centerpoint = pickPoint(1);
-                
+                                
                 img_Finger = img_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
                 img_Finger = img_Finger(1:end-1,1:end-1);
-                img_No_Finger = testbedPSFs{2};
-                img_No_Finger = AddImages(img_No_Finger);
                 img_No_Finger = img_No_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
                 img_No_Finger = img_No_Finger(1:end-1,1:end-1);
                 
                 AOdOTF.PSF0 = img_No_Finger;
                 AOdOTF.PSF1 = img_Finger;
                 
-                imagesc(img_Finger);
-                sqar;
-                centerpoint = pickPoint(1);
+                centerpoint2 = [129,129];
+                img_Finger = circshift(img_Finger,1-centerpoint2);
+                img_No_Finger = circshift(img_No_Finger,1-centerpoint2);
                 
-                img_Finger = circshift(img_Finger,1-centerpoint);
-                img_No_Finger = circshift(img_No_Finger,1-centerpoint);
+                
+                
                 
                 OTF_Finger = fftshift(fft2(img_Finger));
-                OTF_Finger(centerpoint(1),centerpoint(2)) = 0;
+                OTF_Finger(centerpoint2(1),centerpoint2(2)) = 0;
                 OTF_No_Finger = fftshift(fft2(img_No_Finger));
-                OTF_No_Finger(centerpoint(1),centerpoint(2)) = 0;
+                OTF_No_Finger(centerpoint2(1),centerpoint2(2)) = 0;
                 
                 AOdOTF.OTF0 = OTF_No_Finger;
                 AOdOTF.OTF1 = OTF_Finger;

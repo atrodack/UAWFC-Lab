@@ -1,13 +1,16 @@
 clear all;
 clc;
-% close all;
+close all;
 
 %**************************************************************************
 %                       UAWFC Testbed Simulation
 %**************************************************************************
 
 %% System Parameters
-lambda = AOField.RBAND; % Red light.
+global lambda k D secondary spider SPACING aa fftsize THld FOV PLATE_SCALE FoV_withIrisAO FoV_withoutIrisAO RunSIM RunTESTBED IrisAO_on verbose_makeDM Scalloped_Field UseRealPSF coronagraph system_verbose
+% lambda = AOField.RBAND; % Red light.
+lambda = AOField.HeNe_Laser;
+k = (2*pi) / lambda;
 D = 7e-3; % 7mm
 secondary = 0.3*D; % 30% of Pupil Diameter
 spider = 0.02*D; % 2% of Pupil Diameter
@@ -15,9 +18,9 @@ spider = 0.02*D; % 2% of Pupil Diameter
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 9; %number of zernikes to inject
+nzerns = 4; %number of zernikes to inject
 goal_strehl = 0.9; %exit condition for loop
-gain = 0.9;
+gain = 0.7;
 fftsize = 2^12;
 
 %% Scales
@@ -39,8 +42,10 @@ verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
 % Aberration Flag
 InjectAb = true; %Injects some random Zernikes
-InjectRandAb = false;
-InjectKnownAb = true;
+InjectRandAb = true;
+InjectKnownAb = false;
+% Corrector Flag
+UseDM4Correction = false;
 % Noise Flags
 UseNoise = false;
 if UseNoise == true
@@ -58,9 +63,13 @@ if UseRealPSF == true
     InjectAb = false;
     Num_Folders = 2;
     Num_files_per_folder = 100;
-    varargin{1} = '/home/alex/Desktop/Data/2015527_Batch2_bp10_PSFWithoutFinger/';
+%     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
+%     varargin{3} = 'RAW_scienceIM_frame_';
+%     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
+%     varargin{4} = 'RAW_scienceIM_frame_';
+    varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
     varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/Data/2015527_Batch2_bp10_PSFWithFinger/';
+    varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
     varargin{4} = 'RAW_scienceIM_frame_';
 end
 % Coronagraph Flag
@@ -72,245 +81,23 @@ system_verbose = false; %Plots Created System Elements
 
 
 
+%% Make the Testbed Elements
+maketestbedelements;
 
 
-
-
-%% ************************************************************************
-%                      Construct System Elements
-%**************************************************************************
-if RunSIM == true
-    load alright.mat;
-    John = audioplayer(y,Fs);
-    play(John);
-    
-    %% Pupil Mask
-    PUPIL_DEFN = [
-        0 0 D         1 aa 0 0 0 0 0
-%         0 0 secondary 0 aa/2 0 0 0 0 0
-%         0 0 spider   -2 aa 4 0 D/1.9 0 0
-        ];
-    
-    A = AOSegment;
-    A.spacing(SPACING);
-    A.name = 'UAWFC Pupil Mask';
-    A.pupils = PUPIL_DEFN;
-    A.make;
-    [x,y] = A.coords;
-    fprintf('\nPupil Mask Constructed\n');
-    
-    if system_verbose == true
-        figure(1)
-        A.show;
-        colormap(gray);
-        drawnow;
-        pause(1);
-    end
-end
-
-%% IrisAO DM
-if RunSIM == true
-    if IrisAO_on == true
-        segpitch = 606e-6; %leave this alone
-        magnification = 1; %leave this alone too
-        FoV = FoV_withIrisAO;
-        % Make the Mirror
-        if Scalloped_Field == true
-            [DM1,F_scal] = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
-            F_scal.grid(padarray(F_scal.grid,[ceil(271/2),ceil(207/2)]));
-        else
-            DM1 = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
-        end
-        DM1.lambdaRef = lambda;
-        
-        % clc; %clears the command window of the text generated from adding segments to the AOAperture object
-        fprintf('\nIrisAO Mirror Constructed\n');
-        pupil_blocker = [1.788e-3,0.3212e-3,0.1e-3];
-    else
-        DM1 = 1;
-        FoV = FoV_withoutIrisAO;
-        Scalloped_Field = false;
-        fprintf('\nUsing a Flat instead of the IrisAO\n');
-        pupil_blocker = [3.28e-3,0.3212e-3,0.1e-3];
-    end
-end
-
-%% Set the Initial Piston, Tip, Tilt of IrisAO Mirror
-% Flatten the IrisAO
-PTTpos = zeros(37,3);
-
-% Set a Random Mirror Shape
-% PTTpos = horzcat(randn(37,1)*10^-6,randn(37,1)*10^-3,randn(37,1)*10^-3);
-
-% Use a Zernike on the mirror....magnification must be equal to 1 for this!
-% Zernike_Number = [2,3];
-% Zernike_Coefficient_waves = randn(2,1);
-% PTTpos = IrisAOComputeZernPositions( lambda, Zernike_Number, Zernike_Coefficient_waves);
-
-if RunTESTBED == true
-    fprintf('*******************************\nSending PTTpos to IrisAO Mirror\n*******************************\n\n');
-    %     tempdir = pwd;
-    %     cd /home/lab/Desktop/Shared_Stuff
-    %     save('PTTpos','PTTpos');
-    %     checkmirrorupdated = false;
-    %     while(checkmirrorupdated == false)
-    %         CMD_FILES = dir('PTTpos.mat');
-    %         if(~isempty(CMD_FILES))
-    %             pause(0.1);
-    %         else
-    %             checkmirrorupdated = true;
-    %         end
-    %     end
-    %     cd(tempdir);
-    %     clear tempdir;
-end
-
-if RunSIM == true
-    if IrisAO_on == true
-        % Load in Mapping Data
-        load('IrisAO_SegMap.mat');
-        PTT = zeros(37,3);
-        
-        % Map the PTT matrix from hardware to software order
-        for ii = 1:37
-            mapped_segment = IrisAO_SegMap(ii);
-            PTT(ii,1:3) = PTTpos(mapped_segment,:);
-        end
-        
-        % Send to DM Model
-        DM1.PTT(PTT);
-        DM1.touch;
-        DM1.render;
-        
-        if system_verbose == true
-            figure(1);
-            DM1.show;
-            colormap(gray);
-            drawnow;
-            pause(1);
-        end
-    end
-end
-
-%% Boston MircroMachines DM
-%DM Specs
-nActs = 1020; %32x32 minus 4 in the corners
-STROKE = 1.5e-6;
-Pitch = 300e-6;
-radius_BMC = (4.65)*10^-3;
-
-if RunSIM == true
-    %Coordinate System
-    xmin = -radius_BMC;
-    xmax = radius_BMC;
-    BMC_x = (xmin:SPACING:xmax);
-    ymin = -radius_BMC;
-    ymax = radius_BMC;
-    BMC_y = (ymin:SPACING:ymax);
-    [BMC_X,BMC_Y] = meshgrid(BMC_x,BMC_y);
-    
-    BMC_pupil = ones(size(BMC_X));
-    % BMC_pupil = padarray(BMC_pupil,[250,250],1,'both'); %put 250 pixels on both sides outside of active area
-    
-    %Construct the Pupil
-    Seg = AOSegment(length(BMC_pupil));
-    Seg.spacing(SPACING);
-    Seg.name = 'BMC Pupil';
-    Seg.grid(BMC_pupil);
-    
-    %Make it an AOAperture Class
-    A_BMC = AOAperture;
-    A_BMC.spacing(SPACING);
-    A_BMC.name = 'BMC Aperture';
-    A_BMC.addSegment(Seg);
-    
-    %Make an AODM
-    DM2 = AODM(A_BMC);
-    [X,Y] = DM2.COORDS;
-    
-    % Create Actuator Locations
-    actuator_x = xmin:Pitch:xmax;
-    actuator_x = actuator_x - mean(actuator_x);
-    actuator_y = ymin:Pitch:ymax;
-    actuator_y = actuator_y - mean(actuator_y);
-    [ACTUATOR_X,ACTUATOR_Y] = meshgrid(actuator_x,actuator_y);
-%     ACTUATOR_X(1,1) = 0; ACTUATOR_X(32,32) = 0; ACTUATOR_X(32,1) = 0; ACTUATOR_X(1,32) = 0;
-%     ACTUATOR_Y(1,1) = 0; ACTUATOR_Y(32,32) = 0; ACTUATOR_Y(32,1) = 0; ACTUATOR_Y(1,32) = 0;
-%     ACTUATOR_X(ACTUATOR_X==0) = [];
-%     ACTUATOR_Y(ACTUATOR_Y==0) = [];
-    BMC_ACTS = [ACTUATOR_X(:),ACTUATOR_Y(:)];
-    nacts = length(BMC_ACTS(:,1));
-    
-    % Add Actuators
-    DM2.addActs(BMC_ACTS,1,A_BMC);
-    
-    % Turn Off Actuators that Aren't Illuminated
-    RHO = zeros(nacts,1);
-    for ii = 1:nacts
-        RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
-        if RHO(ii) > D/2
-            DM2.actuators(ii,5) = 0;
-        elseif RHO(ii) < secondary/2.1
-%             DM2.actuators(ii,5) = 0;
-        end
-    end
-    
-    % Get List of Which Actuators are Being Used
-    DM2.setOnActs;
-    
-    %Turn Off Actuators so the Program Knows they are off
-    DM2.disableActuators(DM2.OffActs);
-    
-    % Set the Convex Hull Boundary Conditions
-    DM2.defineBC(D/2,4,'circle');
-    
-    [x_DM,y_DM] = DM2.coords;
-    %% Set the Initial Piston Values of the BMC DM
-    DM2.flatten;
-%     DM2.actuators(343,3) = 1e-6;
-%     DM2.actuators(OnActs,3) = ((randn(length(OnActs),1).*10^-6));
-    DM2.removeMean;
-    
-    if RunTESTBED == true
-       DM_Pistons = reshape(DM2.actuators(:,3),[32,32]);
-       
-       tempdir = pwd;
-       cd C:\Users\atrod_000\Documents\GitHub\UAWFC\fits_files;
-       fitswrite(DM_Pistons,'DM_Pistons.fits');
-       img = fitsread('DM_Pistons.fits');
-       figure(5);
-       imagesc(img);
-       input('Press Enter');
-       close
-       cd(tempdir);
-       
-       % DO STUFF TO SEND TO MIRROR
-       
-       
-    end
-    
-    if system_verbose == true
-        DM2.show;
-        colormap(gray);
-        title('BMC Pupil');
-        DM2.plotActuators;
-        pause(1);
-        DM2.plotRegions;
-        pause(1);
-    end
-    
-    fprintf('\nBMC DM Constructed\n');
-end
 
 %% Initialize dOTF Object
 if RunSIM == true 
     if RunTESTBED == true
         dOTF_Sim = AOdOTF(A,FOV,PLATE_SCALE,FoV,SPACING);
+        dOTF_Sim.lambda = lambda;
         dOTF_Testbed = AOdOTF(1);
+        dOTF_Testbed.lambda = lambda;
         fprintf('\ndOTF Objects Created for Sim and Testbed\n');
         dOTF_Sim.create_finger(pupil_blocker(1),pupil_blocker(2),pupil_blocker(3));
     else
         dOTF_Sim = AOdOTF(A,FOV,PLATE_SCALE,FoV,SPACING);
+        dOTF_Sim.lambda = lambda;
         fprintf('\ndOTF Object Created for Sim\n');
         dOTF_Sim.create_finger(pupil_blocker(1),pupil_blocker(2),pupil_blocker(3));
         
@@ -318,6 +105,7 @@ if RunSIM == true
 else
     if RunTESTBED == true
         dOTF_Testbed = AOdOTF(1);
+        dOTF_Testbed.lambda = lambda;
         fprintf('\ndOTF Object Created for Testbed\n');
     else
         fprintf('WHY WOULD YOU EVEN BOTHER RUNNING THIS?\n');
@@ -458,7 +246,8 @@ n = 1;
 strehl = 0;
 figure(1);
 drawnow;
-while(n<=1)
+CORRECTOR = 1;
+while(n<=5)
     fprintf('\nLoop # %d\n',n);
     if RunSIM == true
         if UseRealPSF == false
@@ -477,9 +266,17 @@ while(n<=1)
             
             
             if InjectAb == true
-                F * ABER * A * DM1 * DM2;
+                if UseDM4Correction == true
+                    F * ABER * A * DM1 * DM2;
+                else
+                    F * ABER * A * DM1 * CORRECTOR;
+                end
             else
-                F * A * DM1 * DM2;
+                if UseDM4Correction == true
+                    F * A * DM1 * DM2;
+                else
+                    F * A * DM1 * CORRECTOR;
+                end
             end
             
             figure(1);
@@ -589,6 +386,79 @@ while(n<=1)
             
         else
             n = 1000;
+            fprintf('****** Make sure to pick Bottom Pupil Center First *******\n');
+            dOTF_Sim.mkMask;
+            phase_copy = dOTF_Sim.Phase;
+            phase = dOTF_Sim.Phase;
+            mask = dOTF_Sim.Mask;
+            
+            shift_point = dOTF_Sim.pupil_center;
+            radius = round(dOTF_Sim.pupil_radius);
+            [sizex,sizey] = size(phase);
+            center = [round(sizex/2),round(sizey/2)];
+            shift = [shift_point(1) - center(2),shift_point(2) - center(1)];
+            phase_ref = phase(center(1),center(2));
+            
+            if dOTF_Sim.calibration == false
+                fprintf('\nUnwrapping the Phase\n');
+                dOTF_Sim.unwrapphase('unwt');
+                phase = dOTF_Sim.Phase - phase_ref;
+            end
+            
+            phase = circshift(phase,-shift);
+            phase_copy = circshift(phase_copy,-shift);
+            
+            if dOTF_Sim.calibration == false
+                fprintf('Cropping, Masking, and Resizing Computed Phase\n');
+            else
+                fprintf('Creating Correctly Scaled Mask\n');
+            end
+            
+            % resize to edge of Pupil
+            phase = phase(center(1)-radius-0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
+            phase_copy = phase_copy(center(1)-radius-0:center(1)+radius+0,center(2)-radius-0:center(2)+radius+0);
+
+
+            dOTF_Sim.Phase = phase;
+            dOTF_Sim.resize_phase_to_Pupil;
+            phase = dOTF_Sim.Phase .* dOTF_Sim.Mask_interped;
+            dOTF_Sim.calibration = true;
+            dOTF_Sim.Phase = phase_copy;
+            dOTF_Sim.resize_phase_to_Pupil;
+            phase_copy = dOTF_Sim.Phase .* dOTF_Sim.Mask_interped;
+            dOTF_Sim.Phase = phase;
+            
+            
+            fprintf('Computing the OPL\n');
+            dOTF_Sim.OPL = dOTF_Sim.Phase / k;
+            
+            [Ax,Ay] = A.coords;
+            figure;
+            imagesc(Ax,Ay,dOTF_Sim.OPL);
+            sqar;
+            colorbar;
+            axis xy;
+%             DM2.plotActuators(1);
+            
+            
+            
+            CORRECTOR = AOScreen(1);
+            CORRECTOR.spacing(SPACING);
+            OPL = dOTF_Sim.OPL;
+            OPL(OPL~=0) = OPL(OPL~=0)-mean(mean(OPL));
+            OPL = padarray(OPL,[floor((length(DM2.grid)-length(OPL))/2),floor((length(DM2.grid)-length(OPL))/2)],'both');
+            CORRECTOR.grid(OPL);
+%             CORRECTOR * A;
+            pistonvec = CORRECTOR.interpGrid(DM2.actuators(DM2.OnActs,1),DM2.actuators(DM2.OnActs,2));
+            DM2.bumpOnActs(gain*pistonvec);
+            storeDMcommands{n} = DM2.actuators(:,3);
+            DM2.clip(STROKE);
+            DM2.removeMean;
+            DM2.render;
+            figure;
+            DM2.show;
+%             DM2.plotActuators(1);
+            drawnow;
 %             dOTF_Sim.scanNumericalDefocus(-1.5,0.5,1000);
         end
     end
@@ -598,4 +468,4 @@ end
 
 load ok.mat;
 John = audioplayer(y,Fs);
-play(John);
+% play(John);

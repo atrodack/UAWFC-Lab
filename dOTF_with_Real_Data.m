@@ -5,9 +5,9 @@ clc;
 
 Num_Folders = 2;
 Num_files_per_folder = 100;
-varargin{1} = '/home/alex/Desktop/Data/2015526_Batch7_bp10_PSFWithoutFinger/';
+varargin{1} = '/home/alex/Desktop/Data/2015611_Batch2_nofilter_PSFWithoutFinger/';
 varargin{3} = 'RAW_scienceIM_frame_';
-varargin{2} = '/home/alex/Desktop/Data/2015526_Batch6_bp10_PSFWithFinger/';
+varargin{2} = '/home/alex/Desktop/Data/2015611_Batch2_nofilter_PSFWithFinger/';
 varargin{4} = 'RAW_scienceIM_frame_';
 
 images = BatchRead(Num_Folders,Num_files_per_folder, false, varargin);
