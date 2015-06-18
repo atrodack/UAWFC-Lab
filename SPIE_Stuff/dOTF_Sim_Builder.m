@@ -6,7 +6,7 @@ close all;
 % testbed components. Written with functionality of other scripts in UAWFC/
 % in mind. Global Variables are set in order to make callouts to other
 % functions that need the flags without having to reinitialize them or keep
-% track of them.
+% track of them. 
 
 %**************************************************************************
 %                       dOTF_Sim_Builder
