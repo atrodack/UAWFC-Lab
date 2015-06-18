@@ -7,7 +7,7 @@ close all;
 %**************************************************************************
 
 %% System Parameters
-global lambda k D secondary spider SPACING aa fftsize THld FOV PLATE_SCALE FoV_withIrisAO FoV_withoutIrisAO RunSIM RunTESTBED IrisAO_on verbose_makeDM Scalloped_Field UseRealPSF coronagraph system_verbose
+global lambda k D secondary spider SPACING aa fftsize THld FOV PLATE_SCALE FoV_withIrisAO FoV_withoutIrisAO RunSIM RunTESTBED IrisAO_on BMC_on verbose_makeDM Scalloped_Field UseRealPSF coronagraph system_verbose
 % lambda = AOField.RBAND; % Red light.
 lambda = AOField.HeNe_Laser;
 k = (2*pi) / lambda;
@@ -40,6 +40,8 @@ RunTESTBED = false; %Run the testbed equipment
 IrisAO_on = false;
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
+% BMC Flag
+BMC_on = true;
 % Aberration Flag
 InjectAb = true; %Injects some random Zernikes
 InjectRandAb = true;
