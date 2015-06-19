@@ -13,8 +13,8 @@ if RunSIM == true
     %% Pupil Mask
     PUPIL_DEFN = [
         0 0 D         1 aa 0 0 0 0 0
-%         0 0 secondary 0 aa/2 0 0 0 0 0
-%         0 0 spider   -2 aa 4 0 D/1.9 0 0
+        0 0 secondary 0 aa/2 0 0 0 0 0
+        0 0 spider   -2 aa 4 0 D/1.9 0 0
         ];
     
     A = AOSegment;

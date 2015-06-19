@@ -790,12 +790,15 @@ classdef AOdOTF < AOField
         end%scanBinning
         
         
-        function [Tipdiff,Tiltdiff] = calculateTT(AOdOTF)
+        function [Tipdiff,Tiltdiff] = calculateTT(AOdOTF,pixelshift)
             g = AOdOTF.dOTF;
-            tipleft = circshift(g,[0,1]);
-            tipright = conj(circshift(g,[0,-1]));
-            tiltup = circshift(g,[-1,0]);
-            tiltdown = conj(circshift(g,[1,0]));
+            if length(pixelshift) == 1
+                pixelshift = [pixelshift,pixelshift];
+            end
+            tipleft = circshift(g,[0,pixelshift(2)]);
+            tipright = conj(circshift(g,[0,-pixelshift(2)]));
+            tiltup = circshift(g,[-pixelshift(1),0]);
+            tiltdown = conj(circshift(g,[pixelshift(1),0]));
             
             Tipdiff = tipleft .* tipright;
             Tiltdiff = tiltup .* tiltdown;

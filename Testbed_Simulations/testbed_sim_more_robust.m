@@ -77,7 +77,7 @@ end
 % Coronagraph Flag
 coronagraph = false; % turns on going through coronagraph elemens
 % Plotting Flag
-system_verbose = false; %Plots Created System Elements
+system_verbose = true; %Plots Created System Elements
 
 %% Testbed Flags
 
@@ -133,7 +133,7 @@ if RunSIM == true
         end
         
         % Find a coefficient between -1 and 1 waves, scale it to the number of
-        % zernikes added to avoid unrealistic PSF deaths (fairly arbitrary,
+        % zernikes added to avoid unrealistic PSFs (fairly arbitrary,
         % probably uncessary)
         if nzerns < 3
             coeffs = (2*rand(1,nzerns)-1);

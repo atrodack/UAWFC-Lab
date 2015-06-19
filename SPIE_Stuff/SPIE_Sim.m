@@ -21,8 +21,10 @@ k = (2*pi) / lambda;
 
 % Pupil Specs
 D = 7e-3; % 7mm
-secondary = 0.3*D; % 30% of Pupil Diameter
-spider = 0.02*D; % 2% of Pupil Diameter
+% secondary = 0.3*D; % 30% of Pupil Diameter
+secondary = 0;
+% spider = 0.02*D; % 2% of Pupil Diameter
+spider = 0;
 
 
 %% Simulation Parameters
@@ -58,7 +60,8 @@ BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = true; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
-InjectKolm = false;
+
+InjectKolm = true;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -69,7 +72,7 @@ if InjectKolm == true
         N = 'n';
         display('You have turned on both Zernikes and Kolmogorov Turbulence. Would you like to turn one off?');
         answer1 = input('y/n : ');
-        if strcmpi(answer1,'y') == false
+        if strcmpi(answer1,'y') == true
             Zern = 'Zern';
             zern = 'Zern';
             Kolm = 'Kolm';
@@ -133,3 +136,154 @@ system_verbose = false; %Plots Created System Elements
 
 %% Make the Testbed Elements
 maketestbedelements;
+
+
+%% Inject Aberration
+if RunSIM == true
+    if InjectAb == true && InjectRandAb == true
+        ABER = AOScreen(A);
+        n = sort((randi(4,1,nzerns)),'ascend'); %zernike mode order (from lowest to highest)
+        m = zeros(1,nzerns); %zernike mode initialization
+        
+        %Get a correct "m" index for each "n" index
+        for ii = 1:nzerns
+            m_pos = -n(ii):2:n(ii);
+            choice = randi(length(m_pos),1,1);
+            m(ii) = m_pos(choice);
+        end
+        
+        % Find a coefficient between -1 and 1 waves, scale it to the number of
+        % zernikes added to avoid unrealistic PSFs (fairly arbitrary,
+        % probably uncessary)
+        if nzerns < 3
+            coeffs = (2*rand(1,nzerns)-1);
+        elseif nzerns <= 5
+            coeffs = (((nzerns-(nzerns-2))/nzerns)) .* (2*rand(1,nzerns)-1);
+        elseif nzerns > 5
+            coeffs = (((nzerns-(nzerns-5))/nzerns)) .* (2*rand(1,nzerns)-1);
+        end
+        
+        % Add the Zernikes into ABER
+        ABER.zero;
+        for ii = 1:nzerns
+            ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
+        end
+        n = n';
+        m = m';
+        Number_of_waves = coeffs';
+        T = table(n,m,Number_of_waves);
+        fprintf('\nInjected Aberrations:\n');
+        disp(T);
+    elseif InjectAb == true && InjectKnownAb == true
+        ABER = AOScreen(A);
+        n = [2,2,2,3,3];
+        m = [-2,0,2,-1,3];
+        
+%         coeffs = 1 * randn(1,length(n));
+        coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
+        ABER.zero;
+        for ii = 1:length(n)
+            ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
+        end
+        n = n';
+        m = m';
+        Number_of_waves = coeffs';
+        T = table(n,m,Number_of_waves);
+        fprintf('\nInjected Aberrations:\n');
+        disp(T);
+    elseif InjectAb == false
+        ABER = 1;
+    end
+    
+    if InjectKolm == true
+
+        TURB = AOAtmo(A);
+%         TURB.spacing(SPACING);
+        WFlow = AOScreen(fftsize,0.15,500e-9);
+        WFlow.name = 'Lower altitude turbulence';
+        WFhigh = AOScreen(2*fftsize,0.17,500e-9);
+        WFhigh.name = 'High altitude turbulence';
+        
+        TURB.addLayer(WFlow,1000);
+        TURB.addLayer(WFhigh,8000);
+        
+        TURB.layers{1}.Wind = [3 1];
+        TURB.layers{2}.Wind = [1 -1]*20;
+        
+        r0 = TURB.totalFriedScale;
+        th_scat = lambda/r0*206265;
+        
+        fprintf('The total r0 is %f cm.\n',100*r0);
+        fprintf('The seeing is %.2f arcsecs.\n',th_scat);
+        
+        % Turning this off is like using dynamic refocus.
+        TURB.GEOMETRY = true;
+        TURB.BEACON = [1 1 1e10];
+        TURB.make;
+        TURB.show
+    end
+    
+    
+    
+    
+    
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
