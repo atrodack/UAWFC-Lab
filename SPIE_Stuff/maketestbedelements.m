@@ -6,8 +6,8 @@
 %                      Construct System Elements
 %**************************************************************************
 if RunSIM == true
-    load alright.mat;
-    John = audioplayer(y,Fs);
+%     load alright.mat;
+%     John = audioplayer(y,Fs);
 %     play(John);
     
     %% Pupil Mask
@@ -95,15 +95,7 @@ end
 
 if RunSIM == true
     if IrisAO_on == true
-        % Load in Mapping Data
-        load('IrisAO_SegMap.mat');
-        PTT = zeros(numSeg,3);
-        
-        % Map the PTT matrix from hardware to software order
-        for ii = 1:numSeg
-            mapped_segment = IrisAO_SegMap(ii);
-            PTT(ii,1:3) = PTTpos(mapped_segment,:);
-        end
+       PTT = mapSegments(PTTpos);
         
         % Send to DM Model
         DM1.PTT(PTT);
