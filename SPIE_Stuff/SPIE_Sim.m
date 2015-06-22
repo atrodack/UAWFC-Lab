@@ -58,10 +58,10 @@ BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
 InjectAb = true; %Injects nzerns Zernike Terms
-InjectRandAb = true; %if InjectAB is true, picks Zernikes "Randomly"
-InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
+InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
+InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = true;
+InjectKolm = false;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -176,11 +176,14 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-        n = [2,2,2,3,3];
-        m = [-2,0,2,-1,3];
-        
+%         n = [2,2,2,3,3];
+        n = [0,1,1,2,4];
+%         m = [-2,0,2,-1,3];
+        m = [0,-1,1,0,0];
+
 %         coeffs = 1 * randn(1,length(n));
-        coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
+%         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
+        coeffs = 0.25*randn(1,length(n));
         ABER.zero;
         for ii = 1:length(n)
             ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
@@ -191,6 +194,8 @@ if RunSIM == true
         T = table(n,m,Number_of_waves);
         fprintf('\nInjected Aberrations:\n');
         disp(T);
+        ABER.show;
+        aberration = ABER.grid;
     elseif InjectAb == false
         ABER = 1;
     end
@@ -221,24 +226,91 @@ if RunSIM == true
         TURB.BEACON = [1 1 1e10];
         TURB.make;
         TURB.show
-    end
-    
-    
-    
-    
-    
+        
+        aberration = TURB.grid;
+        
+    else
+        TURB = 1;
+        
+    end  
 end
 
+%% IrisAO Simulation
+F = AOField(fftsize);
+F.FFTSize = (fftsize);
+F.spacing(SPACING);
+F.lambda = lambda;
+F.name = 'IrisAO Field 1';
+
+F2 = F.copy;
+F2.name = 'IrisAO Field 2';
 
 
+PTTpos_flat = zeros(37,3);
+PTT_flat = mapSegments(PTTpos_flat);
+PTTpos_poked = zeros(37,3);
+PTTpos_poked(23,1) = 1;
+PTT_poked = mapSegments(PTTpos_poked);
 
 
+DM1.PTT(PTT_flat);
+DM1.touch;
+DM1.render;
+
+F.planewave * ABER * TURB * A * DM1;
+PSF1 = F.mkPSF(FOV,PLATE_SCALE);
+PSF1max = max(max(PSF1));
+% PSF1 = PSF1 / PSF1max;
+PSF1plot = log10(PSF1/PSF1max);
+
+DM1.PTT(PTT_poked);
+DM1.touch;
+DM1.render;
+
+F2.planewave * ABER * TURB * A * DM1;
+PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
+PSF2max = max(max(PSF2));
+% PSF2 = PSF2 / PSF2max;
+PSF2plot = log10(PSF2/PSF2max);
+
+% figure(1);
+% imagesc([PSF1plot,PSF2plot],[-4,0]);
+% colormap(gray);
+
+F.touch; F2.touch;
+F.grid(PSF1); F2.grid(PSF2);
+
+OTF1 = F.mkOTF2(FoV_withoutIrisAO,SPACING(1));
+OTF2 = F2.mkOTF2(FoV_withoutIrisAO,SPACING(1));
+
+F.touch; F2.touch;
+
+% figure(2)
+% subplot(1,2,1)
+% plotComplex(OTF1,2);
+% subplot(1,2,2)
+% plotComplex(OTF2,2);
+
+dOTF = OTF1 - OTF2;
+mag = abs(dOTF);
+phase = angle(dOTF);
+unwrapped_phase = uwrap(phase,'unwt');
+
+mask = mag;
+mask(mask<1e10) = 0;
+mask = logical(mask);
 
 
-
-
-
-
+figure(3);
+subplot(1,3,1)
+imagesc(mag .* mask);
+colormap(gray); axis xy; colorbar; sqar;
+subplot(1,3,2)
+imagesc(phase .* mask);
+colormap(gray); axis xy; colorbar; sqar;
+subplot(1,3,3)
+imagesc(unwrapped_phase .* mask,[-2*pi,2*pi]);
+colormap(gray); axis xy; colorbar; sqar;
 
 
 
