@@ -40,12 +40,14 @@ if RunSIM == true
         segpitch = 606e-6; %leave this alone
         magnification = 1; %leave this alone too
         FoV = FoV_withIrisAO;
+        numRings = 3; %default to 37 segments
+        numSeg = sum(1:numRings)*6 + 1; % keep track of total segments
         % Make the Mirror
         if Scalloped_Field == true
-            [DM1,F_scal] = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
+            [DM1,F_scal] = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field,numRings);
             F_scal.grid(padarray(F_scal.grid,[ceil(271/2),ceil(207/2)]));
         else
-            DM1 = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field);
+            DM1 = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field,numRings);
         end
         DM1.lambdaRef = lambda;
         
@@ -63,7 +65,7 @@ end
 
 %% Set the Initial Piston, Tip, Tilt of IrisAO Mirror
 % Flatten the IrisAO
-PTTpos = zeros(37,3);
+PTTpos = zeros(numSeg,3);
 
 % Set a Random Mirror Shape
 % PTTpos = horzcat(randn(37,1)*10^-6,randn(37,1)*10^-3,randn(37,1)*10^-3);
@@ -95,10 +97,10 @@ if RunSIM == true
     if IrisAO_on == true
         % Load in Mapping Data
         load('IrisAO_SegMap.mat');
-        PTT = zeros(37,3);
+        PTT = zeros(numSeg,3);
         
         % Map the PTT matrix from hardware to software order
-        for ii = 1:37
+        for ii = 1:numSeg
             mapped_segment = IrisAO_SegMap(ii);
             PTT(ii,1:3) = PTTpos(mapped_segment,:);
         end

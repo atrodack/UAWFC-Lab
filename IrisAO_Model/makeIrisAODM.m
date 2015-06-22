@@ -1,6 +1,6 @@
-function [varargout] = makeIrisAODM(MAGNIFICATION, verbose,Scalloped_Field)
+function [varargout] = makeIrisAODM(MAGNIFICATION, verbose,Scalloped_Field,numRings)
 % [DM] = makeIrisAODM(MAGNIFICATION, verbose, Scalloped_Field)
-% Makes a 37 Segment IrisAO DM.
+% Makes a Segmented IrisAO DM.  Defaults to 37 segments.
 %
 %Inputs:
 % MAGNIFICATION scales the DM Segment Size. SegPitch of 606 microns is
@@ -13,8 +13,17 @@ function [varargout] = makeIrisAODM(MAGNIFICATION, verbose,Scalloped_Field)
 % Scalloped_Field turns on returning an AOField Object that encodes the
 % actual surface shape of the segments.
 %
+% numRings determines the number of segments to construct for the mirror in
+% a concentric ring pattern.  If numRings = 0, then there is one central
+% segment.  If numRings = 1, then there are seven segments, if numRings =
+% 2, then there are 19 segments, etc.  In general, for numRings = n, then
+% there are 2n + 1 segments along the row containing the most segments
+% (center row), with n + 1 segments along an edge.  This means there are N
+% = triangle(n)*6 + 1 total segments where triangle(n) is the sum of n from
+% 1 to M.
+%
 %Output:
-% DM is an AOAperture class object that has 37 segments stored within it.
+% DM is an AOAperture class object that has  segments stored within it.
 % This is the IrisAO Model
 %
 
@@ -25,18 +34,29 @@ if nargin == 0
     SegPitch = MAGNIFICATION * 606e-6;
     verbose = true;
     Scalloped_Field = false;
+    numRings = 3;
 elseif nargin == 1
     SegPitch = MAGNIFICATION * SegPitch;
     Scalloped_Field = false;
     verbose = false;
+    numRings = 3;
 elseif nargin == 2
     SegPitch = MAGNIFICATION * SegPitch;
     Scalloped_Field = false;
+    numRings = 3;
 elseif nargin == 3
+    SegPitch = MAGNIFICATION * SegPitch;
+    numRings = 3;
+elseif nargin == 4
     SegPitch = MAGNIFICATION * SegPitch;
 else
     error('Inputs are Incorrect');
 end
+
+% count the number of segments along an edge, the center row, and in total
+numEdgeSeg = numRings + 1;
+numCenterSeg = 2*numRings + 1;
+numSeg = sum(1:numRings)*6 + 1;
 
 % set the grid spacing
 dx = SegPitch/100;
@@ -92,10 +112,10 @@ ub_ = ([c s; -s c] * ua')';
 % used, and above this ub_ is used.  These unit vectors account for the
 % necessary sign change in the rotation now that the segments are in
 % positive space vertically.
-for nrow=-3:0
-    NumCol = 7-abs(nrow);
+for nrow=-(numEdgeSeg-1):0
+    NumCol = numCenterSeg-abs(nrow);
     
-    START = -4*ua - nrow*ub;
+    START = -numEdgeSeg*ua - nrow*ub;
     
     for ncol=1:NumCol
         DM.addSegment(Seg,START+ncol*ua);
@@ -106,9 +126,9 @@ for nrow=-3:0
     end
 end
 
-for nrow=1:3
-    NumCol = 7-abs(nrow);
-    START = -4*ua + nrow*ub_;
+for nrow=1:(numEdgeSeg-1)
+    NumCol = numCenterSeg-abs(nrow);
+    START = -numEdgeSeg*ua + nrow*ub_;
     
     for ncol=1:NumCol
         DM.addSegment(Seg,START+ncol*ua);
@@ -121,8 +141,8 @@ end
 
 % Store the location of the Center of each Segment in the global coordinate
 % system
-SEGCOORDS = zeros(37,2);
-for n=1:37
+SEGCOORDS = zeros(numSeg,2);
+for n=1:numSeg
     SEGCOORDS(n,:) = DM.segList{n}.Offset;
 end
 
