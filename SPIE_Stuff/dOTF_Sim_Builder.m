@@ -51,13 +51,13 @@ RunTESTBED = false; %Run the testbed equipment
 % IrisAO Flags
 IrisAO_on = true; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
-Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
+Scalloped_Field = false; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
 
 % BMC Flag
-BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
+BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
@@ -98,7 +98,7 @@ end
 UseDM4Correction = true;
 
 % Noise Flags
-UseNoise = false;
+UseNoise = true;
 if UseNoise == true
     number_of_images = 100;
     Noise = cell(2,1);
@@ -125,7 +125,7 @@ if UseRealPSF == true
     varargin{4} = 'RAW_scienceIM_frame_';
 end
 % Coronagraph Flag
-coronagraph = false; % turns on going through coronagraph elemens
+coronagraph = false; % turns on going through coronagraph elements
 
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
@@ -135,6 +135,8 @@ system_verbose = false; %Plots Created System Elements
 
 
 %% Make the Testbed Elements
+numRings = 1;
+numSeg = sum(1:numRings)*6 + 1;
 maketestbedelements;
 
 
@@ -246,16 +248,22 @@ F2 = F.copy;
 F2.name = 'IrisAO Field 2';
 
 
-PTTpos_flat = zeros(37,3);
-PTT_flat = mapSegments(PTTpos_flat);
-PTTpos_poked = zeros(37,3);
-PTTpos_poked(23,1) = 1;
-PTT_poked = mapSegments(PTTpos_poked);
+% PTTpos_flat = zeros(numSeg,3);
+% PTT_flat = mapSegments(PTTpos_flat,numRings);
+PTTpos_poked1 = zeros(numSeg,3);
+PTTpos_poked2 = PTTpos_poked1;
+TopRightCorner = 2 + (numRings-1)*6 + 1;
+% Set Finger Positions
+PTTpos_poked1(TopRightCorner,2) = .001;
+PTTpos_poked2(TopRightCorner,3) = .001;
+PTT_poked1 = mapSegments(PTTpos_poked1,numRings);
+PTT_poked2 = mapSegments(PTTpos_poked2,numRings);
 
-
-DM1.PTT(PTT_flat);
+DM1.PTT(PTT_poked1);
 DM1.touch;
 DM1.render;
+figure;
+DM1.show; colorbar;
 
 F.planewave * ABER * TURB * A * DM1;
 PSF1 = F.mkPSF(FOV,PLATE_SCALE);
@@ -263,9 +271,11 @@ PSF1max = max(max(PSF1));
 % PSF1 = PSF1 / PSF1max;
 PSF1plot = log10(PSF1/PSF1max);
 
-DM1.PTT(PTT_poked);
+DM1.PTT(PTT_poked2);
 DM1.touch;
 DM1.render;
+figure;
+DM1.show; colorbar;
 
 F2.planewave * ABER * TURB * A * DM1;
 PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
@@ -280,8 +290,8 @@ PSF2plot = log10(PSF2/PSF2max);
 F.touch; F2.touch;
 F.grid(PSF1); F2.grid(PSF2);
 
-OTF1 = F.mkOTF2(FoV_withoutIrisAO,SPACING(1));
-OTF2 = F2.mkOTF2(FoV_withoutIrisAO,SPACING(1));
+OTF1 = F.mkOTF2(FoV_withIrisAO,SPACING(1));
+OTF2 = F2.mkOTF2(FoV_withIrisAO,SPACING(1));
 
 F.touch; F2.touch;
 
@@ -296,17 +306,19 @@ mag = abs(dOTF);
 phase = angle(dOTF);
 % unwrapped_phase = uwrap(phase,'unwt');
 
-mask = mag;
-mask(mask<1e10) = 0;
-mask = logical(mask);
+% mask = mag;
+% mask(mask<1e10) = 0;
+% mask = logical(mask);
 
 
 figure(3);
-subplot(1,3,1)
-imagesc(mag .* mask);
+subplot(1,2,1)
+% imagesc(mag .* mask);
+imagesc(mag);
 colormap(gray); axis xy; colorbar; sqar;
-subplot(1,3,2)
-imagesc(phase .* mask);
+subplot(1,2,2)
+% imagesc(phase .* mask);
+imagesc(phase);
 colormap(gray); axis xy; colorbar; sqar;
 % subplot(1,3,3)
 % imagesc(unwrapped_phase .* mask,[-2*pi,2*pi]);
