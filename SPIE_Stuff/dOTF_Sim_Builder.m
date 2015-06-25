@@ -2,7 +2,7 @@ clear all;
 clc;
 close all;
 
-% Closed-Loop dOTF Methods and Testing 
+% Closed-Loop dOTF Methods and Testing
 
 %**************************************************************************
 %                       SPIE dOTF Closed-Loop Methods Simulation
@@ -98,7 +98,7 @@ end
 UseDM4Correction = true;
 
 % Noise Flags
-UseNoise = true;
+UseNoise = false;
 if UseNoise == true
     number_of_images = 100;
     Noise = cell(2,1);
@@ -115,10 +115,10 @@ if UseRealPSF == true
     InjectAb = false;
     Num_Folders = 2;
     Num_files_per_folder = 100;
-%     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
-%     varargin{3} = 'RAW_scienceIM_frame_';
-%     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
-%     varargin{4} = 'RAW_scienceIM_frame_';
+    %     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
+    %     varargin{3} = 'RAW_scienceIM_frame_';
+    %     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
+    %     varargin{4} = 'RAW_scienceIM_frame_';
     varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
     varargin{3} = 'RAW_scienceIM_frame_';
     varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
@@ -178,13 +178,13 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-%         n = [2,2,2,3,3];
+        %         n = [2,2,2,3,3];
         n = [0,1,1,2,4];
-%         m = [-2,0,2,-1,3];
+        %         m = [-2,0,2,-1,3];
         m = [0,-1,1,0,0];
-
-%         coeffs = 1 * randn(1,length(n));
-%         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
+        
+        %         coeffs = 1 * randn(1,length(n));
+        %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         coeffs = 0.25*randn(1,length(n));
         ABER.zero;
         for ii = 1:length(n)
@@ -203,9 +203,9 @@ if RunSIM == true
     end
     
     if InjectKolm == true
-
+        
         TURB = AOAtmo(A);
-%         TURB.spacing(SPACING);
+        %         TURB.spacing(SPACING);
         WFlow = AOScreen(fftsize,0.15,500e-9);
         WFlow.name = 'Lower altitude turbulence';
         WFhigh = AOScreen(2*fftsize,0.17,500e-9);
@@ -234,7 +234,7 @@ if RunSIM == true
     else
         TURB = 1;
         
-    end  
+    end
 end
 
 %% IrisAO Simulation
@@ -252,30 +252,40 @@ F2.name = 'IrisAO Field 2';
 % PTT_flat = mapSegments(PTTpos_flat,numRings);
 PTTpos_poked1 = zeros(numSeg,3);
 PTTpos_poked2 = PTTpos_poked1;
-TopRightCorner = 2 + (numRings-1)*6 + 1;
+
+% Create the location of the difference field
+if numRings > 0 && numRings ~= 1
+    DiffField = 3 + ((numRings-1)*6 + 1);
+elseif numRings == 1
+    DiffField = 3;
+else
+    DiffField = 1;
+end
+
 % Set Finger Positions
-PTTpos_poked1(TopRightCorner,2) = .001;
-PTTpos_poked2(TopRightCorner,3) = .001;
+PTTpos_poked1(DiffField,1) = .005;
+PTTpos_poked2(DiffField,3) = .0005;
 PTT_poked1 = mapSegments(PTTpos_poked1,numRings);
 PTT_poked2 = mapSegments(PTTpos_poked2,numRings);
 
 DM1.PTT(PTT_poked1);
 DM1.touch;
 DM1.render;
-figure;
-DM1.show; colorbar;
+% figure;
+% DM1.show; colorbar;
 
 F.planewave * ABER * TURB * A * DM1;
 PSF1 = F.mkPSF(FOV,PLATE_SCALE);
 PSF1max = max(max(PSF1));
 % PSF1 = PSF1 / PSF1max;
 PSF1plot = log10(PSF1/PSF1max);
+% figure; imagesc(PSF1plot);
 
 DM1.PTT(PTT_poked2);
 DM1.touch;
 DM1.render;
-figure;
-DM1.show; colorbar;
+% figure;
+% DM1.show; colorbar;
 
 F2.planewave * ABER * TURB * A * DM1;
 PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
