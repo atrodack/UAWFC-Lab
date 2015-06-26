@@ -20,7 +20,7 @@ lambda = AOField.HeNe_Laser;
 k = (2*pi) / lambda;
 
 % Pupil Specs
-D = 7e-3; % 7mm
+D = 3.636e-3; % 7mm
 % secondary = 0.3*D; % 30% of Pupil Diameter
 secondary = 0;
 % spider = 0.02*D; % 2% of Pupil Diameter
@@ -52,6 +52,7 @@ RunTESTBED = false; %Run the testbed equipment
 IrisAO_on = true; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = false; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
+spiral = true;
 
 % BMC Flag
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
@@ -59,7 +60,7 @@ BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 % Aberration Flags
 InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
-InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
+InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
 
 InjectKolm = false;
 
@@ -135,9 +136,10 @@ system_verbose = false; %Plots Created System Elements
 
 
 %% Make the Testbed Elements
-numRings = 1;
+numRings = 3;
 numSeg = sum(1:numRings)*6 + 1;
-maketestbedelements;
+load MadeTestbedElements.mat;
+% maketestbedelements;
 
 
 %% Inject Aberration
@@ -179,9 +181,9 @@ if RunSIM == true
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
         %         n = [2,2,2,3,3];
-        n = [0,1,1,2,4];
+        n = [1,1,4];
         %         m = [-2,0,2,-1,3];
-        m = [0,-1,1,0,0];
+        m = [-1,1,0];
         
         %         coeffs = 1 * randn(1,length(n));
         %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
@@ -233,7 +235,6 @@ if RunSIM == true
         
     else
         TURB = 1;
-        
     end
 end
 
@@ -251,20 +252,31 @@ F2.name = 'IrisAO Field 2';
 % PTTpos_flat = zeros(numSeg,3);
 % PTT_flat = mapSegments(PTTpos_flat,numRings);
 PTTpos_poked1 = zeros(numSeg,3);
-PTTpos_poked2 = PTTpos_poked1;
+
+% Generate piston spiral pattern on 1st 7 segments on DM surface
+if spiral == 1
+    piston_spiral = 25e-9; % 25 nm piston
+    for seg = 1:7
+        PTTpos_poked1(seg,1) = piston_spiral;
+        piston_spiral = piston_spiral + 25e-9;
+    end
+end
 
 % Create the location of the difference field
-if numRings > 0 && numRings ~= 1
-    DiffField = 3 + ((numRings-1)*6 + 1);
-elseif numRings == 1
+if numRings > 0
     DiffField = 3;
+    for segRing = 1:numRings-1
+        DiffField = DiffField + (segRing)*6 + 1;
+    end
 else
     DiffField = 1;
 end
 
 % Set Finger Positions
-PTTpos_poked1(DiffField,1) = .005;
-PTTpos_poked2(DiffField,3) = .0005;
+PTTpos_poked2 = PTTpos_poked1;
+PTTpos_poked1(DiffField,1) = 1e-6; % 1 micron
+% PTTpos_poked1(DiffField,2) = 1e-4; % .1 mrad
+PTTpos_poked2(DiffField,3) = 1e-4; % .1 mrad
 PTT_poked1 = mapSegments(PTTpos_poked1,numRings);
 PTT_poked2 = mapSegments(PTTpos_poked2,numRings);
 
@@ -275,6 +287,7 @@ DM1.render;
 % DM1.show; colorbar;
 
 F.planewave * ABER * TURB * A * DM1;
+% figure; F.show;
 PSF1 = F.mkPSF(FOV,PLATE_SCALE);
 PSF1max = max(max(PSF1));
 % PSF1 = PSF1 / PSF1max;
@@ -300,8 +313,8 @@ PSF2plot = log10(PSF2/PSF2max);
 F.touch; F2.touch;
 F.grid(PSF1); F2.grid(PSF2);
 
-OTF1 = F.mkOTF2(FoV_withIrisAO,SPACING(1));
-OTF2 = F2.mkOTF2(FoV_withIrisAO,SPACING(1));
+OTF1 = F.mkOTF2(FoV_withoutIrisAO,SPACING(1));
+OTF2 = F2.mkOTF2(FoV_withoutIrisAO,SPACING(1));
 
 F.touch; F2.touch;
 
@@ -322,15 +335,17 @@ phase = angle(dOTF);
 
 
 figure(3);
-subplot(1,2,1)
+subplot(1,3,1)
 % imagesc(mag .* mask);
 imagesc(mag);
 colormap(gray); axis xy; colorbar; sqar;
-subplot(1,2,2)
+subplot(1,3,2)
 % imagesc(phase .* mask);
 imagesc(phase);
 colormap(gray); axis xy; colorbar; sqar;
-% subplot(1,3,3)
+subplot(1,3,3)
+plotComplex(dOTF,2);
+axis xy; sqar;
 % imagesc(unwrapped_phase .* mask,[-2*pi,2*pi]);
 % colormap(gray); axis xy; colorbar; sqar;
 
