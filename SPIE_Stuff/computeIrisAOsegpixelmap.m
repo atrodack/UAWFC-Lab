@@ -1,5 +1,5 @@
 function [ pixel_seg_map, Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg, FOV, PLATE_SCALE, FoV)
-% [ pixel_seg_map ] = computeIrisAOsegpixelmap( DM, pokeseg)
+% [ pixel_seg_map,Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg, FOV, PLATE_SCALE, FoV)
 %   function for computing the Segment-pixel grid for AOSim2 IrisAO Model
 %   in dOTF
 SPACING = DM.spacing;

@@ -71,8 +71,8 @@ PTTpos = zeros(numSeg,3);
 % PTTpos = horzcat(randn(37,1)*10^-6,randn(37,1)*10^-3,randn(37,1)*10^-3);
 
 % Use a Zernike on the mirror....magnification must be equal to 1 for this!
-% Zernike_Number = [2,3];
-% Zernike_Coefficient_waves = randn(2,1);
+% Zernike_Number = [3];
+% Zernike_Coefficient_waves = 4;
 % PTTpos = IrisAOComputeZernPositions( lambda, Zernike_Number, Zernike_Coefficient_waves);
 
 if RunTESTBED == true
