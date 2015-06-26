@@ -40,7 +40,7 @@ if RunSIM == true
         segpitch = 606e-6; %leave this alone
         magnification = 1; %leave this alone too
         FoV = FoV_withIrisAO;
-        numRings = 1; %default to 37 segments
+        numRings = 3; %default to 37 segments
         numSeg = sum(1:numRings)*6 + 1; % keep track of total segments
         % Make the Mirror
         if Scalloped_Field == true
@@ -230,5 +230,5 @@ if RunSIM == true
         [X,Y] = A.COORDS;
         fprintf('\nUsing a Flat instead of the BMC\n');
     end
-    
+    save('MadeTestbedElements', 'A','DM1');
 end
