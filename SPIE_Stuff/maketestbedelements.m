@@ -230,5 +230,5 @@ if RunSIM == true
         [X,Y] = A.COORDS;
         fprintf('\nUsing a Flat instead of the BMC\n');
     end
-    save('MadeTestbedElements', 'A','DM1');
+%     save('MadeTestbedElements', 'A','DM1');
 end

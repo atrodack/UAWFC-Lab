@@ -57,11 +57,11 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = false; %Injects nzerns Zernike Terms
-InjectRandAb = true; %if InjectAB is true, picks Zernikes "Randomly"
-InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
+InjectAb = true; %Injects nzerns Zernike Terms
+InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
+InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = true;
+InjectKolm = false;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -178,15 +178,15 @@ if RunSIM == true
         ABER = AOScreen(A);
         %         n = [2,2,2,3,3];
         %         n = [1,1,2,4];
-        n = [1,1];
+        n = [1];
         %         m = [-2,0,2,-1,3];
         %         m = [-1,1,0,0];
-        m = [-1,1];
+        m = [-1];
         
         %         coeffs = 1 * randn(1,length(n));
         %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         %         coeffs = 0.25*randn(1,length(n));
-        coeffs = [4,4];
+        coeffs = [4];
         ABER.zero;
         for ii = 1:length(n)
             ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
@@ -285,9 +285,10 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 numiterations = 100;
+% DM1.isMirror = 0;
 while(nn < numiterations)
     
-    TURB.grid(circshift(TURB.grid,Wind));
+%     TURB.grid(circshift(TURB.grid,Wind));
     
     DM1.PTT(PTT_flat);
     DM1.touch;
@@ -328,7 +329,7 @@ while(nn < numiterations)
 
     
     %% Correction
-    if nn > 10  %suffer the seeing limit for a bit
+    if nn > 1  %suffer the seeing limit for a bit
         PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
         PTT_mirror = mapSegments(PTTpos_mirror);
         DM1.PTT(PTT_mirror);
@@ -368,18 +369,19 @@ while(nn < numiterations)
     subplot(2,4,6);
     strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
     strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
+    strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
     loopnum(nn) = nn;
     plot(loopnum,strehl,'-r');
     hold on
     plot(loopnum,strehl_uncorr,'-b');
+    plot(loopnum,strehl_notip,'-g');
     hold off
     xlabel('Loop Iteration');
     ylabel('Strehl Ratio');
-    legend('Corrected Strehl','Uncorrected Strehl');
+    legend('Corrected Strehl','Uncorrected Strehl','Tip/Tilt Independent Strehl','Location','Best');
     xlim([0,100]);
     ylim([0,1]);
     title('Strehl Ratio');
-    
 %     drawnow;
 %     
 %     
@@ -415,6 +417,7 @@ while(nn < numiterations)
     subplot(2,4,8)
     if InjectKolm == true
         TURB.show;
+        sqar;
         bigtitle(sprintf('Turbulence Profile at loop %d',nn),10);
         xlim([-2e-3,2e-3]);
         ylim([-2e-3,2e-3]);
@@ -423,6 +426,7 @@ while(nn < numiterations)
         bigtitle(sprintf('Injected Aberration at loop %d',nn),10);
         xlim([-2e-3,2e-3]);
         ylim([-2e-3,2e-3]);
+        sqar;
     end
     
     

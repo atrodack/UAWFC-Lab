@@ -20,11 +20,11 @@ tiltdown = conj(circshift(g,[pixelshift(1),0]));
 Tipdiff= tipleft .* tipright;
 Tipdiff = Tipdiff / sum(pixelshift);
 Tipdiff = Tipdiff / k;
-Tipdiff = Tipdiff / dx;
+Tipdiff = Tipdiff / 
 Tiltdiff = tiltup .* tiltdown;
 Tiltdiff = Tiltdiff / sum(pixelshift);
 Tiltdiff = Tiltdiff / k;
-Tiltdiff = Tiltdiff / dx;
+
 
 
 [sizey,sizex] = size(phase);
@@ -78,7 +78,7 @@ else
     pistonlist = pistonlist + abs(piston_float);
 end
 
-pistonlist = pistonlist /2;
+% pistonlist = pistonlist/2;
 % tiplist = tiplist;
 % tiltlist = tiltlist;
 
