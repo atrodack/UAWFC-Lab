@@ -60,7 +60,7 @@ else
     Noise{1} = UseNoise;
 end
 % Use Testbed PSF Instead of Simulated PSF
-UseRealPSF = true;
+UseRealPSF = false;
 if UseRealPSF == true
     InjectAb = false;
     Num_Folders = 2;

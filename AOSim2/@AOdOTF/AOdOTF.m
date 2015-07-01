@@ -13,8 +13,8 @@ classdef AOdOTF < AOField
         OPL;
         A;
         Field;
-        FOV;
-        FoV;
+%         FOV;
+%         FoV;
         Plate_Scale;
         thx;
         thy;

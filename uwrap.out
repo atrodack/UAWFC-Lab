@@ -1,8 +1,8 @@
 Unweighted Phase Unwrapping by DCT/FFT
-Input file =  /tmp/_uwrap_2049x2049_0000000342.phase
+Input file =  /tmp/_uwrap_4097x4097_0000000915.phase
 Input file type = float
-Output file =  /tmp/_uwrap_2049x2049_0000000342.uwphase
-File dimensions = 2049x2049 (cols x rows).
+Output file =  /tmp/_uwrap_4097x4097_0000000915.uwphase
+File dimensions = 4097x4097 (cols x rows).
 Reading phase data...
 Reading input data...
 Computing Laplacian...
@@ -12,5 +12,5 @@ Scaling...
 Inverse transform...
 
 Finished
-Finding min, max of solution...Min -2.662112, max 6.519301
-Saving unwrapped surface to file '/tmp/_uwrap_2049x2049_0000000342.uwphase'
+Finding min, max of solution...Min -2.853832, max 5.771547
+Saving unwrapped surface to file '/tmp/_uwrap_4097x4097_0000000915.uwphase'

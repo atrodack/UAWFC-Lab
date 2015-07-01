@@ -13,8 +13,8 @@ if RunSIM == true
     %% Pupil Mask
     PUPIL_DEFN = [
         0 0 D         1 aa 0 0 0 0 0
-        0 0 secondary 0 aa/2 0 0 0 0 0
-        0 0 spider   -2 aa 4 0 D/1.9 0 0
+%         0 0 secondary 0 aa/2 0 0 0 0 0
+%         0 0 spider   -2 aa 4 0 D/1.9 0 0
         ];
     
     A = AOSegment;
@@ -64,8 +64,7 @@ if RunSIM == true
 end
 
 %% Set the Initial Piston, Tip, Tilt of IrisAO Mirror
-% Flatten the IrisAO
-PTTpos = zeros(numSeg,3);
+
 
 % Set a Random Mirror Shape
 % PTTpos = horzcat(randn(37,1)*10^-6,randn(37,1)*10^-3,randn(37,1)*10^-3);
@@ -95,6 +94,8 @@ end
 
 if RunSIM == true
     if IrisAO_on == true
+        % Flatten the IrisAO
+        PTTpos = zeros(numSeg,3);
        PTT = mapSegments(PTTpos,numRings);
         
         % Send to DM Model
@@ -188,7 +189,7 @@ if RunSIM == true
         
         % Set the Convex Hull Boundary Conditions
         %     DM2.defineBC(D/2 + D/18,4,'circle');
-        DM2.defineBC(D/2,4,'circle');
+        DM2.defineBC(5e-3,8,'square');
         
         [x_DM,y_DM] = DM2.coords;
         %% Set the Initial Piston Values of the BMC DM
