@@ -57,11 +57,11 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = false; %Injects nzerns Zernike Terms
+InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = true;
+InjectKolm = false;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -325,7 +325,7 @@ while(nn < numiterations)
     mask = double(mask>0);   
     
     
-    [ PTT_mirror, PTTpos_mirror1] = IrisAOgetPTT( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23 );
+    [ PTT_mirror, PTTpos_mirror1] = IrisAOgetPTT( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23);
     
     [ dOTF2, PSF3, PSF4, OTF3, OTF4 ] = IrisAOcomputedOTF( DM1, 32, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
     maxmag2 = max(max(abs(dOTF2)));
@@ -341,7 +341,7 @@ while(nn < numiterations)
 
     
     %% Correction
-    if nn > 10  %suffer the seeing limit for a bit
+    if nn > 1  %suffer the seeing limit for a bit
         PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
         PTT_mirror = mapSegments(PTTpos_mirror);
         DM1.PTT(PTT_mirror);

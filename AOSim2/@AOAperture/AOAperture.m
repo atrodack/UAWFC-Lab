@@ -308,7 +308,11 @@ classdef AOAperture < AOSegment
             end
         end
 
-        
+        function A = setIrisAO(A,PTT)
+            A.PTT(PTT);
+            A.touch;
+            A.render;
+        end %setIrisAO
         
 		function show(A) % overloading the AOGrid function.
 			A.center.plotC;

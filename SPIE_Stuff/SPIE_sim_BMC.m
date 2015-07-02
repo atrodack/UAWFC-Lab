@@ -22,9 +22,8 @@ k = (2*pi) / lambda;
 % Pupil Specs
 D = 7e-3; % 7mm
 % secondary = 0.3*D; % 30% of Pupil Diameter
-secondary = 0;
 % spider = 0.02*D; % 2% of Pupil Diameter
-spider = 0;
+
 
 
 %% Simulation Parameters
@@ -49,19 +48,19 @@ RunTESTBED = false; %Run the testbed equipment
 %% Simulation Flags
 
 % IrisAO Flags
-IrisAO_on = true; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
+IrisAO_on = false; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
 
 % BMC Flag
-BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
+BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = false; %Injects nzerns Zernike Terms
+InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = true;
+InjectKolm = false;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -130,8 +129,6 @@ if UseRealPSF == true
     varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
     varargin{4} = 'RAW_scienceIM_frame_';
 end
-% Coronagraph Flag
-coronagraph = false; % turns on going through coronagraph elemens
 
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
@@ -212,50 +209,18 @@ if RunSIM == true
     end
     
     if InjectKolm == true
-        
-        %         TURB = AOAtmo(A);
-        % %         TURB.spacing(SPACING);
-        %         WFlow = AOScreen(fftsize,0.15,500e-9);
-        %         WFlow.spacing(SPACING);
-        %         WFlow.name = 'Lower altitude turbulence';
-        %         WFhigh = AOScreen(2*fftsize,0.17,500e-9);
-        %         WFhigh.spacing(SPACING);
-        %         WFhigh.name = 'High altitude turbulence';
-        %
-        %         TURB.addLayer(WFlow,1000);
-        %         TURB.addLayer(WFhigh,8000);
-        %
-        %         TURB.layers{1}.Wind = [3 1];
-        %         TURB.layers{2}.Wind = [1 -1]*20;
-        %
-        %         r0 = TURB.totalFriedScale;
-        %         th_scat = lambda/r0*206265;
-        %
-        %         fprintf('The total r0 is %f cm.\n',100*r0);
-        %         fprintf('The seeing is %.2f arcsecs.\n',th_scat);
-        %
-        %         % Turning this off is like using dynamic refocus.
-        %         TURB.GEOMETRY = false;
-        %         TURB.BEACON = [1 1 1e10];
-        %         TURB.make;
-        % %         TURB.show
-        %
-        %         aberration = TURB.grid;
-        
         TURB = AOScreen(A,4e-3,lambda);
         TURB.spacing(SPACING);
         TURB.name = 'Simulated Turbulence';
         TURB.make;
-%         grid = TURB.grid;
-%         TURB.grid(grid * 30);
         wind_dir = randn(2,1);
         wind_dir = wind_dir./abs(wind_dir);
         wind_strength = randi(10,2,1);
         Wind = wind_dir .* wind_strength
         
         r0 = TURB.r0;
-        D_fit = 4e-3;
-        %  expected_strehl = exp(-(1.03 * (D_fit/r0) ^ (5/3)))
+        D_fit = 7e-3;
+        %  expected_strehl = exp(-(1.03 * (D_fit/r0) ^ (5/3))) %not tip/tilt corrected
         expected_strehl = exp(-(0.13 * (D_fit/r0) ^ (5/3)))
     else
         TURB = 1;
@@ -263,19 +228,16 @@ if RunSIM == true
     end
 end
 
-%% IrisAO Simulation
+%% BMC Simulation
 
-% [pixel_seg_map,Areal_Averaging_radius] = computeIrisAOsegpixelmap(DM1, A, 23, FOV, PLATE_SCALE, FoV_withIrisAO);
-calibration_filename_23 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_23.mat';
-calibration_filename_32 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_32.mat';
-load(calibration_filename_23);
-% load(calibration_filename_32);
+% load in calibration file
 
-new_spacing = DM1.spacing;
 
+
+% make a field object
 display('Making Fields');
-
-F = AOField(DM1);
+new_spacing = DM2.spacing;
+F = AOField(DM2);
 F.FFTSize = (fftsize);
 F.spacing(new_spacing);
 F.lambda = lambda;
@@ -284,78 +246,39 @@ F.PLATE_SCALE = PLATE_SCALE;
 F.FoV = FoV_withIrisAO;
 F.name = 'IrisAO Field 1';
 
+% make diffraction limited PSF
 display('Making Diffraction Limited PSF');
-F.planewave * A * DM1;
+F.planewave * A * DM2;
 [PSF_difflim,plotx,ploty] = F.mkPSF(FOV,PLATE_SCALE);
 PSF_difflimmax = max(max(PSF_difflim));
 F.touch;
 
-
-PTTpos_mirror = zeros(37,3);
-PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
-DM1.isMirror = 0;
+
 while(nn < numiterations)
     
     if InjectKolm == true
         TURB.grid(circshift(TURB.grid,Wind));
     end
     
-    DM1.PTT(PTT_flat);
-    DM1.touch;
-    DM1.render;
-    
-    F.planewave * A * ABER * TURB * DM1;
+    F.planewave * A * ABER * TURB * DM2;
     PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
     PSF_aberratedmax = max(max(PSF_aberrated));
     F.touch;
     
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
-    
-    mag = abs(dOTF);
-    phase = angle(dOTF);
-    unwrapped_phase = uwrap(phase,'unwt');
-    OPL = unwrapped_phase / k;
-    
-    maxmag = max(max(mag));
-    thresh = maxmag / 10;
-    mask = mag;
-    mask(mask<thresh) = 0;
-    mask = double(mask>0);   
-    
-    
-    [ PTT_mirror, PTTpos_mirror1] = IrisAOgetPTT( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23 );
-    
-    [ dOTF2, PSF3, PSF4, OTF3, OTF4 ] = IrisAOcomputedOTF( DM1, 32, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
-    maxmag2 = max(max(abs(dOTF2)));
-    thresh2 = maxmag2 / 10;
-    mask2 = abs(dOTF2);
-    mask2(mask2<thresh2) = 0;
-    mask2 = double(mask2>0);
-    [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT( dOTF2, [1,1], lambda, [31,32,33], 32, calibration_filename_32 );
-    
-    PTTpos_mirror3 = PTTpos_mirror1;
-    PTTpos_mirror2(:,1) = -PTTpos_mirror2(:,1);
-    PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
+
 
     
     %% Correction
     if nn > 10  %suffer the seeing limit for a bit
-        PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
-        PTT_mirror = mapSegments(PTTpos_mirror);
-        DM1.PTT(PTT_mirror);
-        DM1.touch;
-        DM1.render;
+        
     else
-        PTTpos_mirror = zeros(37,3);
-        DM1.PTT(PTTpos_mirror);
-        DM1.touch;
-        DM1.render;
+        
     end
     
     F.touch;
-    F.planewave * A * ABER * TURB * DM1;
+    F.planewave * A * ABER * TURB * DM2;
     % figure(2);
     % F.show;
     
@@ -363,88 +286,88 @@ while(nn < numiterations)
     maxPSF_cor = max(max(PSF_cor));
     
     
-    [DM1x,DM1y] = DM1.coords;
+    [DM2x,DM2y] = DM2.coords;
     
-    figure(1);
-    subplot(2,4,1)
-    imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
-    sqar;
-    title('Diffraction Limited PSF');
-    subplot(2,4,2)
-    imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
-    sqar;
-    title('Aberrated PSF')
-    subplot(2,4,5);
-    imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
-    sqar;
-    title(sprintf('Corrected PSF, loop #%d',nn));
-    subplot(2,4,6);
-    strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
-    strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
-    strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
-    loopnum(nn) = nn;
-    plot(loopnum,strehl,'-r');
-    hold on
-    plot(loopnum,strehl_uncorr,'-b');
-    plot(loopnum,strehl_notip,'-g');
-    hold off
-    xlabel('Loop Iteration');
-    ylabel('Strehl Ratio');
-    legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
-    xlim([0,100]);
-    ylim([0,1]);
-    title('Strehl Ratio');
+%     figure(1);
+%     subplot(2,4,1)
+%     imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
+%     sqar;
+%     title('Diffraction Limited PSF');
+%     subplot(2,4,2)
+%     imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
+%     sqar;
+%     title('Aberrated PSF')
+%     subplot(2,4,5);
+%     imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
+%     sqar;
+%     title(sprintf('Corrected PSF, loop #%d',nn));
+%     subplot(2,4,6);
+%     strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
+%     strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
+%     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
+%     loopnum(nn) = nn;
+%     plot(loopnum,strehl,'-r');
+%     hold on
+%     plot(loopnum,strehl_uncorr,'-b');
+%     plot(loopnum,strehl_notip,'-g');
+%     hold off
+%     xlabel('Loop Iteration');
+%     ylabel('Strehl Ratio');
+%     legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
+%     xlim([0,100]);
+%     ylim([0,1]);
+%     title('Strehl Ratio');
+% %     drawnow;
+% %     
+% %     
+% %     figure(2)
+%     subplot(2,4,3);
+%     imagesc(DM1x,DM1y,angle(DM2.grid));
+%     colorbar;
+%     axis xy;
+%     sqar;
+%     bigtitle(sprintf('Phase of DM with Correction Applied\n'),10);
+%     subplot(2,4,4);
+%     F.planewave * TURB * ABER * DM2;
+%     F.show;
+%     axis xy;
+%     sqar;
+%     colorbar;
+%     bigtitle('Field at DM',10);
+%     subplot(2,4,7)
+%     plotComplex(dOTF,3);
+%     axis off;
+%     axis xy;
+%     sqar;
+%     colorbar;
+%     bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
+%     hold on
+%     for n = 1:37
+%         if n ~= 23
+%             plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
+%         else
+%         end
+%     end
+%     hold off
+%     subplot(2,4,8)
+%     if InjectKolm == true
+%         TURB.show;
+%         sqar;
+%         bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
+%         xlim([-2e-3,2e-3]);
+%         ylim([-2e-3,2e-3]);
+%     else
+%         ABER.show;
+%         bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
+%         xlim([-2e-3,2e-3]);
+%         ylim([-2e-3,2e-3]);
+%         sqar;
+%     end
+%     
+%     
 %     drawnow;
 %     
-%     
-%     figure(2)
-    subplot(2,4,3);
-    imagesc(DM1x,DM1y,angle(DM1.grid));
-    colorbar;
-    axis xy;
-    sqar;
-    bigtitle(sprintf('Phase of DM with Correction Applied\n'),10);
-    subplot(2,4,4);
-    F.planewave * TURB * ABER * DM1;
-    F.show;
-    axis xy;
-    sqar;
-    colorbar;
-    bigtitle('Field at DM',10);
-    subplot(2,4,7)
-    plotComplex(dOTF,3);
-    axis off;
-    axis xy;
-    sqar;
-    colorbar;
-    bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
-    hold on
-    for n = 1:37
-        if n ~= 23
-            plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
-        else
-        end
-    end
-    hold off
-    subplot(2,4,8)
-    if InjectKolm == true
-        TURB.show;
-        sqar;
-        bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
-        xlim([-2e-3,2e-3]);
-        ylim([-2e-3,2e-3]);
-    else
-        ABER.show;
-        bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
-        xlim([-2e-3,2e-3]);
-        ylim([-2e-3,2e-3]);
-        sqar;
-    end
-    
-    
-    drawnow;
-    
-    fprintf('Approximate Strehl: %0.5f \n',strehl(nn));
+%     fprintf('Approximate Strehl: %0.5f \n',strehl(nn));
     nn = nn + 1;
 end
 

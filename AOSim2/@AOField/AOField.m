@@ -28,6 +28,9 @@ classdef AOField < AOGrid
 	properties(Access='public')
 		lambda = AOField.HBAND;
 		z = 0;
+        FOV;
+        FoV;
+        PLATE_SCALE;
 	end
 	
 	% Private

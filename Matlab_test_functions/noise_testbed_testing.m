@@ -6,17 +6,24 @@ close all;
 load PSFs_from_Sim.mat;
 
 %% Add Noise of the Same statistics to n number of pictures and sum them
+<<<<<<< HEAD
 num_pics = 10;
+=======
+num_pics = 30;
+>>>>>>> e53c68d940507af119db50ab3f372eff9264ab82
 PSF0_Sum = 0;
 PSF1_Sum = 0;
 
 for n = 1:num_pics
-    Noisy_PSF0 = addNoise(PSF0,Field,true,1,2.5);
-    Noisy_PSF1 = addNoise(PSF1,Field,true,1,2.5);
+    Noisy_PSF0 = addNoise(PSF0,Field,true,1,1);
+    Noisy_PSF1 = addNoise(PSF1,Field,true,1,1);
     PSF0_Sum = PSF0_Sum + Noisy_PSF0;
     PSF1_Sum = PSF1_Sum + Noisy_PSF1;
     fprintf('Picture Number %d Complete\n',n);
 end
+
+PSF0_Sum = PSF0_Sum / num_pics;
+PSF1_Sum = PSF1_Sum / num_pics;
 
 %% Do the dOTF
 OTF0_Noise = fftshift(fft2(fftshift(PSF0_Sum/num_pics)));
@@ -43,8 +50,13 @@ title('Noisy dOTF Phase');
 
 
 
+<<<<<<< HEAD
 %% Generate a Mask Using Edge Detection and Image Processing
 
+=======
+% %% Generate a Mask Using Edge Detection and Image Processing
+% 
+>>>>>>> e53c68d940507af119db50ab3f372eff9264ab82
 % [~,threshold] = edge(mag_Noise,'prewitt');
 % BWs = edge(mag_Noise,'prewitt',threshold);
 % se90 = strel('line',4,90);

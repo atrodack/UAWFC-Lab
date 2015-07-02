@@ -2,7 +2,7 @@ clear all;
 clc;
 % close all;
 
-% Closed-Loop dOTF Methods and Testing 
+% Closed-Loop dOTF Methods and Testing
 
 %**************************************************************************
 %                       SPIE dOTF Closed-Loop Methods Simulation
@@ -30,8 +30,8 @@ spider = 0;
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
-goal_strehl = 0.9; %exit condition for loop
+nzerns = 9; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
+numiterations = 100;
 gain = 0.7; %gain for AO Corrections
 fftsize = 2^12;
 
@@ -54,10 +54,10 @@ verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
 Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
 
 % BMC Flag
-BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
+BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
@@ -115,10 +115,10 @@ if UseRealPSF == true
     InjectAb = false;
     Num_Folders = 2;
     Num_files_per_folder = 100;
-%     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
-%     varargin{3} = 'RAW_scienceIM_frame_';
-%     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
-%     varargin{4} = 'RAW_scienceIM_frame_';
+    %     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
+    %     varargin{3} = 'RAW_scienceIM_frame_';
+    %     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
+    %     varargin{4} = 'RAW_scienceIM_frame_';
     varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
     varargin{3} = 'RAW_scienceIM_frame_';
     varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
@@ -176,14 +176,17 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-%         n = [2,2,2,3,3];
-        n = [0,1,1,2,4];
-%         m = [-2,0,2,-1,3];
-        m = [0,-1,1,0,0];
-
-%         coeffs = 1 * randn(1,length(n));
-%         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
-        coeffs = 0.25*randn(1,length(n));
+        %         n = [2,2,2,3,3];
+        %         n = [1,1,2,4];
+        n = [1];
+        %         m = [-2,0,2,-1,3];
+        %         m = [-1,1,0,0];
+        m = [-1];
+        
+        %         coeffs = 1 * randn(1,length(n));
+        %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
+        %         coeffs = 0.25*randn(1,length(n));
+        coeffs = [4];
         ABER.zero;
         for ii = 1:length(n)
             ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
@@ -194,176 +197,187 @@ if RunSIM == true
         T = table(n,m,Number_of_waves);
         fprintf('\nInjected Aberrations:\n');
         disp(T);
-        figure(1);
-        ABER.show;
-        aberration = ABER.grid;
+        %         figure(1);
+        %         ABER.show;
+        
+        
     elseif InjectAb == false
         ABER = 1;
     end
     
     if InjectKolm == true
-
-        TURB = AOAtmo(A);
-%         TURB.spacing(SPACING);
-        WFlow = AOScreen(fftsize,0.15,500e-9);
-        WFlow.name = 'Lower altitude turbulence';
-        WFhigh = AOScreen(2*fftsize,0.17,500e-9);
-        WFhigh.name = 'High altitude turbulence';
         
-        TURB.addLayer(WFlow,1000);
-        TURB.addLayer(WFhigh,8000);
+        %         TURB = AOAtmo(A);
+        % %         TURB.spacing(SPACING);
+        %         WFlow = AOScreen(fftsize,0.15,500e-9);
+        %         WFlow.spacing(SPACING);
+        %         WFlow.name = 'Lower altitude turbulence';
+        %         WFhigh = AOScreen(2*fftsize,0.17,500e-9);
+        %         WFhigh.spacing(SPACING);
+        %         WFhigh.name = 'High altitude turbulence';
+        %
+        %         TURB.addLayer(WFlow,1000);
+        %         TURB.addLayer(WFhigh,8000);
+        %
+        %         TURB.layers{1}.Wind = [3 1];
+        %         TURB.layers{2}.Wind = [1 -1]*20;
+        %
+        %         r0 = TURB.totalFriedScale;
+        %         th_scat = lambda/r0*206265;
+        %
+        %         fprintf('The total r0 is %f cm.\n',100*r0);
+        %         fprintf('The seeing is %.2f arcsecs.\n',th_scat);
+        %
+        %         % Turning this off is like using dynamic refocus.
+        %         TURB.GEOMETRY = false;
+        %         TURB.BEACON = [1 1 1e10];
+        %         TURB.make;
+        % %         TURB.show
+        %
+        %         aberration = TURB.grid;
         
-        TURB.layers{1}.Wind = [3 1];
-        TURB.layers{2}.Wind = [1 -1]*20;
-        
-        r0 = TURB.totalFriedScale;
-        th_scat = lambda/r0*206265;
-        
-        fprintf('The total r0 is %f cm.\n',100*r0);
-        fprintf('The seeing is %.2f arcsecs.\n',th_scat);
-        
-        % Turning this off is like using dynamic refocus.
-        TURB.GEOMETRY = true;
-        TURB.BEACON = [1 1 1e10];
+        TURB = AOScreen(A,5e-3,lambda);
+        TURB.spacing(SPACING);
+        TURB.name = 'Simulated Turbulence';
         TURB.make;
-        TURB.show
+%         grid = TURB.grid;
+%         TURB.grid(grid * 30);
+        wind_dir = randn(2,1);
+        wind_dir = wind_dir./abs(wind_dir);
+        wind_strength = randi(10,2,1);
+        Wind = wind_dir .* wind_strength
         
-        aberration = TURB.grid;
-        
+        r0 = TURB.r0;
+        D_fit = 4e-3;
+        %  expected_strehl = exp(-(1.03 * (D_fit/r0) ^ (5/3)))
+        expected_strehl = exp(-(0.13 * (D_fit/r0) ^ (5/3)))
     else
         TURB = 1;
         
-    end  
+    end
 end
 
 %% IrisAO Simulation
 
-% load('calibrated_dOTF_segment_centers_for_phase_finger_segment_23');
+% [pixel_seg_map,Areal_Averaging_radius] = computeIrisAOsegpixelmap(DM1, A, 23, FOV, PLATE_SCALE, FoV_withIrisAO);
+calibration_filename_23 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_23.mat';
+calibration_filename_32 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_32.mat';
+load(calibration_filename_23);
+% load(calibration_filename_32);
+
 new_spacing = DM1.spacing;
+
+display('Making Fields');
 
 F = AOField(fftsize);
 F.FFTSize = (fftsize);
 F.spacing(new_spacing);
 F.lambda = lambda;
+F.FOV = FOV;
+F.PLATE_SCALE = PLATE_SCALE;
+F.FoV = FoV_withIrisAO;
 F.name = 'IrisAO Field 1';
 
-F2 = F.copy;
-F2.name = 'IrisAO Field 2';
-
-
-PTTpos_flat = zeros(37,3);
-PTT_flat = mapSegments(PTTpos_flat);
-PTTpos_poked = zeros(37,3);
-PTTpos_poked(23,1) = 1;
-PTT_poked = mapSegments(PTTpos_poked);
-
-
-DM1.PTT(PTT_flat);
-DM1.touch;
-DM1.render;
-
-% F.planewave * ABER * TURB * A * DM1;
+display('Making Diffraction Limited PSF');
 F.planewave * A * DM1;
-PSF1 = F.mkPSF(FOV,PLATE_SCALE);
-PSF1max = max(max(PSF1));
-% PSF1 = PSF1 / PSF1max;
-PSF1plot = log10(PSF1/PSF1max);
+[PSF_difflim,plotx,ploty] = F.mkPSF(FOV,PLATE_SCALE);
+PSF_difflimmax = max(max(PSF_difflim));
+F.touch;
 
-DM1.PTT(PTT_poked);
-DM1.touch;
-DM1.render;
 
-% F2.planewave * ABER * TURB * A * DM1;
-F2.planewave * A * DM1;
-PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
-PSF2max = max(max(PSF2));
-% PSF2 = PSF2 / PSF2max;
-PSF2plot = log10(PSF2/PSF2max);
+PTTpos_mirror = zeros(37,3);
+PTT_flat = zeros(37,3);
+%% Compute dOTFs using different blocker positions
+nn = 1;
+DM1.isMirror = 0;
 
-% figure(1);
-% imagesc([PSF1plot,PSF2plot],[-4,0]);
-% colormap(gray);
 
-F.touch; F2.touch;
-F.grid(PSF1); F2.grid(PSF2);
 
-OTF1 = F.mkOTF2(FoV_withIrisAO,new_spacing(1));
-OTF2 = F2.mkOTF2(FoV_withIrisAO,new_spacing(1));
 
-F.touch; F2.touch;
 
-% figure(2)
-% subplot(1,2,1)
-% plotComplex(OTF1,2);
-% subplot(1,2,2)
-% plotComplex(OTF2,2);
+DM1.setIrisAO(PTT_flat);
 
-dOTF = OTF1 - OTF2;
+
+F.planewave * A * ABER * TURB * DM1;
+
+
+[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM1, 23, PTTpos_mirror, F, A, ABER, TURB );
+
 mag = abs(dOTF);
 phase = angle(dOTF);
 unwrapped_phase = uwrap(phase,'unwt');
+OPL = unwrapped_phase / k;
 
+maxmag = max(max(mag));
+thresh = maxmag / 10;
 mask = mag;
-mask(mask<1e10) = 0;
-mask = logical(mask);
+mask(mask<thresh) = 0;
+mask = double(mask>0);
 
 
-% figure(3);
-% subplot(1,3,1)
-% imagesc(mag .* mask);
-% colormap(gray); axis xy; colorbar; sqar;
-% subplot(1,3,2)
-% imagesc(phase .* mask);
-% colormap(gray); axis xy; colorbar; sqar;
-% subplot(1,3,3)
-% imagesc(unwrapped_phase .* mask,[-2*pi,2*pi]);
-% colormap(gray); axis xy; colorbar; sqar;
+[ PTT_mirror1, PTTpos_mirror1] = IrisAOgetPTT( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23 );
 
-
-
-figure(3)
+figure(1)
+subplot(1,2,1);
 plotComplex(dOTF,3);
-hold on
-for n = 1:37
-    if n ~= 23
-        plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
-    else
-    end
-end
-hold off
+
+
+PTTpos_tilt = zeros(37,3);
+PTTpos_tilt(23,3) = 1e-3;
+PTT_tilt = mapSegments(PTTpos_tilt);
 
 
 
+DM1.setIrisAO(PTT_tilt);
+
+F.planewave * A * ABER * TURB * DM1;
+F2 = F.copy;
+F2.name = 'IrisAO Field 2';
+PSF1 = F.mkPSF(FOV,PLATE_SCALE);
+
+PTTpos_tilt(23,1) = 1e-6;
+PTT_poked = mapSegments(PTTpos_tilt);
+DM1.setIrisAO(PTT_poked);
+
+F2.planewave * A * ABER * TURB * DM1;
+PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
 
 
+F.touch; F2.touch;
+F.grid(PSF1); F2.grid(PSF2);
+OTF1 = F.mkOTF2(FoV,new_spacing(1));
+OTF2 = F2.mkOTF2(FoV,new_spacing(1));
+F.touch; F2.touch;
+dOTF2 = OTF1 - OTF2;
+figure(1)
+subplot(1,2,2);
+plotComplex(dOTF2,3)
+
+[ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT( dOTF2, [1,1], lambda, [22,23,24], 23, calibration_filename_23 );
 
 
+%% Test Correction
+DM1.setIrisAO(PTT_mirror1);
+figure(2)
+subplot(1,2,1)
+DM1.show;
 
+F.planewave * A * ABER * TURB * DM1;
+PSF_piston = F.mkPSF(FOV,PLATE_SCALE);
+strehl_PSF_piston = max(PSF_piston(:)) / PSF_difflimmax
+F.touch;
 
+DM1.setIrisAO(PTT_mirror2);
+figure(2)
+subplot(1,2,2)
+DM1.show;
+F.planewave * A * ABER * TURB * DM1;
+PSF_tilt = F.mkPSF(FOV,PLATE_SCALE);
+strehl_PSF_tilt = max(PSF_tilt(:)) / PSF_difflimmax
+F.touch;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+figure(3);
+imagesc([PSF_piston,PSF_tilt]);
 
 
 
