@@ -2,10 +2,10 @@ clear all;
 clc;
 close all;
 
-% Closed-Loop dOTF Methods and Testing
+% Deconvolution Testing
 
 %**************************************************************************
-%                       SPIE dOTF Closed-Loop Methods Simulation
+%                       SPIE dOTF Deconvolution Methods Simulation
 %**************************************************************************
 
 %% System Parameters
@@ -13,14 +13,14 @@ close all;
 global lambda k D secondary spider SPACING aa fftsize THld FOV PLATE_SCALE FoV_withIrisAO FoV_withoutIrisAO RunSIM RunTESTBED IrisAO_on BMC_on verbose_makeDM Scalloped_Field UseRealPSF coronagraph system_verbose
 
 % Set Wavelength
-% lambda = AOField.RBAND; % Red light.
+% lambda = AOField.RBAND; % Red light
 lambda = AOField.HeNe_Laser;
 
 % Compute Wavenumber
 k = (2*pi) / lambda;
 
 % Pupil Specs
-D = 3.636e-3; % 7mm
+D = 3.636e-3; % width of the longest row of segments for a 37 segment IrisAO mirror
 % secondary = 0.3*D; % 30% of Pupil Diameter
 secondary = 0;
 % spider = 0.02*D; % 2% of Pupil Diameter
@@ -29,14 +29,12 @@ spider = 0;
 
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
-aa = 5*SPACING;  % for antialiasing.
+aa = 5*SPACING;  % for antialiasing
 nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
-goal_strehl = 0.9; %exit condition for loop
-gain = 0.7; %gain for AO Corrections
-fftsize = 2^12;
+fftsize = 2^10;
 
 %% Scales
-THld = lambda/D * 206265; % Lambda/D in arcsecs.
+THld = lambda/D * 206265; % Lambda/D in arcsecs
 FOV = 100*THld; % arcsecs
 PLATE_SCALE = THld/4;
 FoV_withIrisAO = 3.5e-3;
@@ -49,10 +47,13 @@ RunTESTBED = false; %Run the testbed equipment
 %% Simulation Flags
 
 % IrisAO Flags
-IrisAO_on = true; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
-verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
-Scalloped_Field = false; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
-spiral = true;
+IrisAO_on = true; % turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
+verbose_makeDM = false; % turns on/off plotting the mirror as it is constructed
+Scalloped_Field = false; % turns on/off returning an AOField Object that encodes the actual surface shape of the segments
+spiral = true; % turns on/off pattern used in NECO data
+Deconvolve = true; % turns on/off attempt to deconvolve the computed dOTF
+Minus = true; % determines portion of the dOTF you wish to mask and deconvolve, default is the lower field (referred to as dO_Plus)
+manualPick = false; % turns on/off the ability to select pixel points for recentering of the difference field and the masked portion of the dOTF
 
 % BMC Flag
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
@@ -120,10 +121,10 @@ if UseRealPSF == true
     %     varargin{3} = 'RAW_scienceIM_frame_';
     %     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
     %     varargin{4} = 'RAW_scienceIM_frame_';
-    varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
-    varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
-    varargin{4} = 'RAW_scienceIM_frame_';
+    %     varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
+    %     varargin{3} = 'RAW_scienceIM_frame_';
+    %     varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
+    %     varargin{4} = 'RAW_scienceIM_frame_';
 end
 % Coronagraph Flag
 coronagraph = false; % turns on going through coronagraph elements
@@ -131,16 +132,12 @@ coronagraph = false; % turns on going through coronagraph elements
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
 
-%% Testbed Flags
-
-
-
 %% Make the Testbed Elements
+% Or load them in...
 numRings = 3;
 numSeg = sum(1:numRings)*6 + 1;
 load MadeTestbedElements.mat;
 % maketestbedelements;
-
 
 %% Inject Aberration
 if RunSIM == true
@@ -248,7 +245,13 @@ F.name = 'IrisAO Field 1';
 F2 = F.copy;
 F2.name = 'IrisAO Field 2';
 
+FD = F.copy;
+FD.name = 'IrisAO Difference Field';
 
+% fd = F.copy;
+% fd.name = 'dO_+';
+
+% Initialize Segment Locations
 % PTTpos_flat = zeros(numSeg,3);
 % PTT_flat = mapSegments(PTTpos_flat,numRings);
 PTTpos_poked1 = zeros(numSeg,3);
@@ -262,7 +265,7 @@ if spiral == 1
     end
 end
 
-% Create the location of the difference field
+% Create the location (segment) of the difference field
 if numRings > 0
     DiffField = 3;
     for segRing = 1:numRings-1
@@ -272,11 +275,11 @@ else
     DiffField = 1;
 end
 
-% Set Finger Positions
+% Set Difference Field Position(s)
 PTTpos_poked2 = PTTpos_poked1;
 PTTpos_poked1(DiffField,1) = 1e-6; % 1 micron
 % PTTpos_poked1(DiffField,2) = 1e-4; % .1 mrad
-PTTpos_poked2(DiffField,3) = 1e-4; % .1 mrad
+% PTTpos_poked2(DiffField,3) = 1e-4; % .1 mrad
 PTT_poked1 = mapSegments(PTTpos_poked1,numRings);
 PTT_poked2 = mapSegments(PTTpos_poked2,numRings);
 
@@ -287,12 +290,10 @@ DM1.render;
 % DM1.show; colorbar;
 
 F.planewave * ABER * TURB * A * DM1;
-% figure; F.show;
-PSF1 = F.mkPSF(FOV,PLATE_SCALE);
-PSF1max = max(max(PSF1));
-% PSF1 = PSF1 / PSF1max;
-PSF1plot = log10(PSF1/PSF1max);
-% figure; imagesc(PSF1plot);
+
+if Deconvolve == true
+    f1 = F.grid; % save for computing the difference field
+end
 
 DM1.PTT(PTT_poked2);
 DM1.touch;
@@ -301,98 +302,122 @@ DM1.render;
 % DM1.show; colorbar;
 
 F2.planewave * ABER * TURB * A * DM1;
-PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
-PSF2max = max(max(PSF2));
-% PSF2 = PSF2 / PSF2max;
-PSF2plot = log10(PSF2/PSF2max);
 
-% figure(1);
-% imagesc([PSF1plot,PSF2plot],[-4,0]);
-% colormap(gray);
+if Deconvolve == true
+    f2 = F2.grid; % save the update to the mirror surface
+end
+
+%% dOTF
+if Deconvolve == true
+    % Generate Difference field
+    fdiff = f2 - f1;
+    FD.grid(fdiff);
+    load P.mat
+    if manualPick == true
+        figure;
+        plotComplex(fdiff,2);
+        P = pickPoint;
+    end
+    FD.grid((circshift(FD.grid, 1 - P))); % place at corners
+    
+    % set up comparison case
+    halo = fftshift(fft2(fftshift(F.grid)));
+    FDIFF = fftshift(fft2(circshift(fdiff,1-P))); % generate the blur "Airy pattern" directly
+    %     imagesc(abs(FDIFF).^2); colorbar; sqar;
+    PupilP = fftshift(fft2(fftshift(halo.*FDIFF)));
+%     figure;
+%     plotComplex(PupilP,6); axis xy; sqar;
+end
+
+PSF1 = abs(fftshift(fft2(fftshift(f1)))).^2;
+PSF2 = abs(fftshift(fft2(fftshift(f2)))).^2;
+
+OTF1 = fftshift(fft2(fftshift(PSF1)));
+OTF2 = fftshift(fft2(fftshift(PSF2)));
+
+% figure; plotComplex(OTF1,2);
+% figure; plotComplex(OTF2,2);
 
 F.touch; F2.touch;
-F.grid(PSF1); F2.grid(PSF2);
 
-OTF1 = F.mkOTF2(FoV_withoutIrisAO,SPACING(1));
-OTF2 = F2.mkOTF2(FoV_withoutIrisAO,SPACING(1));
-
-F.touch; F2.touch;
-
-% figure(2)
-% subplot(1,2,1)
-% plotComplex(OTF1,2);
-% subplot(1,2,2)
-% plotComplex(OTF2,2);
-
+% Do the dOTF
 dOTF = OTF1 - OTF2;
 mag = abs(dOTF);
 phase = angle(dOTF);
 % unwrapped_phase = uwrap(phase,'unwt');
 
-% mask = mag;
-% mask(mask<1e10) = 0;
-% mask = logical(mask);
+%% Masking
+% Generating coordinates for masking dOTF
+G = AOGrid(1);
+G.spacing(DM1.spacing);
+G.grid(dOTF);
+[X, Y] = G.COORDS;
+GT = G.copy;
 
+% based on difference field segment location from the center segment
+if Minus == true
+    GT.grid((Y - tand(150)*X > 0)); % fftsize = 2^10, manual ffts
+    load POminus.mat
+else
+    GT.grid(~(Y - tand(150)*X > 0));
+    load PT.mat
+end
 
-figure(3);
-subplot(1,3,1)
-% imagesc(mag .* mask);
-imagesc(mag);
-colormap(gray); axis xy; colorbar; sqar;
-subplot(1,3,2)
-% imagesc(phase .* mask);
-imagesc(phase);
-colormap(gray); axis xy; colorbar; sqar;
-subplot(1,3,3)
+% Apply the masking
+G * GT;
+
+if manualPick == true
+    figure; plotComplex(G.grid,2); axis xy; sqar;
+    PT = pickPoint;
+end
+
+G.grid(fftshift(circshift(G.grid, 1 - PT))); % place at center
+
+%% Deconvolution
+if Deconvolve == true
+    DOTF = fftshift(fft2(fftshift(G.grid)));
+    Deconv = Hotdog(DOTF,FDIFF,10^4);
+    DeconvP = Hotdog(halo.*FDIFF,FDIFF,10^4);
+end
+
+%% Plotting
+N1 = 2; N2 = 4; fontsize = 10;
+figure;
+
+subplot(N1,N2,1)
 plotComplex(dOTF,2);
 axis xy; sqar;
+bigtitle('Complex Plot of dOTF',fontsize);
+
+subplot(N1,N2,2)
+imagesc(mag);
+colormap(gray); axis xy; colorbar; sqar;
+bigtitle('Magnitude of dOTF',fontsize);
+
+subplot(N1,N2,3)
+imagesc(phase);
+colormap(gray); axis xy; colorbar; sqar;
+bigtitle('Phase of dOTF',fontsize);
+
+subplot(N1,N2,4)
+plotComplex(PupilP,2);
+axis xy; sqar;
+bigtitle('Blurred Pupil',fontsize);
+
+subplot(N1,N2,5)
+plotComplex(G.grid,2);
+axis xy; sqar;
+bigtitle('Masked and centered dOTF Pupil Estimate',fontsize);
+
+subplot(N1,N2,6)
+plotComplex(Deconv,2);
+axis xy; sqar;
+bigtitle('dOTF Deconvolution',fontsize);
+
+subplot(N1,N2,8)
+plotComplex(DeconvP,2);
+axis xy; sqar;
+bigtitle('Deblurred Pupil Field',fontsize);
+
 % imagesc(unwrapped_phase .* mask,[-2*pi,2*pi]);
 % colormap(gray); axis xy; colorbar; sqar;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
