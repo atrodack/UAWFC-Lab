@@ -100,15 +100,21 @@ end
 UseDM4Correction = true;
 
 % Noise Flags
-UseNoise = false;
+UseNoise = true;
 if UseNoise == true
-    number_of_images = 100;
-    Noise = cell(2,1);
-    Noise{1} = UseNoise;
-    Noise{2} = number_of_images;
+    Noise_Parameters = cell(5,1);
+    Noise_Parameters{1} = 5;
+    Noise_Parameters{2} = true;
+    Noise_Parameters{3} = 0.25;
+    Noise_Parameters{4} = 0.5;
+    Noise_Parameters{5} = UseNoise;
 else
-    Noise = cell(1,1);
-    Noise{1} = UseNoise;
+    Noise_Parameters = cell(5,1);
+%     Noise_Parameters{1} = 1;
+%     Noise_Parameters{2} = false;
+%     Noise_Parameters{3} = 0;
+%     Noise_Parameters{4} = 0;
+    Noise_Parameters{5} = UseNoise;
 end
 
 % Use Testbed PSF Instead of Simulated PSF
@@ -248,12 +254,13 @@ F2.name = 'IrisAO Field 2';
 FD = F.copy;
 FD.name = 'IrisAO Difference Field';
 
-% fd = F.copy;
-% fd.name = 'dO_+';
+mask = F.copy;
+fd.name = 'dOTF Noise Mask';
 
 % Initialize Segment Locations
 % PTTpos_flat = zeros(numSeg,3);
 % PTT_flat = mapSegments(PTTpos_flat,numRings);
+
 PTTpos_poked1 = zeros(numSeg,3);
 
 % Generate piston spiral pattern on 1st 7 segments on DM surface
@@ -332,6 +339,10 @@ end
 PSF1 = abs(fftshift(fft2(fftshift(f1)))).^2;
 PSF2 = abs(fftshift(fft2(fftshift(f2)))).^2;
 
+if Noise_Parameters{5} == true
+    [PSF1,PSF2] = average_noisy_images(PSF1,PSF2,f2,Noise_Parameters);
+end
+
 OTF1 = fftshift(fft2(fftshift(PSF1)));
 OTF2 = fftshift(fft2(fftshift(PSF2)));
 
@@ -373,10 +384,26 @@ end
 
 G.grid(fftshift(circshift(G.grid, 1 - PT))); % place at center
 
+if UseNoise == true
+    maskD = 2.5e-3; % 2 mm
+    PUPIL_DEFN = [
+        0 0 maskD         1 aa 0 0 0 0 0
+        %         0 0 secondary 0 aa/2 0 0 0 0 0
+        %         0 0 spider   -2 aa 4 0 D/1.9 0 0
+        ];
+    M = AOSegment;
+    M.spacing(SPACING);
+    M.name = 'dOTF Mask';
+    M.pupils = PUPIL_DEFN;
+    M.make;
+    mask.planewave * M;
+    G * mask;
+end
+
 %% Deconvolution
 if Deconvolve == true
     DOTF = fftshift(fft2(fftshift(G.grid)));
-    Deconv = Hotdog(DOTF,FDIFF,10^4);
+    Deconv = Hotdog(DOTF,FDIFF,.5*10^4);
     DeconvP = Hotdog(halo.*FDIFF,FDIFF,10^4);
 end
 
@@ -414,10 +441,15 @@ plotComplex(Deconv,2);
 axis xy; sqar;
 bigtitle('dOTF Deconvolution',fontsize);
 
+subplot(N1,N2,7)
+imagesc(abs(Deconv).^2);
+colormap(gray); axis xy; colorbar; sqar;
+bigtitle('Magnitude of Deblurred dOTF',fontsize);
+
 subplot(N1,N2,8)
 plotComplex(DeconvP,2);
 axis xy; sqar;
-bigtitle('Deblurred Pupil Field',fontsize);
+bigtitle('Deblurred Pupil',fontsize);
 
 % imagesc(unwrapped_phase .* mask,[-2*pi,2*pi]);
 % colormap(gray); axis xy; colorbar; sqar;
