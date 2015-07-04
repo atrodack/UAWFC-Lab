@@ -101,10 +101,10 @@ UseDM4Correction = true;
 UseNoise = false;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
-    Noise_Parameters{1} = 5;
+    Noise_Parameters{1} = 1;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 0.5;
-    Noise_Parameters{4} = 0.5;
+    Noise_Parameters{3} = 0;
+    Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
 else
     Noise_Parameters = cell(5,1);
@@ -182,17 +182,17 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-        %         n = [2,2,2,3,3];
+                n = [2,2,2,3,3];
         %         n = [1,1,2,4];
-        n = [1];
-        %         m = [-2,0,2,-1,3];
+%         n = [1];
+                m = [-2,0,2,-1,3];
         %         m = [-1,1,0,0];
-        m = [-1];
+%         m = [-1];
         
-        %         coeffs = 1 * randn(1,length(n));
+                coeffs = 1 * randn(1,length(n));
         %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         %         coeffs = 0.25*randn(1,length(n));
-        coeffs = [4];
+%         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n)
             ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
@@ -205,7 +205,10 @@ if RunSIM == true
         disp(T);
         %         figure(1);
         %         ABER.show;
-        
+        wobble_dir = randn(2,1);
+        wobble_dir = wobble_dir./abs(wobble_dir);
+        wobble_strength = randi(3,2,1);
+        Wobble = wobble_dir .* wobble_strength;
         
     elseif InjectAb == false
         ABER = 1;
@@ -297,6 +300,13 @@ PTT_flat = zeros(37,3);
 nn = 1;
 DM1.isMirror = 0;
 while(nn < numiterations)
+    if InjectAb == true
+        wobble_dir = randn(2,1);
+        wobble_dir = wobble_dir./abs(wobble_dir);
+        wobble_strength = randi(3,2,1);
+        Wobble = wobble_dir .* wobble_strength;
+        ABER.grid(circshift(ABER.grid,Wobble));
+    end
     
     if InjectKolm == true
         TURB.grid(circshift(TURB.grid,Wind));
@@ -338,10 +348,13 @@ while(nn < numiterations)
     PTTpos_mirror3 = PTTpos_mirror1;
     PTTpos_mirror2(:,1) = -PTTpos_mirror2(:,1);
     PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
+%     PTTpos_mirror2([31,32,33],:) = PTTpos_mirror1([31,32,33],:);
+%     PTTpos_mirror3 = (PTTpos_mirror3 + PTTpos_mirror2) / 2;
+
 
     
     %% Correction
-    if nn > 1  %suffer the seeing limit for a bit
+    if nn > 5  %suffer the seeing limit for a bit
         PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
         PTT_mirror = mapSegments(PTTpos_mirror);
         DM1.PTT(PTT_mirror);

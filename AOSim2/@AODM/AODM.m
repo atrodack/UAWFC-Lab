@@ -324,6 +324,13 @@ classdef AODM < AOScreen
             DM.SlaveActs = SlaveActs;
         end
         
+        function DM = settheOnActs(DM,VALUES)
+            if(length(VALUES) ~= length(DM.OnActs))
+                error('actuator list length mismatch.');
+            end
+            DM.actuators(DM.OnActs,3) = VALUES;
+            touch(DM);
+        end
         
         function DM = bumpOnActs(DM,VALUES)
             if(length(VALUES) ~= length(DM.OnActs))

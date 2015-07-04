@@ -170,13 +170,13 @@ if RunSIM == true
         RHO = zeros(nacts,1);
         for ii = 1:nacts
             RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
-            if RHO(ii) > D/2 + D/18
-                if RHO(ii) < ((D/2) + (D/18))
-                    DM2.actuators(ii,5) = 2;
+            if RHO(ii) > D/2
+                if RHO(ii) < (D/2)
+%                     DM2.actuators(ii,5) = 2;
                 else
                     DM2.actuators(ii,5) = 0;
                 end
-            elseif RHO(ii) < secondary/2.1
+            elseif RHO(ii) < secondary/2
                 %             DM2.actuators(ii,5) = 0;
             end
         end
@@ -189,17 +189,18 @@ if RunSIM == true
         
         % Set the Convex Hull Boundary Conditions
         %     DM2.defineBC(D/2 + D/18,4,'circle');
-        DM2.defineBC(5e-3,8,'square');
+        DM2.defineBC(5e-3,4,'square');
         
         [x_DM,y_DM] = DM2.coords;
         %% Set the Initial Piston Values of the BMC DM
         DM2.flatten;
         %     DM2.actuators(343,3) = 1e-6;
-        %     DM2.actuators(OnActs,3) = ((randn(length(OnActs),1).*10^-6));
+        %     DM2.actuators(OnActs,3) =16((randn(length(OnActs),1).*10^-6));
         DM2.removeMean;
         
         if RunTESTBED == true
             DM_Pistons = reshape(DM2.actuators(:,3),[32,32]);
+            DM_Pistons = single(DM_Pistons);
             
             tempdir = pwd;
             cd C:\Users\atrod_000\Documents\GitHub\UAWFC\fits_files;

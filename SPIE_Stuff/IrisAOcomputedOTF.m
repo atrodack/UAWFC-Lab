@@ -1,6 +1,6 @@
 function [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
+%   
 
 if nargin < 7
     Phasescreen1 = 1;
