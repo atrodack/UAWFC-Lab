@@ -67,15 +67,15 @@ tiltlist(tiltlist<-5e-3) = -5e-3;
 
 %% Correct for Tip/Tilt and get piston
 pistonlist = zeros(37,1);
-for n = 1:37
-    if n ~= pokeseg
-        segpiston = OPL .* SegMasks{n};
-        segpiston = fftshift(circshift(segpiston,1 - [pixel_seg_map{n}(1),pixel_seg_map{n}(2)]));
-        corrector = flipud(fliplr(segpiston));
-        tt_removed = (segpiston + corrector) / 2;
-        pistonlist(n) = mean(mean(tt_removed(abs(tt_removed)>0)));
-    end
-end
+% for n = 1:37
+%     if n ~= pokeseg
+%         segpiston = OPL .* SegMasks{n};
+%         segpiston = fftshift(circshift(segpiston,1 - [pixel_seg_map{n}(1),pixel_seg_map{n}(2)]));
+%         corrector = flipud(fliplr(segpiston));
+%         tt_removed = (segpiston + corrector) / 2;
+%         pistonlist(n) = mean(mean(tt_removed(abs(tt_removed)>0)));
+%     end
+% end
 
 
 
@@ -90,11 +90,11 @@ end
 
 
 
-% for n = 1:37
-%     if n ~= pokeseg
-%         pistonlist(n,1) = OPL(pixel_seg_map{n}(1),pixel_seg_map{n}(2));
-%     end
-% end
+for n = 1:37
+    if n ~= pokeseg
+        pistonlist(n,1) = OPL(pixel_seg_map{n}(1),pixel_seg_map{n}(2));
+    end
+end
 
 maxpiston = max(pistonlist);
 minpiston = min(pistonlist);
@@ -107,7 +107,7 @@ end
 
 
 
-pistonlist = pistonlist /2;
+pistonlist = pistonlist/2;
 % tiplist = tiplist;
 % tiltlist = tiltlist;
 

@@ -22,6 +22,9 @@ FoV = Field.FoV;
 PLATE_SCALE = Field.PLATE_SCALE;
 new_spacing = DM.spacing;
 
+F = Field.copy;
+F.name = 'IrisAO Field 1';
+
 F2 = Field.copy;
 F2.name = 'IrisAO Field 2';
 
@@ -30,7 +33,7 @@ F2.name = 'IrisAO Field 2';
 PTTpos_flat = PTTpos_in;
 PTT_flat = mapSegments(PTTpos_flat);
 PTTpos_poked = PTTpos_in;
-PTTpos_poked(pokeseg,1) = 1e-6;
+PTTpos_poked(pokeseg,1) = (F.lambda) / 4;
 PTT_poked = mapSegments(PTTpos_poked);
 
 % display('Flattening DM');
@@ -39,8 +42,8 @@ DM.PTT(PTT_flat);
 DM.touch;
 DM.render;
 
-Field.planewave * Phasescreen1 * Phasescreen2 * A * DM;
-PSF1 = Field.mkPSF(FOV,PLATE_SCALE);
+F.planewave * Phasescreen1 * Phasescreen2 * A * DM;
+PSF1 = F.mkPSF(FOV,PLATE_SCALE);
 
 % fprintf('Poking Segment %d \n',pokeseg);
 
@@ -54,19 +57,19 @@ F2.planewave * Phasescreen1 * Phasescreen2 * A * DM;
 PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
 
 if Noise_Parameters{5} == true
-    [ PSF1, PSF2 ] = average_noisy_images( PSF1, PSF2, Field.grid, Noise_Parameters );
+    [ PSF1, PSF2 ] = average_noisy_images( PSF1, PSF2, F.grid, Noise_Parameters );
 end
     
 
-Field.touch; F2.touch;
-Field.grid(PSF1); F2.grid(PSF2);
+F.touch; F2.touch;
+F.grid(PSF1); F2.grid(PSF2);
 
 % display('Making OTFs');
 
-OTF1 = Field.mkOTF2(FoV,new_spacing(1));
+OTF1 = F.mkOTF2(FoV,new_spacing(1));
 OTF2 = F2.mkOTF2(FoV,new_spacing(1));
 
-Field.touch; F2.touch;
+F.touch; F2.touch;
 
 % display('Computing dOTF');
 

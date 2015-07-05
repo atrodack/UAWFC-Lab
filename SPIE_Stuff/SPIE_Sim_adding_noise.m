@@ -20,8 +20,8 @@ lambda = AOField.HeNe_Laser;
 k = (2*pi) / lambda;
 
 % Pupil Specs
-D = 7e-3; % 7mm
-% secondary = 0.3*D; % 30% of Pupil Diameter
+D = 5e-3; % 7mm
+% secondary  0.3*D; % 30% of Pupil Diameter
 secondary = 0;
 % spider = 0.02*D; % 2% of Pupil Diameter
 spider = 0;
@@ -30,10 +30,10 @@ spider = 0;
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 9; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
-numiterations = 100;
+nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
+% numiterations = 2;
 gain = 0.7; %gain for AO Corrections
-fftsize = 2^12;
+fftsize = 2^11;
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
@@ -57,11 +57,11 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
-InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
-InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
+InjectAb = false; %Injects nzerns Zernike Terms
+InjectRandAb = true; %if InjectAB is true, picks Zernikes "Randomly"
+InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = false;
+InjectKolm = true;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -98,12 +98,12 @@ end
 UseDM4Correction = true;
 
 % Noise Flags
-UseNoise = false;
+UseNoise = true;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
-    Noise_Parameters{1} = 1;
+    Noise_Parameters{1} = 5;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 0;
+    Noise_Parameters{3} = 0.75;
     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
 else
@@ -182,17 +182,17 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-                n = [2,2,2,3,3];
+%                 n = [2,2,2,3,3];
         %         n = [1,1,2,4];
-%         n = [1];
-                m = [-2,0,2,-1,3];
+        n = [1];
+%                 m = [-2,0,2,-1,3];
         %         m = [-1,1,0,0];
-%         m = [-1];
+        m = [1];
         
-                coeffs = 1 * randn(1,length(n));
+%                 coeffs = 1 * randn(1,length(n));
         %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
-        %         coeffs = 0.25*randn(1,length(n));
-%         coeffs = [4];
+%                 coeffs = 0.25*randn(1,length(n));
+        coeffs = [4];
         ABER.zero;
         for ii = 1:length(n)
             ABER.addZernike(n(ii),m(ii),coeffs(ii)*lambda,D);
@@ -253,7 +253,7 @@ if RunSIM == true
 %         TURB.grid(grid * 30);
         wind_dir = randn(2,1);
         wind_dir = wind_dir./abs(wind_dir);
-        wind_strength = randi(10,2,1);
+        wind_strength = randi(5,2,1);
         Wind = wind_dir .* wind_strength
         
         r0 = TURB.r0;
@@ -269,16 +269,16 @@ end
 %% IrisAO Simulation
 
 % [pixel_seg_map,Areal_Averaging_radius] = computeIrisAOsegpixelmap(DM1, A, 23, FOV, PLATE_SCALE, FoV_withIrisAO);
-calibration_filename_23 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_23.mat';
-calibration_filename_32 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_32.mat';
+calibration_filename_23 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_23_no_aliasing.mat';
+calibration_filename_35 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_35_no_aliasing.mat';
 load(calibration_filename_23);
-% load(calibration_filename_32);
+% load(calibration_filename_35);
 
 new_spacing = DM1.spacing;
 
 display('Making Fields');
 
-F = AOField(DM1);
+F = AOField(fftsize);
 F.FFTSize = (fftsize);
 F.spacing(new_spacing);
 F.lambda = lambda;
@@ -299,76 +299,83 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 DM1.isMirror = 0;
-while(nn < numiterations)
-    if InjectAb == true
-        wobble_dir = randn(2,1);
-        wobble_dir = wobble_dir./abs(wobble_dir);
-        wobble_strength = randi(3,2,1);
-        Wobble = wobble_dir .* wobble_strength;
-        ABER.grid(circshift(ABER.grid,Wobble));
-    end
+numiterations = 100;
+%movie setup
+moviefig = figure(1);
+input('Press Enter when figure is sized to liking');
+winsize = get(moviefig,'Position');
+winsize(1:2) = [0 0];
+MOVIE = moviein(numiterations,moviefig,winsize);
+set(moviefig,'NextPlot','replacechildren');
+
+
+
+
+
+
+while(nn <= numiterations)
+    %     if InjectAb == true
+    %         wobble_dir = randn(2,1);
+    %         wobble_dir = wobble_dir./abs(wobble_dir);
+    %         wobble_strength = randi(3,2,1);
+    %         Wobble = wobble_dir .* wobble_strength;
+    %         ABER.grid(circshift(ABER.grid,Wobble));
+    %     end
     
     if InjectKolm == true
         TURB.grid(circshift(TURB.grid,Wind));
     end
     
-    DM1.PTT(PTT_flat);
-    DM1.touch;
-    DM1.render;
+    DM1.setIrisAO(PTT_flat);
     
-    F.planewave * A * ABER * TURB * DM1;
+    F.planewave * ABER * TURB * A * DM1;
     PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
     PSF_aberratedmax = max(max(PSF_aberrated));
     F.touch;
     
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+    dOTF = -1i * conj(dOTF);
     
     mag = abs(dOTF);
-    phase = angle(dOTF);
-    unwrapped_phase = uwrap(phase,'unwt');
-    OPL = unwrapped_phase / k;
+    %     phase = angle(dOTF);
+    %     unwrapped_phase = uwrap(phase,'unwt');
+    %     OPL = unwrapped_phase / k;
     
     maxmag = max(max(mag));
     thresh = maxmag / 10;
     mask = mag;
     mask(mask<thresh) = 0;
-    mask = double(mask>0);   
+    mask = double(mask>0);
     
     
-    [ PTT_mirror, PTTpos_mirror1] = IrisAOgetPTT( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23);
     
-    [ dOTF2, PSF3, PSF4, OTF3, OTF4 ] = IrisAOcomputedOTF( DM1, 32, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
-    maxmag2 = max(max(abs(dOTF2)));
-    thresh2 = maxmag2 / 10;
-    mask2 = abs(dOTF2);
-    mask2(mask2<thresh2) = 0;
-    mask2 = double(mask2>0);
-    [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT( dOTF2, [1,1], lambda, [31,32,33], 32, calibration_filename_32 );
     
-    PTTpos_mirror3 = PTTpos_mirror1;
-    PTTpos_mirror2(:,1) = -PTTpos_mirror2(:,1);
-    PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
-%     PTTpos_mirror2([31,32,33],:) = PTTpos_mirror1([31,32,33],:);
-%     PTTpos_mirror3 = (PTTpos_mirror3 + PTTpos_mirror2) / 2;
-
-
     
     %% Correction
-    if nn > 5  %suffer the seeing limit for a bit
+    if nn > 1  %suffer the seeing limit for a bit
+        
+        [ PTT_mirror, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23);
+        
+        %% Add Second dOTF to get overlap Region
+        
+        [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+        dOTF2 = conj(dOTF2);
+        [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, [1,1], lambda, [34,35,36], 35, calibration_filename_35);
+        %
+        PTTpos_mirror3 = PTTpos_mirror1;
+        PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
+        PTTpos_mirror3 = -PTTpos_mirror3;
+        PTTpos_mirror3(:,1) = PTTpos_mirror3(:,1) * 0.654008264745021162;
         PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
         PTT_mirror = mapSegments(PTTpos_mirror);
-        DM1.PTT(PTT_mirror);
-        DM1.touch;
-        DM1.render;
+        DM1.setIrisAO(PTT_mirror);
     else
         PTTpos_mirror = zeros(37,3);
-        DM1.PTT(PTTpos_mirror);
-        DM1.touch;
-        DM1.render;
+        DM1.setIrisAO(PTTpos_mirror);
     end
     
     F.touch;
-    F.planewave * A * ABER * TURB * DM1;
+    F.planewave * ABER * TURB * A * DM1;
     % figure(2);
     % F.show;
     
@@ -378,7 +385,7 @@ while(nn < numiterations)
     
     [DM1x,DM1y] = DM1.coords;
     
-    figure(1);
+%     figure(1);
     subplot(2,4,1)
     imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
     sqar;
@@ -404,13 +411,13 @@ while(nn < numiterations)
     xlabel('Loop Iteration');
     ylabel('Strehl Ratio');
     legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
-    xlim([0,100]);
+    xlim([0,numiterations]);
     ylim([0,1]);
     title('Strehl Ratio');
-%     drawnow;
-%     
-%     
-%     figure(2)
+    %     drawnow;
+    %
+    %
+    %     figure(2)
     subplot(2,4,3);
     imagesc(DM1x,DM1y,angle(DM1.grid));
     colorbar;
@@ -456,8 +463,21 @@ while(nn < numiterations)
     
     
     drawnow;
-    
-    fprintf('Approximate Strehl: %0.5f \n',strehl(nn));
+    MOVIE(:,nn) = getframe(moviefig,winsize);
+    fprintf('Loop #%d Approximate Strehl: %0.6f \n',nn,strehl(nn));
     nn = nn + 1;
 end
 
+
+save closed_loop_movie.mat MOVIE winsize
+% movie(figure(1),MOVIE,1,10,winsize)
+
+% Zernike_Number = [2];
+% Zernike_Coefficient_waves = 4;
+% PTTpos = IrisAOComputeZernPositions( lambda, Zernike_Number, Zernike_Coefficient_waves);
+% PTT = mapSegments(PTTpos);
+% pistonlist_zern = PTT(:,1);
+% pistonlist = PTT_mirror(:,1);
+% pistonlist = horzcat(pistonlist,pistonlist_zern);
+% tiplist = horzcat(PTT_mirror(:,2),PTT(:,2));
+% tiltlist = horzcat(PTT_mirror(:,3),PTT(:,3));
