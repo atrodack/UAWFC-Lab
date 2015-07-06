@@ -37,7 +37,7 @@ fftsize = 2^11;
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
-FOV = 100*THld; % arcsecs
+FOV = 50*THld; % arcsecs
 PLATE_SCALE = THld/4;
 FoV_withIrisAO = 3.5e-3;
 FoV_withoutIrisAO = 10.5e-3;
@@ -101,17 +101,18 @@ UseDM4Correction = true;
 UseNoise = true;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
-    Noise_Parameters{1} = 5;
+    Noise_Parameters{1} = 10;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 0.75;
+    Noise_Parameters{3} = 0.5;
     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
+    Noise_Parameters{6} = 100000;
 else
     Noise_Parameters = cell(5,1);
-%     Noise_Parameters{1} = 1;
-%     Noise_Parameters{2} = false;
-%     Noise_Parameters{3} = 0;
-%     Noise_Parameters{4} = 0;
+    %     Noise_Parameters{1} = 1;
+    %     Noise_Parameters{2} = false;
+    %     Noise_Parameters{3} = 0;
+    %     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
 end
 
@@ -182,16 +183,16 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-%                 n = [2,2,2,3,3];
+        %                 n = [2,2,2,3,3];
         %         n = [1,1,2,4];
         n = [1];
-%                 m = [-2,0,2,-1,3];
+        %                 m = [-2,0,2,-1,3];
         %         m = [-1,1,0,0];
         m = [1];
         
-%                 coeffs = 1 * randn(1,length(n));
+        %                 coeffs = 1 * randn(1,length(n));
         %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
-%                 coeffs = 0.25*randn(1,length(n));
+        %                 coeffs = 0.25*randn(1,length(n));
         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n)
@@ -249,8 +250,8 @@ if RunSIM == true
         TURB.spacing(SPACING);
         TURB.name = 'Simulated Turbulence';
         TURB.make;
-%         grid = TURB.grid;
-%         TURB.grid(grid * 30);
+        %         grid = TURB.grid;
+        %         TURB.grid(grid * 30);
         wind_dir = randn(2,1);
         wind_dir = wind_dir./abs(wind_dir);
         wind_strength = randi(5,2,1);
@@ -299,7 +300,7 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 DM1.isMirror = 0;
-numiterations = 100;
+numiterations = 250;
 %movie setup
 moviefig = figure(1);
 input('Press Enter when figure is sized to liking');
@@ -352,7 +353,7 @@ while(nn <= numiterations)
     
     
     %% Correction
-    if nn > 1  %suffer the seeing limit for a bit
+    if nn > 50  %suffer the seeing limit for a bit
         
         [ PTT_mirror, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, [1,1], lambda, [22,23,24], 23, calibration_filename_23);
         
@@ -381,26 +382,106 @@ while(nn <= numiterations)
     
     PSF_cor = F.mkPSF(FOV,PLATE_SCALE);
     maxPSF_cor = max(max(PSF_cor));
+%     PSF_cor_sum = 0;
+%     if Noise_Parameters{5} == true
+%         for qq = 1:Noise_Parameters{1}
+%             PSF_cor_noise = addNoise(PSF_cor, Noise_Parameters{6}, Noise_Parameters{2}, Noise_Parameters{3}, Noise_Parameters{4});
+%             PSF_cor_sum = PSF_cor_sum + PSF_cor_noise;
+%         end
+%     end
+%     PSF_cor = PSF_cor_sum / Noise_Parameters{1};
+    
     
     
     [DM1x,DM1y] = DM1.coords;
     
-%     figure(1);
-    subplot(2,4,1)
-    imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
+    %     figure(1);
+    %     subplot(2,4,1)
+    %     imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
+    %     sqar;
+    %     title('Diffraction Limited PSF');
+    %     subplot(2,4,2)
+    %     imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
+    %     sqar;
+    %     title('Aberrated PSF')
+    %     subplot(2,4,5);
+    %     imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
+    %     sqar;
+    %     title(sprintf('Corrected PSF, loop #%d',nn));
+    %     subplot(2,4,6);
+    %     strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
+    %     strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
+    %     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
+    %     loopnum(nn) = nn;
+    %     plot(loopnum,strehl,'-r');
+    %     hold on
+    %     plot(loopnum,strehl_uncorr,'-b');
+    %     plot(loopnum,strehl_notip,'-g');
+    %     hold off
+    %     xlabel('Loop Iteration');
+    %     ylabel('Strehl Ratio');
+    %     legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
+    %     xlim([0,numiterations]);
+    %     ylim([0,1]);
+    %     title('Strehl Ratio');
+    %     %     drawnow;
+    %     %
+    %     %
+    %     %     figure(2)
+    %     subplot(2,4,3);
+    %     imagesc(DM1x,DM1y,angle(DM1.grid));
+    %     colorbar;
+    %     axis xy;
+    %     sqar;
+    %     bigtitle(sprintf('Phase of DM with Correction Applied\n'),10);
+    %     subplot(2,4,4);
+    %     F.planewave * TURB * ABER * DM1;
+    %     F.show;
+    %     axis xy;
+    %     sqar;
+    %     colorbar;
+    %     bigtitle('Field at DM',10);
+    %     subplot(2,4,7)
+    %     plotComplex(dOTF,3);
+    %     axis off;
+    %     axis xy;
+    %     sqar;
+    %     colorbar;
+    %     bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
+    %     hold on
+    %     for n = 1:37
+    %         if n ~= 23
+    %             plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
+    %         else
+    %         end
+    %     end
+    %     hold off
+    %     subplot(2,4,8)
+    %     if InjectKolm == true
+    %         TURB.show;
+    %         sqar;
+    %         bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
+    %         xlim([-2e-3,2e-3]);
+    %         ylim([-2e-3,2e-3]);
+    %     else
+    %         ABER.show;
+    %         bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
+    %         xlim([-2e-3,2e-3]);
+    %         ylim([-2e-3,2e-3]);
+    %         sqar;
+    %     end
+    
+    
+    subplot(2,2,1);
+    imagesc(plotx,ploty,log10((PSF_cor / maxPSF_cor) + abs(min(min(PSF_cor / maxPSF_cor)))),[-4,0]);
+%     imagesc(plotx,ploty,PSF_cor);
+    colormap(gray);
     sqar;
-    title('Diffraction Limited PSF');
-    subplot(2,4,2)
-    imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
-    sqar;
-    title('Aberrated PSF')
-    subplot(2,4,5);
-    imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
-    sqar;
-    title(sprintf('Corrected PSF, loop #%d',nn));
-    subplot(2,4,6);
-    strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
-    strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
+    colorbar;
+    bigtitle(sprintf('PSF, loop #%d',nn),12);
+    subplot(2,2,2);
+    strehl(nn) = PSF_cor(ceil(length(PSF_cor)/2),ceil(length(PSF_cor)/2)) / PSF_difflim(ceil(length(PSF_difflim)/2),ceil(length(PSF_difflim)/2));
+    strehl_uncorr(nn) = PSF_aberrated(ceil(length(PSF_aberrated)/2),ceil(length(PSF_aberrated)/2)) / PSF_difflim(ceil(length(PSF_difflim)/2),ceil(length(PSF_difflim)/2));
     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
     loopnum(nn) = nn;
     plot(loopnum,strehl,'-r');
@@ -414,25 +495,16 @@ while(nn <= numiterations)
     xlim([0,numiterations]);
     ylim([0,1]);
     title('Strehl Ratio');
-    %     drawnow;
-    %
-    %
-    %     figure(2)
-    subplot(2,4,3);
-    imagesc(DM1x,DM1y,angle(DM1.grid));
-    colorbar;
-    axis xy;
-    sqar;
-    bigtitle(sprintf('Phase of DM with Correction Applied\n'),10);
-    subplot(2,4,4);
+    
+    subplot(2,2,3);
     F.planewave * TURB * ABER * DM1;
     F.show;
     axis xy;
     sqar;
     colorbar;
-    bigtitle('Field at DM',10);
-    subplot(2,4,7)
-    plotComplex(dOTF,3);
+    bigtitle('Residual Field',12);
+    subplot(2,2,4)
+    plotComplex(dOTF,6);
     axis off;
     axis xy;
     sqar;
@@ -446,21 +518,6 @@ while(nn <= numiterations)
         end
     end
     hold off
-    subplot(2,4,8)
-    if InjectKolm == true
-        TURB.show;
-        sqar;
-        bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
-        xlim([-2e-3,2e-3]);
-        ylim([-2e-3,2e-3]);
-    else
-        ABER.show;
-        bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
-        xlim([-2e-3,2e-3]);
-        ylim([-2e-3,2e-3]);
-        sqar;
-    end
-    
     
     drawnow;
     MOVIE(:,nn) = getframe(moviefig,winsize);
@@ -468,9 +525,38 @@ while(nn <= numiterations)
     nn = nn + 1;
 end
 
+% Write a Filename
+if Noise_Parameters{5} == true
+    s1 = sprintf('%d_photons',Noise_Parameters{6});
+    s3 = sprintf('%0.2f_ReadNoise',Noise_Parameters{3});
+    s4 = sprintf('%d_images_per_PSF',Noise_Parameters{1});
+else
+    s1 = 'No_Noise_Used';
+    s3 = '_';
+    s4 = '_';
+end
+if InjectAb == true
+    s2 = sprintf('Zernike');
+else
+    if InjectKolm == true
+        s2 = sprintf('Kolmogorov');
+    else
+        s2 = sprintf('No_Aberration');
+    end
+end
 
-save closed_loop_movie.mat MOVIE winsize
+
+
+filename = sprintf('Closed_loop_%s_%s_and_%s_with_%s',s2,s1,s3,s4);
+filename = sprintf('%s_%d',filename,randi(10000,1,1)) %add random integer in order to avoid overwriting files
+filename_var_save = sprintf('%s.mat',filename);
+save(filename_var_save, 'MOVIE', 'winsize', 'Noise_Parameters','-v7.3')
+
 % movie(figure(1),MOVIE,1,10,winsize)
+% movie2avi(MOVIE,filename,'compression','None','fps',10)
+
+
+
 
 % Zernike_Number = [2];
 % Zernike_Coefficient_waves = 4;

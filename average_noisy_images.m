@@ -1,11 +1,12 @@
-function [ Noisy_PSF1, Noisy_PSF2 ] = average_noisy_images( PSF1, PSF2, Field, Noise_Parameters )
+function [ Noisy_PSF1, Noisy_PSF2 ] = average_noisy_images( PSF1, PSF2, N0, Noise_Parameters )
 %[ Noisy_PSF1, Noisy_PSF2 ] = average_noisy_images( PSF1, PSF2, Noise_Parameters )
-% Field = the grid of an AOField Object used to get PSF
+% N0 = the grid of an AOField Object used to get PSF
 % Noise_Parameter Cells
 % num_images = the number of images to average together
 % ShotNoise = t/f flag to use Shot Noise
 % ReadNoise = scale of read noise
 % DarkCurrent = darkCurrent scale of detector * integration time
+% N0 = number of photons in entire image
 
 if ~iscell(Noise_Parameters)
     error('Noise_Parameters needs to be a cell array');
@@ -20,8 +21,8 @@ PSF1_Sum = 0;
 PSF2_Sum = 0;
 
 for n = 1:num_images
-    Noise_PSF1 = addNoise(PSF1,Field,ShotNoise,ReadNoise,DarkCurrent);
-    Noise_PSF2 = addNoise(PSF2,Field,ShotNoise,ReadNoise,DarkCurrent);
+    Noise_PSF1 = addNoise(PSF1,N0,ShotNoise,ReadNoise,DarkCurrent);
+    Noise_PSF2 = addNoise(PSF2,N0,ShotNoise,ReadNoise,DarkCurrent);
     PSF1_Sum = PSF1_Sum + Noise_PSF1;
     PSF2_Sum = PSF2_Sum + Noise_PSF2;
 end

@@ -17,7 +17,7 @@ else
     end
 end
 
-
+N0 = Noise_Parameters{6};
 new_spacing = DM.spacing;
 dx = new_spacing(1);
 
@@ -49,7 +49,7 @@ grid2 = F2.grid;
 PSF2 = abs(fftshift(fft2(fftshift(grid2)))*(dx^2)).^2;
 
 if Noise_Parameters{5} == true
-    [ PSF1,PSF2 ] = average_noisy_images( PSF1, PSF2, Field.grid, Noise_Parameters );
+    [ PSF1,PSF2 ] = average_noisy_images( PSF1, PSF2, N0, Noise_Parameters );
 end
 
 
