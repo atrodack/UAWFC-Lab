@@ -1,0 +1,39 @@
+Output Data from Closed_loop_Zernike_1500000_photons_and_0.50_ReadNoise_with_5_images_per_PSF_07_08_2015_14_32_50_910 Run 
+
+Pixel Shift Used: [1 1] 
+
+Noise Parameters 
+Number of Exposures per PSF: 5 
+Number of Photons per Exposure: 1500000 
+Shot Noise Included? 1 
+Standard Deviation of Read Noise: 0.50 
+Dark Current Scale: 0.00 
+Zernike Aberrations Used: n, m, coefficient: 
+1 	
+1 	
+4.0000 	
+Loop Data 
+Correction Signal Data 
+Loop 1: 0.04137 Strehl, 3.18517 WFE 
+Loop 2: 0.04137 Strehl, 3.18517 WFE 
+Loop 3: 0.04137 Strehl, 3.18517 WFE 
+Loop 4: 0.03060 Strehl, 3.48680 WFE 
+Loop 5: 0.49107 Strehl, 0.71117 WFE 
+Loop 6: 0.91629 Strehl, 0.08743 WFE 
+Loop 7: 0.98254 Strehl, 0.01762 WFE 
+Loop 8: 0.98787 Strehl, 0.01220 WFE 
+Loop 9: 0.98953 Strehl, 0.01053 WFE 
+Loop 10: 0.99294 Strehl, 0.00709 WFE 
+Loop 11: 0.98782 Strehl, 0.01226 WFE 
+Uncorrected Signal Data 
+Loop 1: 0.04137 Strehl, 3.18517 WFE 
+Loop 2: 0.04137 Strehl, 3.18517 WFE 
+Loop 3: 0.04137 Strehl, 3.18517 WFE 
+Loop 4: 0.04137 Strehl, 3.18517 WFE 
+Loop 5: 0.04137 Strehl, 3.18517 WFE 
+Loop 6: 0.04137 Strehl, 3.18517 WFE 
+Loop 7: 0.04137 Strehl, 3.18517 WFE 
+Loop 8: 0.04137 Strehl, 3.18517 WFE 
+Loop 9: 0.04137 Strehl, 3.18517 WFE 
+Loop 10: 0.04137 Strehl, 3.18517 WFE 
+Loop 11: 0.04137 Strehl, 3.18517 WFE 
