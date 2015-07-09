@@ -183,17 +183,18 @@ if RunSIM == true
         disp(T);
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
-        %                 n = [2,2,2,3,3];
-        %         n = [1,1,2,4];
-        n_zern = [1];
+        %                 n_zern = [2,2,2,3,3];
+                n_zern = [1,1,2,4];
+%         n_zern = [1];
         %                 m = [-2,0,2,-1,3];
-        %         m = [-1,1,0,0];
-        m = [1];
+                m = [-1,1,0,0];
+%         m = [1];
         
-        %                 coeffs = 1 * randn(1,length(n));
-        %         coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
-        %                 coeffs = 0.25*randn(1,length(n));
-        coeffs = [4];
+        %  coeffs = 1 * randn(1,length(n_zern));
+        %  coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
+        %  coeffs = 0.25*randn(1,length(n_zern));
+        coeffs = [0.0661 	0.1545 	-0.0022 	0.1995 	];
+        %         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n_zern)
             ABER.addZernike(n_zern(ii),m(ii),coeffs(ii)*lambda,D);
@@ -351,6 +352,7 @@ pixelshift = [1,1];
 
 %movie setup
 moviefig = figure(1);
+clf;
 input('Press Enter when figure is sized to liking');
 winsize = get(moviefig,'Position');
 winsize(1:2) = [0 0];
