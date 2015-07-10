@@ -56,11 +56,11 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = false;
+InjectKolm = true;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -299,7 +299,9 @@ Ppos = zeros(DM2.nActs,1);
 %         ActMasks{n,1} = double(R <= 5);
 % end
 
-
+figure(1);
+drawnow;
+input('Press Enter when figure is sized to liking');
 
 Ppos2 = zeros(length(onAct_locations),1);
 % load ActMasks
@@ -339,7 +341,7 @@ while(nn <= numiterations)
     dOTF = -1i * conj(dOTF);
     
     phase = angle(dOTF);
-    unwrapped_phase = uwrap(phase,'unwt');
+    unwrapped_phase = uwrap(phase,'gold');
     OPL = unwrapped_phase / k;
     OPL = OPL .* GT.grid;
 
@@ -402,10 +404,10 @@ while(nn <= numiterations)
     strehl_uncorr(nn) = PSF_aberrated(strehl_location(1),strehl_location(2)) / PSF_difflim(strehl_location(1),strehl_location(2));
     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
     loopnum(nn) = nn;
-    plot(loopnum,strehl,'-or');
+    plot(loopnum,strehl,'-r');
     hold on
-    plot(loopnum,strehl_uncorr,'-*b');
-    plot(loopnum,strehl_notip,'-*g');
+    plot(loopnum,strehl_uncorr,'-b');
+    plot(loopnum,strehl_notip,'-g');
     hold off
     xlabel('Loop Iteration');
     ylabel('Strehl Ratio');
@@ -436,11 +438,11 @@ while(nn <= numiterations)
     sqar;
     colorbar off;
     bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
-    hold on
-    for n = 1:length(DM2.OnActs)
-        plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
-    end
-    hold off
+%     hold on
+%     for n = 1:length(DM2.OnActs)
+%         plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
+%     end
+%     hold off
     subplot(2,4,8)
     if InjectKolm == true
         TURB.show;

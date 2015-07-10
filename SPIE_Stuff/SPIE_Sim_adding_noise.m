@@ -94,9 +94,6 @@ if InjectKolm == true
     end
 end
 
-% Corrector Flag
-UseDM4Correction = true;
-
 % Noise Flags
 UseNoise = true;
 if UseNoise == true
@@ -131,8 +128,6 @@ if UseRealPSF == true
     varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
     varargin{4} = 'RAW_scienceIM_frame_';
 end
-% Coronagraph Flag
-coronagraph = false; % turns on going through coronagraph elemens
 
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
@@ -154,7 +149,7 @@ if RunSIM == true
         
         %Get a correct "m" index for each "n" index
         for ii = 1:nzerns
-            m_pos = -n(ii):2:n(ii);
+            m_pos = -n_zern(ii):2:n_zern(ii);
             choice = randi(length(m_pos),1,1);
             m(ii) = m_pos(choice);
         end
