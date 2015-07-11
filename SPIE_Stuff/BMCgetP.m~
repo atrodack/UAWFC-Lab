@@ -1,7 +1,7 @@
 function [ Ppos, masked_dOTF ] = BMCgetP( dOTF, DM, lambda, onAct_locations, ALGO)
 %[ Ppos, masked_dOTF ] = BMCgetP( dOTF, DM, onAct_locations, ALGO)
 %   Detailed explanation goes here
-
+load dOTF_act_698_mask.mat;
 
 if nargin < 5
     ALGO = 'gold';
@@ -22,24 +22,24 @@ G * GT;
 
 
 masked_dOTF = G.grid;
-dOTF = -1i * conj(dOTF);
 
 phase = angle(dOTF);
 unwrapped_phase = uwrap(phase,ALGO);
 OPL = unwrapped_phase / k;
-OPL = OPL .* GT.grid;
+OPL = OPL .* dOTF_act_698_mask .* GT.grid;
 
-
-
-
-%     for n = 1:length(DM.OnActs)
-%         piston_area = OPL .* ActMasks{n};
-%         Ppos2(n,1) = mean(mean(abs(piston_area)>0));
-%     end
 
 for n = 1:length(DM.OnActs)
-    Ppos(n,1) = OPL(onAct_locations{n}(2),onAct_locations{n}(1));
+    x = onAct_locations{n}(1);
+    y = onAct_locations{n}(2);
+    piston_area = OPL(onAct_locations{n}(2)-7:onAct_locations{1}(2)+7,onAct_locations{n}(1)-7:onAct_locations{1}(1)+7);
+    Ppos(n,1) = mean(mean(piston_area(abs(piston_area)>0)));
 end
+
+
+% for n = 1:length(DM.OnActs)
+%     Ppos(n,1) = OPL(onAct_locations{n}(2),onAct_locations{n}(1));
+% end
 
 SELECT = Ppos(Ppos~=0);
 MEAN = mean(SELECT);

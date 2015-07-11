@@ -11,7 +11,7 @@ function Noisy_PSF = addNoise(PSF, N0, ShotNoise, ReadNoise, DarkCurrent )
 if nargin < 4
     if ShotNoise == true
         Sum0 = sum(PSF(:));
-%         N0 = sum(sum(abs(Field)));
+        %         N0 = sum(sum(abs(Field)));
         Noisy_PSF = PSF*(1e-12*N0/Sum0);
         Noisy_PSF = 1e12*imnoise(Noisy_PSF,'poisson');
     end
@@ -19,24 +19,30 @@ if nargin < 4
 elseif nargin < 5
     if ShotNoise == true
         Sum0 = sum(PSF(:));
-%         N0 = sum(sum(abs(Field)));
+        %         N0 = sum(sum(abs(Field)));
         Noisy_PSF = PSF*(1e-12*N0/Sum0);
         Noisy_PSF = 1e12*imnoise(Noisy_PSF,'poisson');
+    else
+        Noisy_PSF = PSF + randn(size(PSF)) * ReadNoise;
     end
-    Noisy_PSF = Noisy_PSF + randn(size(PSF)) * ReadNoise;
+    
     
 elseif nargin < 6
     if ShotNoise == true
         Sum0 = sum(PSF(:));
-%         N0 = sum(sum(abs(Field)));
+        %         N0 = sum(sum(abs(Field)));
         Noisy_PSF = PSF*(1e-12*N0/Sum0);
         Noisy_PSF = 1e12*imnoise(Noisy_PSF,'poisson');
+        Noisy_PSF = Noisy_PSF + randn(size(PSF)) * ReadNoise;
+        Noisy_PSF = Noisy_PSF + randn(size(PSF)) * DarkCurrent;
+    else
+        Noisy_PSF = PSF + randn(size(PSF)) * ReadNoise;
+        Noisy_PSF = Noisy_PSF + randn(size(PSF)) * DarkCurrent;
     end
-    Noisy_PSF = Noisy_PSF + randn(size(PSF)) * ReadNoise;
-    Noisy_PSF = Noisy_PSF + randn(size(PSF)) * DarkCurrent;
+    
 end
 
-    
+
 
 
 

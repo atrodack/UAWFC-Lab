@@ -98,15 +98,17 @@ end
 % UseDM4Correction = true;
 
 % Noise Flags
-UseNoise = false;
+UseNoise = true;
+
+N0 = 1.5e6;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
     Noise_Parameters{1} = 5;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 0.5;
+    Noise_Parameters{3} = 1;
     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
-    Noise_Parameters{6} = 1.5e6;
+    Noise_Parameters{6} = N0;
 else
     Noise_Parameters = cell(5,1);
     %     Noise_Parameters{1} = 1;
@@ -114,6 +116,7 @@ else
     %     Noise_Parameters{3} = 0;
     %     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
+    Noise_Parameters{6} = N0;
 end
 
 % Use Testbed PSF Instead of Simulated PSF
@@ -359,7 +362,7 @@ DMCOMMANDSCUBE = zeros(DM2.nActs,1);
 strehl = zeros(1,1);
 strehl_notip = zeros(1,1);
 strehl_uncorr = zeros(1,1);
-
+load dOTF_act_698_mask.mat;
 load circmask.mat;
 
 fprintf('Starting the loop\n\n');
@@ -399,7 +402,7 @@ while(nn <= numiterations)
     
     
     [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB );
-    
+    dOTF = -1i * conj(dOTF);
     
     
     %Store the dOTF and PSF1 data for access later

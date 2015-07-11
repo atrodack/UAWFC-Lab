@@ -1,6 +1,7 @@
 function [ dotf, psf1, psf2, otf1, otf2] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %   
+load dOTF_act_698_mask.mat
 
 if nargin < 7
     Phasescreen1 = 1;
@@ -24,11 +25,8 @@ else
 end
 
 lambda = Field.lambda;
+N0 = Noise_Parameters{6};
 
-% FOV = Field.FOV;
-% FoV = Field.FoV;
-% PLATE_SCALE = Field.PLATE_SCALE;
-% new_spacing = DM.spacing;
 
 F1 = Field.copy;
 F1.name = 'BMC Field 1';
@@ -74,7 +72,7 @@ psf2 = abs(fftshift(fft2(fftshift(grid2)))).^2;
 % end
     
 if Noise_Parameters{5} == true
-    [ psf1, psf2 ] = average_noisy_images( psf1, psf2, Field.grid, Noise_Parameters );
+    [ psf1, psf2 ] = average_noisy_images( psf1, psf2, N0, Noise_Parameters );
 end
 
 % F1.touch; F2.touch;
