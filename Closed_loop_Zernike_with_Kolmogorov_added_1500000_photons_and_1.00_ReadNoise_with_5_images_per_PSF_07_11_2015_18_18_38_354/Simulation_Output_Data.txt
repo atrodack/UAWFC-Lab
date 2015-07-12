@@ -1,0 +1,185 @@
+Output Data from Closed_loop_Zernike_with_Kolmogorov_added_1500000_photons_and_1.00_ReadNoise_with_5_images_per_PSF_07_11_2015_18_18_38_354 
+
+Noise Parameters 
+Number of Exposures per PSF: 5 
+Number of Photons per Exposure: 1500000 
+Shot Noise Included? 1 
+Standard Deviation of Read Noise: 1.00 
+Dark Current Scale: 0.00 
+
+Zernike Aberrations Used: n, m, coefficient: 
+2 	3 	4 	4 	
+-2 	-3 	-4 	-2 	
+0.4612 	-0.2550 	-0.4904 	-0.0933 	
+
+Using Kolmogorov Phase Screen
+r0 = 0.00400 metes 
+Wind = [2 4]
+
+Loop Data 
+Correction Signal Data 
+Loop 1: 0.15905 Strehl, 1.83856 WFE 
+Loop 2: 0.15905 Strehl, 1.83856 WFE 
+Loop 3: 0.15905 Strehl, 1.83856 WFE 
+Loop 4: 0.15905 Strehl, 1.83856 WFE 
+Loop 5: 0.15905 Strehl, 1.83856 WFE 
+Loop 6: 0.89457 Strehl, 0.11141 WFE 
+Loop 7: 0.90614 Strehl, 0.09856 WFE 
+Loop 8: 0.89629 Strehl, 0.10950 WFE 
+Loop 9: 0.90648 Strehl, 0.09818 WFE 
+Loop 10: 0.90148 Strehl, 0.10372 WFE 
+Loop 11: 0.90445 Strehl, 0.10043 WFE 
+Loop 12: 0.90394 Strehl, 0.10099 WFE 
+Loop 13: 0.90693 Strehl, 0.09769 WFE 
+Loop 14: 0.90533 Strehl, 0.09945 WFE 
+Loop 15: 0.90150 Strehl, 0.10370 WFE 
+Loop 16: 0.89993 Strehl, 0.10544 WFE 
+Loop 17: 0.89972 Strehl, 0.10567 WFE 
+Loop 18: 0.14220 Strehl, 1.95052 WFE 
+Loop 19: 0.90122 Strehl, 0.10401 WFE 
+Loop 20: 0.91834 Strehl, 0.08518 WFE 
+Loop 21: 0.90003 Strehl, 0.10533 WFE 
+Loop 22: 0.91406 Strehl, 0.08986 WFE 
+Loop 23: 0.90644 Strehl, 0.09824 WFE 
+Loop 24: 0.90452 Strehl, 0.10035 WFE 
+Loop 25: 0.90148 Strehl, 0.10372 WFE 
+Loop 26: 0.89364 Strehl, 0.11245 WFE 
+Loop 27: 0.88240 Strehl, 0.12510 WFE 
+Loop 28: 0.88817 Strehl, 0.11859 WFE 
+Loop 29: 0.87873 Strehl, 0.12928 WFE 
+Loop 30: 0.87461 Strehl, 0.13398 WFE 
+Loop 31: 0.87013 Strehl, 0.13911 WFE 
+Loop 32: 0.87063 Strehl, 0.13854 WFE 
+Loop 33: 0.86990 Strehl, 0.13938 WFE 
+Loop 34: 0.86409 Strehl, 0.14608 WFE 
+Loop 35: 0.86833 Strehl, 0.14118 WFE 
+Loop 36: 0.13798 Strehl, 1.98061 WFE 
+Loop 37: 0.88342 Strehl, 0.12395 WFE 
+Loop 38: 0.87923 Strehl, 0.12871 WFE 
+Loop 39: 0.90593 Strehl, 0.09880 WFE 
+Loop 40: 0.89809 Strehl, 0.10749 WFE 
+Loop 41: 0.90618 Strehl, 0.09852 WFE 
+Loop 42: 0.90379 Strehl, 0.10115 WFE 
+Loop 43: 0.90726 Strehl, 0.09732 WFE 
+Loop 44: 0.89577 Strehl, 0.11007 WFE 
+Loop 45: 0.90722 Strehl, 0.09737 WFE 
+Loop 46: 0.90190 Strehl, 0.10325 WFE 
+Loop 47: 0.90484 Strehl, 0.10000 WFE 
+Loop 48: 0.90522 Strehl, 0.09958 WFE 
+Loop 49: 0.90332 Strehl, 0.10167 WFE 
+Loop 50: 0.90089 Strehl, 0.10437 WFE 
+Loop 51: 0.90435 Strehl, 0.10054 WFE 
+Loop 52: 0.90229 Strehl, 0.10282 WFE 
+Loop 53: 0.90814 Strehl, 0.09635 WFE 
+Loop 54: 0.91005 Strehl, 0.09426 WFE 
+
+Loop 1: 7.91523 SNR 
+Loop 2: 7.71078 SNR 
+Loop 3: 8.83417 SNR 
+Loop 4: 6.76455 SNR 
+Loop 5: 7.15097 SNR 
+Loop 6: 8.22857 SNR 
+Loop 7: 7.62831 SNR 
+Loop 8: 4.07542 SNR 
+Loop 9: 7.18082 SNR 
+Loop 10: 6.65172 SNR 
+Loop 11: 8.57070 SNR 
+Loop 12: 6.30522 SNR 
+Loop 13: 9.71755 SNR 
+Loop 14: 9.45163 SNR 
+Loop 15: 7.25359 SNR 
+Loop 16: 4.40525 SNR 
+Loop 17: 7.59645 SNR 
+Loop 18: 5.61606 SNR 
+Loop 19: 7.86920 SNR 
+Loop 20: 9.58688 SNR 
+Loop 21: 5.65177 SNR 
+Loop 22: 8.60930 SNR 
+Loop 23: 8.26921 SNR 
+Loop 24: 6.56501 SNR 
+Loop 25: 7.83058 SNR 
+Loop 26: 8.11094 SNR 
+Loop 27: 9.21550 SNR 
+Loop 28: 8.44974 SNR 
+Loop 29: 6.57762 SNR 
+Loop 30: 10.76633 SNR 
+Loop 31: 9.18293 SNR 
+Loop 32: 8.16623 SNR 
+Loop 33: 10.05754 SNR 
+Loop 34: 9.03778 SNR 
+Loop 35: 8.20643 SNR 
+Loop 36: 7.33104 SNR 
+Loop 37: 5.93452 SNR 
+Loop 38: 5.18088 SNR 
+Loop 39: 6.39165 SNR 
+Loop 40: 6.81492 SNR 
+Loop 41: 6.67482 SNR 
+Loop 42: 8.04763 SNR 
+Loop 43: 6.87716 SNR 
+Loop 44: 7.30523 SNR 
+Loop 45: 6.98333 SNR 
+Loop 46: 8.04113 SNR 
+Loop 47: 5.52888 SNR 
+Loop 48: 7.70659 SNR 
+Loop 49: 6.98059 SNR 
+Loop 50: 7.01938 SNR 
+Loop 51: 9.63066 SNR 
+Loop 52: 7.41734 SNR 
+Loop 53: 8.42180 SNR 
+Loop 54: 8.41152 SNR 
+
+Uncorrected Signal Data 
+Loop 1: 0.15905 Strehl, 1.83856 WFE 
+Loop 2: 0.15905 Strehl, 1.83856 WFE 
+Loop 3: 0.15905 Strehl, 1.83856 WFE 
+Loop 4: 0.15905 Strehl, 1.83856 WFE 
+Loop 5: 0.15905 Strehl, 1.83856 WFE 
+Loop 6: 0.15905 Strehl, 1.83856 WFE 
+Loop 7: 0.15905 Strehl, 1.83856 WFE 
+Loop 8: 0.15905 Strehl, 1.83856 WFE 
+Loop 9: 0.15905 Strehl, 1.83856 WFE 
+Loop 10: 0.15905 Strehl, 1.83856 WFE 
+Loop 11: 0.15905 Strehl, 1.83856 WFE 
+Loop 12: 0.15905 Strehl, 1.83856 WFE 
+Loop 13: 0.15905 Strehl, 1.83856 WFE 
+Loop 14: 0.15905 Strehl, 1.83856 WFE 
+Loop 15: 0.15905 Strehl, 1.83856 WFE 
+Loop 16: 0.15905 Strehl, 1.83856 WFE 
+Loop 17: 0.15905 Strehl, 1.83856 WFE 
+Loop 18: 0.15905 Strehl, 1.83856 WFE 
+Loop 19: 0.20055 Strehl, 1.60670 WFE 
+Loop 20: 0.20395 Strehl, 1.58987 WFE 
+Loop 21: 0.20705 Strehl, 1.57481 WFE 
+Loop 22: 0.21017 Strehl, 1.55982 WFE 
+Loop 23: 0.21253 Strehl, 1.54866 WFE 
+Loop 24: 0.21434 Strehl, 1.54018 WFE 
+Loop 25: 0.21605 Strehl, 1.53226 WFE 
+Loop 26: 0.21750 Strehl, 1.52555 WFE 
+Loop 27: 0.21855 Strehl, 1.52073 WFE 
+Loop 28: 0.21954 Strehl, 1.51621 WFE 
+Loop 29: 0.22025 Strehl, 1.51298 WFE 
+Loop 30: 0.22105 Strehl, 1.50937 WFE 
+Loop 31: 0.22070 Strehl, 1.51094 WFE 
+Loop 32: 0.22003 Strehl, 1.51397 WFE 
+Loop 33: 0.21855 Strehl, 1.52075 WFE 
+Loop 34: 0.21565 Strehl, 1.53412 WFE 
+Loop 35: 0.21311 Strehl, 1.54594 WFE 
+Loop 36: 0.21308 Strehl, 1.54611 WFE 
+Loop 37: 0.15905 Strehl, 1.83856 WFE 
+Loop 38: 0.15905 Strehl, 1.83856 WFE 
+Loop 39: 0.15905 Strehl, 1.83856 WFE 
+Loop 40: 0.15905 Strehl, 1.83856 WFE 
+Loop 41: 0.15905 Strehl, 1.83856 WFE 
+Loop 42: 0.15905 Strehl, 1.83856 WFE 
+Loop 43: 0.15905 Strehl, 1.83856 WFE 
+Loop 44: 0.15905 Strehl, 1.83856 WFE 
+Loop 45: 0.15905 Strehl, 1.83856 WFE 
+Loop 46: 0.15905 Strehl, 1.83856 WFE 
+Loop 47: 0.15905 Strehl, 1.83856 WFE 
+Loop 48: 0.15905 Strehl, 1.83856 WFE 
+Loop 49: 0.15905 Strehl, 1.83856 WFE 
+Loop 50: 0.15905 Strehl, 1.83856 WFE 
+Loop 51: 0.15905 Strehl, 1.83856 WFE 
+Loop 52: 0.15905 Strehl, 1.83856 WFE 
+Loop 53: 0.15905 Strehl, 1.83856 WFE 
+Loop 54: 0.15905 Strehl, 1.83856 WFE 

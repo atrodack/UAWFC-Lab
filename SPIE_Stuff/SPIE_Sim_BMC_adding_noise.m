@@ -100,7 +100,7 @@ end
 % Noise Flags
 UseNoise = true;
 
-N0 = 1.5e6;
+N0 = 1.5e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
 if UseNoise == true
     Noise_Parameters = cell(5,1);
     Noise_Parameters{1} = 5;
@@ -338,6 +338,17 @@ no_actuators = [1,32,993,1024];
 numiterations = 54;%60;
 correction_start = 6;%6;
 
+centerpoint = [746,854];
+centerpoint2 = [1304,1196-9];
+radius = 500;
+radius2 = 350;
+[X,Y] = meshgrid(1:fftsize);
+R  = sqrt((X-centerpoint(2)).^2 + (Y - centerpoint(1)).^2);
+SNRmask = double(R<=radius);
+R2 = sqrt((X-centerpoint2(2)).^2 + (Y - centerpoint2(1)).^2);
+CONJmask = ~double(R2<=radius2);
+SNRmask = SNRmask .* CONJmask;
+
 %movie setup
 moviefig = figure(1);
 clf;
@@ -368,6 +379,10 @@ load circmask.mat;
 fprintf('Starting the loop\n\n');
 
 while(nn <= numiterations)
+    
+    loopnum(nn) = nn;
+    
+    
     %     if InjectAb == true
     %         wobble_dir = randn(2,1);
     %         wobble_dir = wobble_dir./abs(wobble_dir);
@@ -411,7 +426,11 @@ while(nn <= numiterations)
 %     OTFaCUBE(:,:,nn) = OTF1;
 %     OTFbCUBE(:,:,nn) = OTF2;
 %     dOCUBE(:,:,nn) = dOTF;
-    
+    azi_avg = azimuthal_average(fftshift(circshift(SNRmask .* abs(dOTF).^2,1-centerpoint)));
+%     plot(log10(azi_avg/max(azi_avg)));
+    S = mean((azi_avg(1:350)));
+    N = mean((azi_avg(350:500)));
+    SNR(nn) = S/N;
     
     
     %% Correction
@@ -429,7 +448,7 @@ while(nn <= numiterations)
         %Update the Mirror
         DM2.touch;
         DM2.render;
-        dOTF = masked_dOTF;
+%         dOTF = masked_dOTF;
         
     elseif nn >= 3*correction_start && nn < 6*correction_start
         if InjectAb == true && InjectKolm == true %Simulate adding in some hair spray
@@ -438,7 +457,7 @@ while(nn <= numiterations)
             DM2.bumpOnActs(gain * (Ppos2));
             DM2.touch;
             DM2.render;
-            dOTF = masked_dOTF;
+%             dOTF = masked_dOTF;
                     
         else %Turn off correction for a bit
             %Flatten the DM
@@ -453,14 +472,14 @@ while(nn <= numiterations)
             DM2.bumpOnActs(gain * (Ppos2));
             DM2.touch;
             DM2.render;
-            dOTF = masked_dOTF;
+%             dOTF = masked_dOTF;
 
         else %Turn on correction again
             [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
             DM2.bumpOnActs(gain * (Ppos2));
             DM2.touch;
             DM2.render;
-            dOTF = masked_dOTF;
+%             dOTF = masked_dOTF;
 
         end
     end
@@ -496,20 +515,22 @@ while(nn <= numiterations)
     maxPSF_cor_noise = max(max(PSF_cor));
 
     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
-    loopnum(nn) = nn;
     
     
     
     
-    subplot(2,2,1);
+    
+    subplot(2,3,1);
     imagesc(plotx,ploty,log10((PSF_cor / maxPSF_cor_noise)),[-4,0]);
     %     imagesc(plotx,ploty,PSF_cor);
     colormap(gray);
     sqar;
+    axis xy;
+    axis off;
     colorbar;
     bigtitle(sprintf('PSF, loop #%d',nn),12);
     
-    subplot(2,2,2);
+    subplot(2,3,4);
     hold on
     plot(loopnum,strehl,'-b');
     plot(loopnum,strehl_notip,'--r');
@@ -517,11 +538,13 @@ while(nn <= numiterations)
     hold off;
     xlim([0,numiterations]);
     ylim([0,1]);
+    xlabel('Loop Iteration');
+    ylabel('Strehl Value');
     bigtitle('Strehl Ratio',10);
     legend('Marechal Strehl Ratio of Correction Signal','Maximum Intensity Strehl Ratio of Correction Signal','Marechal Strehl Ratio of Injected Aberration Signal','Location','SouthOutside');
     
     
-    subplot(2,2,3);
+    subplot(2,3,3);
     F.planewave * TURB * ABER * A * DM2;
     F.show;
     axis xy;
@@ -529,22 +552,31 @@ while(nn <= numiterations)
     colorbar;
     bigtitle('Residual Field',12);
     
-    subplot(2,2,4)
+    subplot(2,3,2)
     plotComplex(dOTF,6);
     axis off;
     axis xy;
     sqar;
     colorbar;
-    bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
+    bigtitle(sprintf('dOTF before Correction\n'),10);
 %     hold on
 %     for n = 1:length(DM2.OnActs)
 %         plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
 %     end
 %     hold off
     
+    subplot(2,3,6)
+    plot(loopnum,SNR,'-k');
+    xlim([0,numiterations]);
+    ylim([0,15]);
+    bigtitle('Approximate SNR of dOTF Signal',12);
+    xlabel('Loop Iteration');
+    ylabel('SNR');
+
+
     drawnow;
     MOVIE(:,nn) = getframe(moviefig,winsize);
-    fprintf('Loop #%d Approximate Strehl: %0.6f \n',nn,strehl(nn));
+    fprintf('Loop #%d Approximate Strehl: %0.6f\t\tApproximate SNR: %0.4f \n',nn,strehl(nn),SNR(nn));
     nn = nn + 1;
 end
 
@@ -595,6 +627,9 @@ fprintf(fid,'\r\nLoop Data \r\n');
 fprintf(fid,'Correction Signal Data \r\n');
 for n = 1:length(loopnum)
     fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE \r\n',loopnum(n),strehl(n),WFE(n));
+end
+for n = 1:length(loopnum)
+    fprintf(fid,'Loop %d: %0.5f SNR \r\n',loopnum(n),SNR(n));
 end
 fprintf(fid,'Uncorrected Signal Data \r\n');
 for n = 1:length(loopnum)
