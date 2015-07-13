@@ -1,7 +1,12 @@
-function [ pixel_seg_map, Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg)
+function [ pixel_seg_map, Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg,numsegs)
 % [ pixel_seg_map,Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg)
 %   function for computing the Segment-pixel grid for AOSim2 IrisAO Model
 %   in dOTF
+
+if nargin < 4
+    numsegs = 37;
+end
+
 SPACING = DM.spacing;
 lambda = AOField.HeNe_Laser;
 
@@ -17,10 +22,11 @@ F2 = F1.copy;
 % pixel_seg_map = cell(length(DM.segList),2);
 pixel_seg_map = cell(length(DM.segList),1);
 
-for n = 1:length(DM.segList)
+for n = 1:numsegs
     PTTpos_flat = zeros(length(DM.segList),3);
     PTTpos_poked = zeros(length(DM.segList),3);
-    PTTpos_poked(pokeseg,1) = 0.5;
+%     PTTpos_poked(pokeseg,1) = lambda/4;
+PTTpos_poked(pokeseg,3) = 1e-3;
     fprintf('Segment # %d Poked\n',n);
     
     if n ~= pokeseg

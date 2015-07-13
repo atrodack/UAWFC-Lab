@@ -272,7 +272,7 @@ end
 
 
 dt = datestr(now,'mm_dd_yyyy_HH_MM_SS_FFF');
-filename = sprintf('Closed_loop_%s_%s_and_%s_with_%s',s2,s1,s3,s4);
+filename = sprintf('BMC_Closed_loop_%s_%s_and_%s_with_%s',s2,s1,s3,s4);
 filename = sprintf('%s_%s',filename,dt) %add date and time to msec in order to avoid overwriting files
 % filename_movie_save = sprintf('%s.mat',filename);
 filename_movie_avi = sprintf('%s.avi',filename);

@@ -5,7 +5,21 @@ function [PTT_mapped] = mapSegments(PTTpos, numRings)
 [sy,sx] = size(PTTpos);
 PTT_mapped = zeros(sy,sx);
 if nargin == 1
-    numRings = 3; %default to 37 segments
+%     numRings = 3; %default to 37 segments
+    numsegs = length(PTTpos);
+    switch numsegs
+        case 1
+            numRings = 0;
+            
+        case 7
+            numRings = 1;
+            
+        case 19
+            numRings = 2;
+            
+        case 37
+            numRings = 3;
+    end
 end
 % Load in Mapping Data
 %         load('IrisAO_SegMap.mat');

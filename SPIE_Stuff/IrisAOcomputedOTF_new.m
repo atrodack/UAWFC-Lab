@@ -1,12 +1,16 @@
-function [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
+function [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, NECO )
 %[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %   
 
 if nargin < 7
     Phasescreen1 = 1;
     Phasescreen2 = 1;
+    NECO = false;
 elseif nargin < 8
     Phasescreen2 = 1;
+    NECO = false;
+elseif nargin < 9
+    NECO = false;
 end
 
 if ~iscell(Noise_Parameters)
@@ -14,10 +18,13 @@ if ~iscell(Noise_Parameters)
 else
     if isempty(Noise_Parameters{5})
         Noise_Parameters{5} = false; %if flag is unset, don't use noise
+        N0 = Noise_Parameters{6};
+    else
+        N0 = Noise_Parameters{6};
     end
 end
 
-N0 = Noise_Parameters{6};
+
 new_spacing = DM.spacing;
 dx = new_spacing(1);
 
@@ -32,7 +39,13 @@ F2.name = 'IrisAO Field 2';
 PTTpos_flat = PTTpos_in;
 PTT_flat = mapSegments(PTTpos_flat);
 PTTpos_poked = PTTpos_in;
-PTTpos_poked(pokeseg,1) = (F1.lambda) / 4;
+
+if NECO == false
+    PTTpos_poked(pokeseg,1) = (F1.lambda) / 4;
+else
+    PTTpos_poked(pokeseg,3) = 0.25e-3;
+end
+
 PTT_poked = mapSegments(PTTpos_poked);
 
 % display('Flattening DM');

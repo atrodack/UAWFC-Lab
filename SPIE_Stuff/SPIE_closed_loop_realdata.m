@@ -30,12 +30,19 @@ chosen_path = directorypath1;
 chosen_folder = foldername1{4};
 % chosen_folder = foldername2{4};
 
+
+current_folder = pwd;
 cd(sprintf('%s/%s',chosen_path,chosen_folder));
+
+%% Experimental Setup
+lambda = AOField.HeNe_Laser;
+pixelshift = [1,1];
 
 
 
 %% Do Stuff with the Data
 if chosen_path == directorypath1
+    overlapsegs = [18];
     switch chosen_folder
         case foldername1{1}
             load('dOTFs.mat');
@@ -101,7 +108,9 @@ if chosen_path == directorypath1
         otherwise
     end
     
+    
 elseif chosen_path == directorypath2
+    overlapsegs = [20];
     switch chosen_folder
         case foldername2{1}
             load('dOTF_.mat'); %average dOTF from data set
@@ -147,7 +156,7 @@ end
 
 
 % cd(sprintf('%s/%s',directorypath2,foldername2{1}));
-
+cd(current_folder)
 
 
 

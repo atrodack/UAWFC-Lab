@@ -1,6 +1,15 @@
-function [ PTT_mirror, PTTpos_mirror ] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, overlapsegs, pokeseg, calibration_filename )
+function [ PTT_mirror, PTTpos_mirror ] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, overlapsegs, pokeseg, calibration_filename, numsegs)
 %[ PTT_mirror, PTTpos_mirror ] = IrisAOgetPTT( dOTF, pixelshift, lambda, overlapsegs, pokeseg, calibration_filename )
 %   Detailed explanation goes here
+
+if nargin < 7
+    numsegs = 37;
+    numrings = 3;
+end
+
+if numsegs == 19
+    numrings = 2;
+end
 
 load(calibration_filename);
 
@@ -33,8 +42,8 @@ xx = linspace(1,sizex,sizex);
 yy = linspace(1,sizey,sizey);
 [XX,YY] = meshgrid(xx,yy);
 
-SegMasks = cell(37,1);
-for n = 1:37
+SegMasks = cell(numsegs,1);
+for n = 1:numsegs
     if n ~= pokeseg
         R = sqrt((XX - pixel_seg_map{n}(2)).^2 + (YY - pixel_seg_map{n}(1)).^2);
         SegMasks{n,1} = double(R <= Areal_Averaging_radius);
@@ -43,8 +52,8 @@ end
 
 
 
-tiplist = zeros(37,1);
-for n = 1:37
+tiplist = zeros(numsegs,1);
+for n = 1:numsegs
     if n ~= pokeseg
         segtilt = (Tipdiff .* SegMasks{n});
         tiplist(n,1) = (mean(mean(angle(segtilt(abs(segtilt)>0)))));
@@ -53,8 +62,8 @@ end
 
 
 
-tiltlist = zeros(37,1);
-for n = 1:37
+tiltlist = zeros(numsegs,1);
+for n = 1:numsegs
     if n ~= pokeseg
         segtip = (Tiltdiff .* SegMasks{n});
         tiltlist(n,1) = (mean(mean(angle(segtip(abs(segtip)>0)))));
@@ -64,8 +73,8 @@ tiplist = tiplist * 1e-2;
 tiltlist = tiltlist * 1e-2;
 
 %% Correct for Tip/Tilt and get piston
-% pistonlist = zeros(37,1);
-% for n = 1:37
+% pistonlist = zeros(numsegs,1);
+% for n = 1:numsegs
 %     if n ~= pokeseg
 %         segpiston = OPL .* SegMasks{n};
 %         segpiston = fftshift(circshift(segpiston,1 - [pixel_seg_map{n}(1),pixel_seg_map{n}(2)]));
@@ -78,8 +87,8 @@ tiltlist = tiltlist * 1e-2;
 
 
 
-pistonlist = zeros(37,1);
-for n = 1:37
+pistonlist = zeros(numsegs,1);
+for n = 1:numsegs
     if n ~= pokeseg
         segpiston = OPL .* SegMasks{n};
         pistonlist(n,1) = mean(mean(segpiston(abs(segpiston)>0)));
@@ -88,7 +97,7 @@ end
 
 
 
-% for n = 1:37
+% for n = 1:numsegs
 %     if n ~= pokeseg
 %         pistonlist(n,1) = OPL(pixel_seg_map{n}(1),pixel_seg_map{n}(2));
 %     end
@@ -111,6 +120,6 @@ end
 
 PTTpos_mirror = horzcat(pistonlist, tiplist,tiltlist);
 PTTpos_mirror(overlapsegs,:) = 0; %account for overlap region
-PTT_mirror = mapSegments(PTTpos_mirror);
+PTT_mirror = mapSegments(PTTpos_mirror,numrings);
 end
 

@@ -1,20 +1,20 @@
 Phase Unwrapping By Means of Goldstein's Algorithm
-Input file =  /tmp/_uwrap_4097x4097_0000000947.phase
+Input file =  /tmp/_uwrap_4097x4097_0000000257.phase
 Input file type = float
-Output file =  /tmp/_uwrap_4097x4097_0000000947.uwphase
+Output file =  /tmp/_uwrap_4097x4097_0000000257.uwphase
 File dimensions = 4097x4097 (cols x rows).
 No mask file.
 Reading phase data...
 Reading input data...
 Processing mask data...
-508747 Residues
+765498 Residues
 Computing branch cuts
 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 
-1005235 BRANCH CUT PIXELS
+1487823 BRANCH CUT PIXELS
 Unwrapping around branch cuts
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 
-67068 disconnected pieces.
+0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 
+96959 disconnected pieces.
 
 Finished
-Finding min, max of solution...Min -4.372509, max 3.193985
-Saving unwrapped surface to file '/tmp/_uwrap_4097x4097_0000000947.uwphase'
+Finding min, max of solution...Min -2.890003, max 4.031972
+Saving unwrapped surface to file '/tmp/_uwrap_4097x4097_0000000257.uwphase'
