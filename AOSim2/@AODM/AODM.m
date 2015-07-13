@@ -398,8 +398,32 @@ classdef AODM < AOScreen
             
             
             hold off;
-		end
+        end
 		
+       function DM = plotOnActuators(DM,show_labels)
+            if(nargin<2)
+                show_labels = false;
+            end
+            hold on;            
+			SELECT = DM.actuators(:,5)~=0;
+			plot(DM.actuators(SELECT,1),DM.actuators(SELECT,2),'ro','MarkerSize',2);
+			plot(DM.actuators(~SELECT,1),DM.actuators(~SELECT,2),'kx','MarkerSize',3);
+			plot(DM.bconds(:,1),DM.bconds(:,2),'bs');
+			daspect([1 1 1]);
+            axis xy;
+            if(show_labels)
+                for n=1:DM.nActs
+                    text(DM.actuators(n,1),DM.actuators(n,2),...
+                        sprintf('%d',n),'FontSize',8);
+                end
+            end
+            
+            
+            hold off;
+        end 
+        
+        
+        
 		function DM = plotRegions(DM)
 			hold on;
 			SELECT = DM.actuators(:,5)~=0;

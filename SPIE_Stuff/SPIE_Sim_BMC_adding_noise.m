@@ -37,7 +37,7 @@ fftsize = 2^11;
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
-FOV = 50*THld; % arcsecs
+FOV = 35*THld; % arcsecs
 PLATE_SCALE = THld/4;
 FoV_withIrisAO = 3.5e-3;
 FoV_withoutIrisAO = 10.5e-3;
@@ -340,7 +340,7 @@ correction_start = 6;%6;
 
 centerpoint = [746,854];
 centerpoint2 = [1304,1196-9];
-radius = 500;
+radius = 550;
 radius2 = 350;
 [X,Y] = meshgrid(1:fftsize);
 R  = sqrt((X-centerpoint(2)).^2 + (Y - centerpoint(1)).^2);
@@ -428,8 +428,8 @@ while(nn <= numiterations)
 %     dOCUBE(:,:,nn) = dOTF;
     azi_avg = azimuthal_average(fftshift(circshift(SNRmask .* abs(dOTF).^2,1-centerpoint)));
 %     plot(log10(azi_avg/max(azi_avg)));
-    S = mean((azi_avg(1:350)));
-    N = mean((azi_avg(350:500)));
+    S = mean((azi_avg(1:radius2)));
+    N = mean((azi_avg(radius2:radius)));
     SNR(nn) = S/N;
     
     
@@ -445,6 +445,21 @@ while(nn <= numiterations)
         %Bump the Actuator Pistons
         DM2.bumpOnActs(gain * (Ppos2));
         
+        %Figure out the Slaves
+        if nn == correction_start
+            pistonlists = zeros(length(DM2.OnActs),2);
+            pistonlists(:,1) = linspace(1,length(DM2.OnActs),length(DM2.OnActs));
+            pistonlists(:,2) = Ppos2;
+            slaveActs_dOTF_space = pistonlists(pistonlists(:,2)==0);
+            slaveActs = DM2.OnActs(slaveActs_dOTF_space);
+        end
+        
+        pistonlist(:,1) = DM2.actuators(:,3);
+        Ppos2 = setOverlapActs(pistonlist,slaveActs);
+        DM2.flatten;
+        DM2.setActs(Ppos2);
+        
+        
         %Update the Mirror
         DM2.touch;
         DM2.render;
@@ -455,6 +470,11 @@ while(nn <= numiterations)
             TURB = PHASESCREEN.copy;
             [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
             DM2.bumpOnActs(gain * (Ppos2));
+            pistonlist(:,1) = DM2.actuators(:,3);
+            Ppos2 = setOverlapActs(pistonlist,slaveActs);
+            DM2.flatten;
+            DM2.setActs(Ppos2);
+            
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -470,6 +490,10 @@ while(nn <= numiterations)
             TURB = 1;
             [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
             DM2.bumpOnActs(gain * (Ppos2));
+            pistonlist(:,1) = DM2.actuators(:,3);
+            Ppos2 = setOverlapActs(pistonlist,slaveActs);
+            DM2.flatten;
+            DM2.setActs(Ppos2);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -477,6 +501,10 @@ while(nn <= numiterations)
         else %Turn on correction again
             [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
             DM2.bumpOnActs(gain * (Ppos2));
+            pistonlist(:,1) = DM2.actuators(:,3);
+            Ppos2 = setOverlapActs(pistonlist,slaveActs);
+            DM2.flatten;
+            DM2.setActs(Ppos2);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -549,7 +577,7 @@ while(nn <= numiterations)
     F.show;
     axis xy;
     sqar;
-    colorbar;
+    colorbar off;
     bigtitle('Residual Field',12);
     
     subplot(2,3,2)
@@ -557,7 +585,7 @@ while(nn <= numiterations)
     axis off;
     axis xy;
     sqar;
-    colorbar;
+    colorbar off;
     bigtitle(sprintf('dOTF before Correction\n'),10);
 %     hold on
 %     for n = 1:length(DM2.OnActs)
@@ -565,6 +593,15 @@ while(nn <= numiterations)
 %     end
 %     hold off
     
+    subplot(2,3,5)
+    A_C = A.copy;
+    A_C * DM2;
+    A_C.show;
+    colormap(jet);
+    bigtitle(sprintf('DM Shape\n'));
+    axis off
+    
+
     subplot(2,3,6)
     plot(loopnum,SNR,'-k');
     xlim([0,numiterations]);
