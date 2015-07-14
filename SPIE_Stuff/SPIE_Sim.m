@@ -57,11 +57,11 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = false; %Injects nzerns Zernike Terms
+InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = true;
+InjectKolm = false;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -296,7 +296,7 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 DM1.isMirror = 0;
-while(nn < numiterations)
+while(nn <= 2)%numiterations)
     
     if InjectKolm == true
         TURB.grid(circshift(TURB.grid,Wind));
@@ -341,7 +341,7 @@ while(nn < numiterations)
 
     
     %% Correction
-    if nn > 10  %suffer the seeing limit for a bit
+    if nn > 1  %suffer the seeing limit for a bit
         PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
         PTT_mirror = mapSegments(PTTpos_mirror);
         DM1.PTT(PTT_mirror);

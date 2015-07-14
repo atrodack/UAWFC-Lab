@@ -1,26 +1,32 @@
-function [ pixel_seg_map, Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg, FOV, PLATE_SCALE, FoV)
-% [ pixel_seg_map,Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg, FOV, PLATE_SCALE, FoV)
+function [ pixel_seg_map, Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg,numsegs)
+% [ pixel_seg_map,Areal_Averaging_radius ] = computeIrisAOsegpixelmap( DM, Aperture, pokeseg)
 %   function for computing the Segment-pixel grid for AOSim2 IrisAO Model
 %   in dOTF
+
+if nargin < 4
+    numsegs = 37;
+end
+
 SPACING = DM.spacing;
 lambda = AOField.HeNe_Laser;
 
 
-F = AOField(2^12);
-F.spacing(SPACING);
-F.FFTSize = 2^12;
-F.lambda = lambda;
+F1 = AOField(2^11);
+F1.spacing(SPACING);
+F1.FFTSize = 2^11;
+F1.lambda = lambda;
 
-F2 = F.copy;
+F2 = F1.copy;
 
 
 % pixel_seg_map = cell(length(DM.segList),2);
 pixel_seg_map = cell(length(DM.segList),1);
 
-for n = 1:length(DM.segList)
+for n = 1:numsegs
     PTTpos_flat = zeros(length(DM.segList),3);
     PTTpos_poked = zeros(length(DM.segList),3);
-    PTTpos_poked(pokeseg,1) = 0.5;
+%     PTTpos_poked(pokeseg,1) = lambda/4;
+PTTpos_poked(pokeseg,3) = 1e-3;
     fprintf('Segment # %d Poked\n',n);
     
     if n ~= pokeseg
@@ -29,38 +35,28 @@ for n = 1:length(DM.segList)
         PTT_flat = mapSegments(PTTpos_flat);
         PTT_poked = mapSegments(PTTpos_poked);
         
-        DM.PTT(PTT_flat);
-        DM.touch;
-        DM.render;
+        DM.setIrisAO(PTT_flat);
         
-        F.planewave * Aperture * DM;
-        PSF1 = F.mkPSF(FOV,PLATE_SCALE);
-        PSF1max = max(max(PSF1));
-        % PSF1 = PSF1 / PSF1max;
-        PSF1plot = log10(PSF1/PSF1max);
+        F1.planewave * Aperture * DM;
+        grid1 = F1.grid;
+        PSF1 = abs(fftshift(fft2(fftshift(grid1)))).^2;
         
-        DM.PTT(PTT_poked);
-        DM.touch;
-        DM.render;
+        DM.setIrisAO(PTT_poked);
         
         F2.planewave * Aperture * DM;
-        PSF2 = F2.mkPSF(FOV,PLATE_SCALE);
-        PSF2max = max(max(PSF2));
-        % PSF2 = PSF2 / PSF2max;
-        PSF2plot = log10(PSF2/PSF2max);
+        grid2 = F2.grid;
+        PSF2 = abs(fftshift(fft2(fftshift(grid2)))).^2;
         
-        F.touch; F2.touch;
-        F.grid(PSF1); F2.grid(PSF2);
-        
-        OTF1 = F.mkOTF2(FoV,SPACING(1));
-        OTF2 = F2.mkOTF2(FoV,SPACING(1));
-        
-        F.touch; F2.touch;
+        OTF1 = fftshift(fft2(fftshift(PSF1)));
+        OTF2 = fftshift(fft2(fftshift(PSF2)));
         
         dOTF = OTF1 - OTF2;
+%         dOTF = -1i * conj(dOTF);
+        dOTF = conj(dOTF);
         
         figure(1);
-        plotComplex(dOTF,3);
+        plotComplex(dOTF,6);
+        axis xy;
         
         if n > 1
         hold on;

@@ -1,4 +1,4 @@
-clear all;
+clearvars -except ActMasks
 clc;
 % close all;
 
@@ -32,11 +32,11 @@ aa = 5*SPACING;  % for antialiasing.
 nzerns = 9; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
 numiterations = 100;
 gain = 0.7; %gain for AO Corrections
-fftsize = 2^12;
+fftsize = 2^11;
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
-FOV = 100*THld; % arcsecs
+FOV = 35*THld; % arcsecs
 PLATE_SCALE = THld/4;
 FoV_withIrisAO = 3.5e-3;
 FoV_withoutIrisAO = 10.5e-3;
@@ -56,11 +56,11 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = false;
+InjectKolm = true;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -231,19 +231,39 @@ end
 %% BMC Simulation
 
 % load in calibration file
+% load BMC_calibrated_X_and_Y_dOTF_locations
+% calibrated_BMC_act_locations = cell(DM2.nActs,1);
+% counter = 1;
+% for n = 1:32
+%     for m = 1:32
+%         hold on
+%         calibrated_BMC_act_locations{counter} = [X(m,n),Y(m,n)];
+%         drawnow;
+%         pause(0.1);
+%         hold off
+%         counter = counter + 1;
+%     end
+% end
+load calibrated_BMC_dOTF_act_locations;
+for n = 1:DM2.nActs
+    if DM2.actuators(n,5) == 0
+        calibrated_BMC_act_locations{n} = [];
+    end
+end
 
+onAct_locations =  calibrated_BMC_act_locations(~cellfun('isempty',calibrated_BMC_act_locations));
 
 
 % make a field object
 display('Making Fields');
 new_spacing = DM2.spacing;
-F = AOField(DM2);
+F = AOField(fftsize);
 F.FFTSize = (fftsize);
 F.spacing(new_spacing);
 F.lambda = lambda;
 F.FOV = FOV;
 F.PLATE_SCALE = PLATE_SCALE;
-F.FoV = FoV_withIrisAO;
+F.FoV = FoV_withoutIrisAO;
 F.name = 'IrisAO Field 1';
 
 % make diffraction limited PSF
@@ -253,32 +273,110 @@ F.planewave * A * DM2;
 PSF_difflimmax = max(max(PSF_difflim));
 F.touch;
 
+strehl_location = ceil(size(PSF_difflim)/2);
+
+
+% DM2.flatten;
+% DM2.poke(497,3e-6);
+% ABER.grid(DM2.grid);
+
+
 %% Control Loop
 nn = 1;
+no_actuators = [1,32,993,1024];
+% DM2.actuators(no_actuators,5) = 0;
+Ppos = zeros(DM2.nActs,1);
 
-while(nn < numiterations)
+% sizey = fftsize;
+% sizex = fftsize;
+% xx = linspace(1,sizex,sizex);
+% yy = linspace(1,sizey,sizey);
+% [XX,YY] = meshgrid(xx,yy);
+% 
+% ActMasks = cell(length(DM2.OnActs),1);
+% for n = 1:length(DM2.OnActs)
+%         R = sqrt((XX - onAct_locations{n}(2)).^2 + (YY - onAct_locations{n}(1)).^2);
+%         ActMasks{n,1} = double(R <= 5);
+% end
+
+figure(1);
+drawnow;
+input('Press Enter when figure is sized to liking');
+
+Ppos2 = zeros(length(onAct_locations),1);
+% load ActMasks
+while(nn <= numiterations)
     
     if InjectKolm == true
         TURB.grid(circshift(TURB.grid,Wind));
     end
-    
-    F.planewave * A * ABER * TURB * DM2;
+    Ppos = DM2.actuators(:,3);
+    DM2.flatten;
+    F.planewave * TURB *ABER * A * DM2;
     PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
     PSF_aberratedmax = max(max(PSF_aberrated));
     F.touch;
     
-
+    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB );
+    
+    mag = abs(dOTF);
+    maxmag = max(max(mag));
+    thresh = maxmag / 1000;
+    mask = mag;
+    mask(mask<thresh) = 0;
+    mask = double(mask>0);
+    
+    G = AOGrid(1);
+    G.spacing(DM2.spacing);
+    G.grid(dOTF);
+    [X, Y] = G.COORDS;
+    GT = G.copy;
+    GT.grid(~(Y - tand(150)*X > -0.0004)); % fftsize = 2^10, manual ffts
+%     GT.show
+    G * GT;
+    
+    
+    
+    masked_dOTF = G.grid;
+    dOTF = -1i * conj(dOTF);
+    
+    phase = angle(dOTF);
+    unwrapped_phase = uwrap(phase,'gold');
+    OPL = unwrapped_phase / k;
+    OPL = OPL .* GT.grid;
 
     
+
+    
+%     for n = 1:length(DM2.OnActs)
+%         piston_area = OPL .* ActMasks{n};
+%         Ppos2(n,1) = mean(mean(abs(piston_area)>0));
+%     end
+    
+    for n = 1:length(DM2.OnActs)
+        Ppos2(n,1) = OPL(onAct_locations{n}(2),onAct_locations{n}(1));
+    end
+    
+    SELECT = Ppos2(Ppos2~=0);
+    MEAN = mean(SELECT);
+    for n = 1:length(Ppos2)
+        if Ppos2(n) ~= 0
+            Ppos2(n) = Ppos2(n) - MEAN;
+        end
+    end
+    
     %% Correction
-    if nn > 10  %suffer the seeing limit for a bit
+    if nn > 1  %suffer the seeing limit for a bit
+        gain = -0.7;
+        DM2.bumpOnActs(gain * (Ppos2));
         
+        DM2.render;
     else
         
     end
     
     F.touch;
-    F.planewave * A * ABER * TURB * DM2;
+    F.planewave * TURB *ABER * A * DM2;
     % figure(2);
     % F.show;
     
@@ -288,85 +386,90 @@ while(nn < numiterations)
     
     [DM2x,DM2y] = DM2.coords;
     
-%     figure(1);
-%     subplot(2,4,1)
-%     imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
-%     sqar;
-%     title('Diffraction Limited PSF');
-%     subplot(2,4,2)
-%     imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
-%     sqar;
-%     title('Aberrated PSF')
-%     subplot(2,4,5);
-%     imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
-%     sqar;
-%     title(sprintf('Corrected PSF, loop #%d',nn));
-%     subplot(2,4,6);
-%     strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
-%     strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
-%     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
-%     loopnum(nn) = nn;
-%     plot(loopnum,strehl,'-r');
+    figure(1);
+    subplot(2,4,1)
+    imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
+    sqar;
+    title('Diffraction Limited PSF');
+    subplot(2,4,2)
+    imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
+    sqar;
+    title('Aberrated PSF')
+    subplot(2,4,5);
+    imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
+    sqar;
+    title(sprintf('Corrected PSF, loop #%d',nn));
+    subplot(2,4,6);
+    strehl(nn) = PSF_cor(strehl_location(1),strehl_location(2)) / PSF_difflim(strehl_location(1),strehl_location(2));
+    strehl_uncorr(nn) = PSF_aberrated(strehl_location(1),strehl_location(2)) / PSF_difflim(strehl_location(1),strehl_location(2));
+    strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
+    loopnum(nn) = nn;
+    plot(loopnum,strehl,'-r');
+    hold on
+    plot(loopnum,strehl_uncorr,'-b');
+    plot(loopnum,strehl_notip,'-g');
+    hold off
+    xlabel('Loop Iteration');
+    ylabel('Strehl Ratio');
+    legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
+    xlim([0,100]);
+    ylim([0,1]);
+    title('Strehl Ratio');
+
+    subplot(2,4,3);
+    A_mask = A.copy;
+    A_mask * DM2;
+    A_mask.show;
+    colorbar;
+    axis xy;
+    sqar;
+    bigtitle(sprintf('DM Shape with Correction Applied\n'),10);
+    subplot(2,4,4);
+    F.planewave * TURB * ABER * A * DM2;
+    F.show;
+    axis xy;
+    sqar;
+    colorbar off;
+    bigtitle('Field at DM',10);
+    subplot(2,4,7)
+    plotComplex(masked_dOTF,5);
+    axis off;
+    axis xy;
+    sqar;
+    colorbar off;
+    bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
 %     hold on
-%     plot(loopnum,strehl_uncorr,'-b');
-%     plot(loopnum,strehl_notip,'-g');
-%     hold off
-%     xlabel('Loop Iteration');
-%     ylabel('Strehl Ratio');
-%     legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
-%     xlim([0,100]);
-%     ylim([0,1]);
-%     title('Strehl Ratio');
-% %     drawnow;
-% %     
-% %     
-% %     figure(2)
-%     subplot(2,4,3);
-%     imagesc(DM1x,DM1y,angle(DM2.grid));
-%     colorbar;
-%     axis xy;
-%     sqar;
-%     bigtitle(sprintf('Phase of DM with Correction Applied\n'),10);
-%     subplot(2,4,4);
-%     F.planewave * TURB * ABER * DM2;
-%     F.show;
-%     axis xy;
-%     sqar;
-%     colorbar;
-%     bigtitle('Field at DM',10);
-%     subplot(2,4,7)
-%     plotComplex(dOTF,3);
-%     axis off;
-%     axis xy;
-%     sqar;
-%     colorbar;
-%     bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
-%     hold on
-%     for n = 1:37
-%         if n ~= 23
-%             plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
-%         else
-%         end
+%     for n = 1:length(DM2.OnActs)
+%         plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
 %     end
 %     hold off
-%     subplot(2,4,8)
-%     if InjectKolm == true
-%         TURB.show;
-%         sqar;
-%         bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
-%         xlim([-2e-3,2e-3]);
-%         ylim([-2e-3,2e-3]);
-%     else
-%         ABER.show;
-%         bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
-%         xlim([-2e-3,2e-3]);
-%         ylim([-2e-3,2e-3]);
-%         sqar;
-%     end
+    subplot(2,4,8)
+    if InjectKolm == true
+        TURB.show;
+        sqar;
+        colorbar;
+        bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
+        xlim([-2e-3,2e-3]);
+        ylim([-2e-3,2e-3]);
+    else
+        ABER.show;
+        colorbar;
+        bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
+        xlim([-4e-3,4e-3]);
+        ylim([-4e-3,4e-3]);
+        sqar;
+    end
 %     
 %     
+    drawnow;
+    
+%     figure(2);
+%     subplot(1,2,1)
+%     DM2.show;
+%     subplot(1,2,2)
+%     imagesc(unwrapped_phase);
 %     drawnow;
-%     
+% %     
 %     fprintf('Approximate Strehl: %0.5f \n',strehl(nn));
     nn = nn + 1;
 end
