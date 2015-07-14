@@ -40,7 +40,7 @@ if RunSIM == true
         segpitch = 606e-6; %leave this alone
         magnification = 1; %leave this alone too
         FoV = FoV_withIrisAO;
-        numRings = 3; %default to 37 segments
+        numRings = 1; %default to 37 segments
         numSeg = sum(1:numRings)*6 + 1; % keep track of total segments
         % Make the Mirror
         if Scalloped_Field == true
