@@ -26,8 +26,8 @@ foldername2{4} = '04_11_2013_Laser_Focused_TiltAmp_1_Seg20';
 
 
 %% Choose Folder to Go To
-chosen_path = directorypath1;
-chosen_folder = foldername1{4};
+chosen_path = directorypath2;
+chosen_folder = foldername2{4};
 % chosen_folder = foldername2{4};
 
 
