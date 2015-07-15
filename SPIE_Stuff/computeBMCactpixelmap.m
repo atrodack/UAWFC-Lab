@@ -1,18 +1,20 @@
-function [ pixel_act_map, Areal_Averaging_radius ] = computeBMCactpixelmap( DM, A, Field, pokeact )
+function [ calibrated_BMC_act_locations ] = computeBMCactpixelmap( DM, A, Field, pokeact )
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
 F = Field.copy;
 F.name = 'Actuator Pixel Map Field';
 
-testacts1 = [1,32,993];
-% testacts1 = [33,63,962]
-testacts2 = randi(1024,250,1);
+% testacts1 = [1,32,993];
+
 
 
 DM.flatten;
+DM = dmsetrow(DM,1,1e-6);
 Ppos_flat = DM.actuators(:,3);
-Ppos_flat(testacts1) = 1e-5;
+DM = dmsetcol(DM,1,1e-6);
+Ppos_flat = Ppos_flat + DM.actuators(:,3);
+Ppos_flat(Ppos_flat~=0) = 1e-6;
 
 dOTF = BMCcomputedOTF( DM, pokeact, Ppos_flat, false, Field, A);
 figure;
@@ -49,8 +51,9 @@ y = linspace(btleft(1),topleft(1),32);
 
 
 DM.flatten;
+
+DM = dmsetcol(DM,16,1e-6);
 Ppos_flat = DM.actuators(:,3);
-Ppos_flat(testacts2) = 1e-6;
 
 
 dOTF = BMCcomputedOTF( DM, 698, Ppos_flat, false, Field, A);
@@ -61,9 +64,23 @@ axis xy;
 sqar;
 
 
-hold on
-plot(ceil(X),ceil(Y),'r*')
-hold off
+% hold on
+% plot(ceil(X),ceil(Y),'r*')
+% hold off
+
+calibrated_BMC_act_locations = cell(DM.nActs,1);
+counter = 1;
+for n = 1:32
+    for m = 1:32
+        hold on
+        calibrated_BMC_act_locations{counter} = [X(m,n),Y(m,n)];
+        calibrated_BMC_act_locations{counter} = round(calibrated_BMC_act_locations{counter});
+        plot(calibrated_BMC_act_locations{n}(1),calibrated_BMC_act_locations{n}(2),'*g');
+        drawnow;
+        hold off
+        counter = counter + 1;
+    end
+end
 
 
 

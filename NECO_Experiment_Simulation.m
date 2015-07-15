@@ -95,7 +95,7 @@ if InjectKolm == true
 end
 
 % Noise Flags
-UseNoise = true;
+UseNoise = false;
 N0 = 3.5e6;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
@@ -408,7 +408,7 @@ while(nn <= numiterations)
     F.touch;
     
     %Compute the dOTF
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 18, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB,true );
+    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 18, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
     dOTF = -1i * conj(dOTF);
     
     
@@ -430,7 +430,7 @@ while(nn <= numiterations)
         
     elseif nn >= correction_start && nn < 3*correction_start %close the loop
         %Get Segment PTT from dOTF
-        [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [17,18,19], 18, calibration_filename_18,19);
+        [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [18], 18, calibration_filename_18,19);
         
         %% Add Second dOTF to get overlap Region
 %         [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
@@ -496,8 +496,8 @@ while(nn <= numiterations)
             
         else %Turn on correction again
         [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [17,18,19], 18, calibration_filename_18,19);
-% %             [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
-            dOTF2 = conj(dOTF2);
+%             [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+%             dOTF2 = conj(dOTF2);
 %             [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
             PTTpos_mirror3 = PTTpos_mirror1;
 %             PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);

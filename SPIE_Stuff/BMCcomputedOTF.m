@@ -21,11 +21,14 @@ if ~iscell(Noise_Parameters)
 else
     if isempty(Noise_Parameters{5})
         Noise_Parameters{5} = false; %if flag is unset, don't use noise
+        N0 = Noise_Parameters{6};
+    else
+        N0 = Noise_Parameters{6};
     end
 end
 
 lambda = Field.lambda;
-N0 = Noise_Parameters{6};
+
 
 
 F1 = Field.copy;

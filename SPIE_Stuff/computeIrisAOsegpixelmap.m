@@ -51,8 +51,8 @@ PTTpos_poked(pokeseg,3) = 1e-3;
         OTF2 = fftshift(fft2(fftshift(PSF2)));
         
         dOTF = OTF1 - OTF2;
-%         dOTF = -1i * conj(dOTF);
-        dOTF = conj(dOTF);
+        dOTF = -1i * conj(dOTF);
+%         dOTF = conj(dOTF);
         
         figure(1);
         plotComplex(dOTF,6);

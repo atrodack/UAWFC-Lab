@@ -40,11 +40,17 @@ PTTpos_flat = PTTpos_in;
 PTT_flat = mapSegments(PTTpos_flat);
 PTTpos_poked = PTTpos_in;
 
+
+
+%
 if NECO == false
     PTTpos_poked(pokeseg,1) = (F1.lambda) / 4;
 else
     PTTpos_poked(pokeseg,3) = 0.25e-3;
 end
+%
+
+
 
 PTT_poked = mapSegments(PTTpos_poked);
 
