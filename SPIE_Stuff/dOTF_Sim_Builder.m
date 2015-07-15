@@ -346,8 +346,8 @@ DM1.render;
 % figure;
 % DM1.show; colorbar;
 
-F.planewave * ABER * TURB * A * DM1;
-% F.planewave * ABER * TURB * DM1;
+% F.planewave * ABER * TURB * A * DM1;
+F.planewave * ABER * TURB * DM1;
 
 if segment ~= true
     [XF, YF] = F2.COORDS;
@@ -364,8 +364,8 @@ DM1.render;
 % figure;
 % DM1.show; colorbar;
 
-F2.planewave * ABER * TURB * A * DM1;
-% F2.planewave * ABER * TURB * DM1;
+% F2.planewave * ABER * TURB * A * DM1;
+F2.planewave * ABER * TURB * DM1;
 
 f2 = F2.grid; % save the update to the mirror surface
 
@@ -375,18 +375,18 @@ f2 = F2.grid; % save the update to the mirror surface
 fdiff = f2 - f1;
 % fdiff = f1 - f2;
 FD.grid(fdiff);
-load P.mat
+% load P.mat
 if manualPick == true
     figure;
     plotComplex(fdiff,2);
     P = pickPoint;
 end
-FD.grid((circshift(FD.grid, 1 - P))); % place at corners
+% FD.grid((circshift(FD.grid, 1 - P))); % place at corners
 
 % set up comparison case
 halo = fftshift(fft2(fftshift(F.grid)));
-FDIFF = fftshift(fft2(circshift(fdiff,1-P))); % generate the blur "Airy pattern" directly
-% FDIFF = fftshift(fft2(fftshift(fdiff)));
+% FDIFF = fftshift(fft2(circshift(fdiff,1-P))); % generate the blur "Airy pattern" directly
+FDIFF = fftshift(fft2(fftshift(fdiff)));
 %     imagesc(abs(FDIFF).^2); colorbar; sqar;
 PupilP = fftshift(ifft2(ifftshift(halo.*FDIFF)));
 %     figure;
@@ -462,7 +462,7 @@ G.grid(fftshift(circshift(G.grid, 1 - PT))); % centers the dOTF grid
 %% Deconvolution
 DOTF = fftshift(fft2(fftshift(G.grid)));
 TDOTF = fftshift(fft2(fftshift(dOTF)));
-gamma = .5e1; % regularization parameter
+gamma = 0; % regularization parameter
 if Minus == true
     Deconv = Hotdog(DOTF,FDIFF,gamma);
 else
