@@ -1,0 +1,31 @@
+Output Data from Closed_loop_Zernike_No_Noise_Used_and___with___07_09_2015_15_46_38_373 
+
+Zernike Aberrations Used: n, m, coefficient: 
+1 	1 	2 	4 	
+-1 	1 	0 	0 	
+0.0661 	0.1545 	-0.0022 	0.1995 	
+Loop Data 
+Correction Signal Data 
+Loop 1: 0.57142 Strehl, 0.55962 WFE 
+Loop 2: 0.57142 Strehl, 0.55962 WFE 
+Loop 3: 0.57142 Strehl, 0.55962 WFE 
+Loop 4: 0.93388 Strehl, 0.06841 WFE 
+Loop 5: 0.94008 Strehl, 0.06179 WFE 
+Loop 6: 0.94047 Strehl, 0.06137 WFE 
+Loop 7: 0.94058 Strehl, 0.06126 WFE 
+Loop 8: 0.94062 Strehl, 0.06121 WFE 
+Loop 9: 0.94065 Strehl, 0.06119 WFE 
+Loop 10: 0.94066 Strehl, 0.06117 WFE 
+Loop 11: 0.94067 Strehl, 0.06117 WFE 
+Uncorrected Signal Data 
+Loop 1: 0.57142 Strehl, 0.55962 WFE 
+Loop 2: 0.57142 Strehl, 0.55962 WFE 
+Loop 3: 0.57142 Strehl, 0.55962 WFE 
+Loop 4: 0.57142 Strehl, 0.55962 WFE 
+Loop 5: 0.57142 Strehl, 0.55962 WFE 
+Loop 6: 0.57142 Strehl, 0.55962 WFE 
+Loop 7: 0.57142 Strehl, 0.55962 WFE 
+Loop 8: 0.57142 Strehl, 0.55962 WFE 
+Loop 9: 0.57142 Strehl, 0.55962 WFE 
+Loop 10: 0.57142 Strehl, 0.55962 WFE 
+Loop 11: 0.57142 Strehl, 0.55962 WFE 
