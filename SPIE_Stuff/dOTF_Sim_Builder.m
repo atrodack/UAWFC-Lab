@@ -44,7 +44,7 @@ FoV_withoutIrisAO = 10.5e-3;
 RunSIM = true; %Run the simulation
 RunTESTBED = false; %Run the testbed equipment
 Plotting = true; % turn on/off plotting interesting pictures of the dOTF estimate, also dictates if debugging will print pictures
-debuggery = true; % Run intermediate steps of interest for debugging!
+debuggery = false; % Run intermediate steps of interest for debugging!
 looping = false; % change dOTF_Sim_Builder into a function which outputs pertinent data for deconvolution studies/debugging.  If looping is true, must manually uncomment the function and end lines.
 
 %% Simulation Flags
@@ -300,7 +300,7 @@ if segment == true
         PTTpositions1 = [Estimate{1} 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the first dOTF image
         PTTpositions2 = [lambda/4 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the second dOTF image
     else
-        PTTpositions1 = [lambda/4 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the first dOTF image
+        PTTpositions1 = [lambda/4 1e-4 1e-3]; % default piston tip/tilt positions for the difference field segment for the first dOTF image
         PTTpositions2 = [lambda/4 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the second dOTF image
     end
     
@@ -373,20 +373,21 @@ f2 = F2.grid; % save the update to the mirror surface
 
 % Generate Difference field
 fdiff = f2 - f1;
+% load fdifftest.mat
 % fdiff = f1 - f2;
 FD.grid(fdiff);
-% load P.mat
+load P.mat
 if manualPick == true
     figure;
     plotComplex(fdiff,2);
     P = pickPoint;
 end
-% FD.grid((circshift(FD.grid, 1 - P))); % place at corners
+FD.grid((circshift(FD.grid, 1 - P))); % place at corners
 
 % set up comparison case
 halo = fftshift(fft2(fftshift(F.grid)));
-% FDIFF = fftshift(fft2(circshift(fdiff,1-P))); % generate the blur "Airy pattern" directly
-FDIFF = fftshift(fft2(fftshift(fdiff)));
+FDIFF = fftshift(fft2(circshift(fdiff,1-P))); % generate the blur "Airy pattern" directly
+% FDIFF = fftshift(fft2(fftshift(fdiff)));
 %     imagesc(abs(FDIFF).^2); colorbar; sqar;
 PupilP = fftshift(ifft2(ifftshift(halo.*FDIFF)));
 %     figure;
@@ -424,7 +425,7 @@ if Minus == true
     elseif smoothing == true
         GT.grid(smoothedge(Y - tand(150)*X - .2e-3,10*SPACING));
     end
-    load POminus.mat
+    load POMinus.mat
 else
     if smoothing == false
         GT.grid(~(Y - tand(150)*X > 0));
@@ -462,7 +463,7 @@ G.grid(fftshift(circshift(G.grid, 1 - PT))); % centers the dOTF grid
 %% Deconvolution
 DOTF = fftshift(fft2(fftshift(G.grid)));
 TDOTF = fftshift(fft2(fftshift(dOTF)));
-gamma = 0; % regularization parameter
+gamma = .5e4; % regularization parameter
 if Minus == true
     Deconv = Hotdog(DOTF,FDIFF,gamma);
 else
