@@ -25,26 +25,6 @@ secondary = 0;
 spider = 0;
 
 
-%% Simulation Flags
-% Use Testbed PSF Instead of Simulated PSF
-UseRealPSF = true;
-if UseRealPSF == true
-    % Num_Folders == Number of folders images are to be taken from
-    Num_Folders = 2;
-    
-    % Num_files_per_folder == Number of images in the folder to load in
-    Num_files_per_folder = 100;
-    
-    % varargin{1-Num_Folders} == path to folder 1, varargin{Num_Folders+1 -2*Num_Folders} == name of individual image file sans number at end
-    varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
-    varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
-    varargin{4} = 'RAW_scienceIM_frame_';
-end
-
-% Plotting Flag
-system_verbose = false; %Plots Created System Elements
-
 %% Testbed Stuff
 pokeact = 698;
 
@@ -70,9 +50,35 @@ fprintf('\n');
 % calibrated_BMC_act_locations = computetestbedBMCactpixelmap(DM,pokeact);
 
 
+%% Do a dOTF
+% [dOTF, PSF, PSF_poked, OTF, OTF_poked] = TestbeddOTF(DM, pokeact, false);
+[PSF_CUBE, PSF_poked_CUBE] = TestbeddOTF(DM, pokeact, false);
 
 
 
+% phase = angle(dOTF);
+% uphase = uwrap(phase,'unwt');
+% OPL = uphase / k;
+
+%% Plot the Results of the dOTF
+% figure(1);
+% subplot(2,3,1)
+% imagesc(PSF); axis xy; sqar; colormap(gray); bigtitle('PSF',15);
+% 
+% subplot(2,3,4);
+% imagesc(PSF_poked); axis xy; sqar; bigtitle('PSF with Pupil Mod',15);
+% 
+% subplot(2,3,2);
+% plotComplex(OTF,6); axis xy; sqar; bigtitle('OTF',15);
+% 
+% subplot(2,3,5);
+% plotComplex(OTF_poked,6); axis xy; sqar; bigtitle('OTF with Pupil Mod',15);
+% 
+% subplot(2,3,3)
+% plotComplex(dOTF,6); axis xy; sqar; bigtitle('dOTF',15);
+% 
+% subplot(2,3,6)
+% imagesc(OPL); axis xy; sqar; axis off; colorbar; bigtitle('OPL',15);
 
 
 
