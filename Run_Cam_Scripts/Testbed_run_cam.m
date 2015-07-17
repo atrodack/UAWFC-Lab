@@ -21,7 +21,7 @@ function CUBE = Testbed_run_cam(Run_Cam_Parameters)
 nframes = Run_Cam_Parameters{1};
 sSpeed = Run_Cam_Parameters{2};
 TakeDarks = Run_Cam_Parameters{3};
-SciCamChannel = Run_Cam_Parameters{4};
+Channel = Run_Cam_Parameters{4};
 Laser_Type = Run_Cam_Parameters{5};
 Filter_Type = Run_Cam_Parameters{6};
 
@@ -31,8 +31,8 @@ CUBE.PSFs = [];
 CUBE.DARKS = [];
 CUBE.BACKGROUND = [];
 CUBE.Camera_Data = [];
-CUBE.Laser_Type = Laser_Type;
-CUBE.Filter_Type = Filter_Type;
+% CUBE.Laser_Type = Laser_Type;
+% CUBE.Filter_Type = Filter_Type;
 
 
 %% Open imaqtool
@@ -40,7 +40,7 @@ imaqtool
 
 %% Camera Acquistion and Settings
 %Recognizes and labels FPM and Science Image and sources
-scim = videoinput('dcam',SciCamChannel,'Y16_640x480'); %updated adaptorname to match matlab adaptorname from imaqhwinfo on 2/4/2015 by Justin
+scim = videoinput('dcam',Channel,'Y16_640x480'); %updated adaptorname to match matlab adaptorname from imaqhwinfo on 2/4/2015 by Justin
 
 srcscim=getselectedsource(scim);
 
@@ -50,14 +50,17 @@ srcscim=getselectedsource(scim);
 scim.FramesPerTrigger=1;
 srcscim.BusSpeed='S400';
 srcscim.FrameRate='30'; 
-srcscim.Shutter = sSpeed;
 
+input('Press Enter for Preview');
+preview(scim);
+srcscim.Shutter = sSpeed;
 
 
 %% Darks
 if TakeDarks == true
    
    input('Press Enter to Take Background');
+   closepreview;
    start(scim);
    BACKGROUND = getdata(scim,1);
    BACKGROUND = int16(BACKGROUND / (2^4));
@@ -89,6 +92,17 @@ for n = 1:nframes
     
     [scimage, scitime, scimetadata] = getdata(scim,1);
     scimage = int16(scimage / (2^4));
+    % Add some info into scimetadata
+    scimetadata.Shutter = sSpeed;
+    if Channel == 1
+        scimetadata.Channel = 'Science_Camera';
+    elseif Channel == 2
+        scimetadata.Channel = 'FPM_Camera';
+    elseif Channel == 3
+        scimetadata.Channel = 'Lyot_Stop_Camera';
+    end
+    scimetadata.Laser_Type = Laser_Type;
+    scimetadata.Filter_Type = Filter_Type;
     metadata{n} = (scimetadata);
     CUBE.PSFs(:,:,n) = scimage;
 end

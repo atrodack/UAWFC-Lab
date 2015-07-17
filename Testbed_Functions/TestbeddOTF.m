@@ -53,7 +53,7 @@ end
 varargin = cell(1,4);
 Ppos_flat = Ppos_in;
 Run_Cam_Parameters{1} = 10;
-Run_Cam_Parameters{2} = 5;
+Run_Cam_Parameters{2} = 10;
 Run_Cam_Parameters{3} = true;
 Run_Cam_Parameters{4} = 1;
 Run_Cam_Parameters{5} = 'HeNe';
@@ -68,7 +68,7 @@ DM_Pistons = single(DM_Pistons);
 
 
 tempdir = pwd;
-cd /home/alex/Desktop/Testbed_fits_files;
+cd /home/lab/src/scripts/
 fitswrite(DM_Pistons,'DM_Pistons.fits');
 img = fitsread('DM_Pistons.fits');
 
@@ -79,11 +79,12 @@ if verbose == true
     close
 end
 
-cd(tempdir);
-
 %SEND TO MIRROR
 input('Press Enter to Send to Mirror');
-% !~/src/scripts/dmloadch /home/lab/Desktop/Testbed_fits_files/DM_Pistons.fits 1
+% ! ~/src/scripts/dmzeroch 1
+% ! ~/src/scripts/dmloadch DM_Pistons.fits 1
+cd(tempdir);
+
 
 %CHECK FOR MIRROR UPDATE
 input('Press Enter once Mirror has Updated to Start Taking Images');
@@ -103,8 +104,7 @@ DM_Pistons_poked(1,1) = 0; DM_Pistons_poked(32,32) = 0; DM_Pistons_poked(32,1) =
 DM_Pistons_poked = single(DM_Pistons_poked);
 
 
-
-cd /home/alex/Desktop/Testbed_fits_files;
+cd /home/lab/src/scripts
 fitswrite(DM_Pistons_poked,'DM_Pistons_poked.fits');
 img = fitsread('DM_Pistons_poked.fits');
 
@@ -115,11 +115,11 @@ if verbose == true
     close
 end
 
-cd(tempdir);
-
 %SEND TO MIRROR
 input('Press Enter to Send to Mirror');
-% !~/src/scripts/dmloadch /home/lab/Desktop/Testbed_fits_files/DM_Pistons_poked.fits 1
+% ! ~/src/scripts/dmzeroch 1
+% ! ~/src/scripts/dmloadch DM_Pistons_poked.fits 1
+cd(tempdir);
 
 %CHECK FOR MIRROR UPDATE
 input('Press Enter once Mirror has Updated to Start Taking Images');
@@ -133,7 +133,7 @@ PSF_poked_CUBE = Testbed_run_cam(Run_Cam_Parameters);
 [PSF_poked_CUBE] = ExtractAverageCUBEPSFs(PSF_poked_CUBE);
 
 % Average Together Taken Images, Center/Crop PSFs, Compute OTFs and dOTF
-dOTF = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE);
+[dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE);
 
 
 DM.setActs(Ppos_flat);

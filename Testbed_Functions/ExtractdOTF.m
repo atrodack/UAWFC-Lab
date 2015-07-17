@@ -1,7 +1,9 @@
-function [ dOTF ] = ExtractdOTF( CUBE1, CUBE2 )
+function [ dOTF, CUBE1, CUBE2] = ExtractdOTF( CUBE1, CUBE2 )
 %[ dOTF ] = ExtractdOTF( CUBE1, CUBE2 )
 %   Compute the dOTF from the combined Dark Corrected PSFs in the data
-%   cubes created using Testbed_run_cam.
+%   cubes created using Testbed_run_cam and ExtractAverageCUBEPSFS. This
+%   will append the properties PSF_centered_and_cropped and OTF to the data
+%   cubes.
 
 
 PSF = CUBE1.PSF_dark_corr;
@@ -29,6 +31,8 @@ PSF_poked = PSF_poked(1:end-1,1:end-1);
 PSF = PSF(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
 PSF = PSF(1:end-1,1:end-1);
 
+CUBE1.PSF_centered_and_cropped = PSF;
+CUBE2.PSF_centered_and_cropped = PSF_poked;
 
 % Shift PSFs to Corners
 centerpoint2 = [129,129];
@@ -41,6 +45,8 @@ OTF(centerpoint2(1),centerpoint2(2)) = 0;
 OTF_poked = fftshift(fft2(PSF));
 OTF_poked(centerpoint2(1),centerpoint2(2)) = 0;
 
+CUBE1.OTF = OTF;
+CUBE2.OTF = OTF_poked;
 
 
 % Compute dOTF and Store to Output
