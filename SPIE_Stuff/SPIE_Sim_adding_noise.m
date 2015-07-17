@@ -57,7 +57,7 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
@@ -95,7 +95,7 @@ if InjectKolm == true
 end
 
 % Noise Flags
-UseNoise = true;
+UseNoise = false;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
     Noise_Parameters{1} = 5;
@@ -111,6 +111,7 @@ else
     %     Noise_Parameters{3} = 0;
     %     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
+    Noise_Parameters{6} = 1e19;
 end
 
 % Use Testbed PSF Instead of Simulated PSF
@@ -406,7 +407,7 @@ while(nn <= numiterations)
     F.touch;
     
     %Compute the dOTF
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, true);
     dOTF = -1i * conj(dOTF);
     
     

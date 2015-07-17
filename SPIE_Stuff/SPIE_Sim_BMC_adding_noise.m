@@ -298,7 +298,7 @@ filename_movie_avi = sprintf('%s.avi',filename);
 %     end
 % end
 
-load calibrated_BMC_dOTF_act_locations2;
+load calibrated_BMC_dOTF_act_locations;
 
 %set actuators that are off equal to empty
 for n = 1:DM2.nActs

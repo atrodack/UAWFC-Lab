@@ -10,10 +10,10 @@ varargout = cell(Num_Folders,1);
 
 for n = 1:Num_Folders
     
-    cd(char(varargin{1}(n)));
+    cd(char(varargin{n}));
     
     for m = 1:Num_Files_per_Folder
-        filename = sprintf('%s%d.fits',char(varargin{1}(Num_Folders+n)),m);
+        filename = sprintf('%s%d.fits',char(varargin{(Num_Folders+n)}),m);
         pic = fitsread(filename);
         
         if show_images == true

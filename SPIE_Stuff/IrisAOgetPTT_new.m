@@ -5,10 +5,12 @@ function [ PTT_mirror, PTTpos_mirror ] = IrisAOgetPTT_new( dOTF, pixelshift, lam
 if nargin < 7
     numsegs = 37;
     numrings = 3;
+    NECO = false;
 end
 
 if numsegs == 19
     numrings = 2;
+    NECO = true;
 end
 
 load(calibration_filename);
@@ -120,6 +122,18 @@ end
 
 PTTpos_mirror = horzcat(pistonlist, tiplist,tiltlist);
 PTTpos_mirror(overlapsegs,:) = 0; %account for overlap region
+
+
+PTTpos_mirror(overlapsegs(1),1) = mean(PTTpos_mirror([16,6,7],1));
+PTTpos_mirror(overlapsegs(3),1) = mean(PTTpos_mirror([2,7,8],1));
+PTTpos_mirror(overlapsegs(2),1) = mean(PTTpos_mirror([17,19,7],1));
+
+
+
+
+
+
+
 PTT_mirror = mapSegments(PTTpos_mirror,numrings);
 end
 

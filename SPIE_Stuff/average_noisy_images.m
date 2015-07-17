@@ -1,6 +1,6 @@
 function [ Noisy_PSF1, Noisy_PSF2 ] = average_noisy_images( PSF1, PSF2, N0, Noise_Parameters )
 %[ Noisy_PSF1, Noisy_PSF2 ] = average_noisy_images( PSF1, PSF2, Noise_Parameters )
-% N0 = the grid of an AOField Object used to get PSF
+% N0 = the total number of photons in the image
 % Noise_Parameter Cells
 % num_images = the number of images to average together
 % ShotNoise = t/f flag to use Shot Noise
