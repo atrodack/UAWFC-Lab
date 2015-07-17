@@ -81,9 +81,9 @@ end
 
 cd(tempdir);
 
-% DO STUFF TO SEND TO MIRROR
+%SEND TO MIRROR
 input('Press Enter to Send to Mirror');
-
+% !~/src/scripts/dmloadch /home/lab/Desktop/Testbed_fits_files/DM_Pistons.fits 1
 
 %CHECK FOR MIRROR UPDATE
 input('Press Enter once Mirror has Updated to Start Taking Images');
@@ -117,9 +117,9 @@ end
 
 cd(tempdir);
 
-% DO STUFF TO SEND TO MIRROR
+%SEND TO MIRROR
 input('Press Enter to Send to Mirror');
-
+% !~/src/scripts/dmloadch /home/lab/Desktop/Testbed_fits_files/DM_Pistons_poked.fits 1
 
 %CHECK FOR MIRROR UPDATE
 input('Press Enter once Mirror has Updated to Start Taking Images');
