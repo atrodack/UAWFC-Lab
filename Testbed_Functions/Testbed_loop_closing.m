@@ -37,8 +37,8 @@ load BMC_DM_Model.mat
 
 
 %% Write a Filename
-dt = datestr(now,'mm_dd_yyyy_HH_MM_SS_FFF');
-filename = sprintf('Testbed_BMC_Closed_loop_%s',dt);
+dt = datestr(now,'mm_dd_yyyy_HH_MM');
+filename = sprintf('Testbed_Data_%s',dt);
 filename_movie_avi = sprintf('%s.avi',filename);
 fprintf('\n');
 display(filename);
@@ -53,7 +53,11 @@ fprintf('\n');
 %% Do a dOTF
 [dOTF, PSF_CUBE, PSF_poked_CUBE] = TestbeddOTF(DM, pokeact, false);
 
-
+mkdir(filename);
+current_dir = pwd;
+cd(filename)
+save('Data_Cubes.mat','PSF_CUBE','PSF_poked_CUBE');
+cd(current_dir);
 
 phase = angle(dOTF);
 uphase = uwrap(phase,'unwt');

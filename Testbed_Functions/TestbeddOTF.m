@@ -53,7 +53,7 @@ end
 varargin = cell(1,4);
 Ppos_flat = Ppos_in;
 Run_Cam_Parameters{1} = 10;
-Run_Cam_Parameters{2} = 10;
+Run_Cam_Parameters{2} = 28;
 Run_Cam_Parameters{3} = true;
 Run_Cam_Parameters{4} = 1;
 Run_Cam_Parameters{5} = 'HeNe';

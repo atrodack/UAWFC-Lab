@@ -60,7 +60,7 @@ srcscim.Shutter = sSpeed;
 if TakeDarks == true
    
    input('Press Enter to Take Background');
-   closepreview;
+%    closepreview;
    start(scim);
    BACKGROUND = getdata(scim,1);
    BACKGROUND = int16(BACKGROUND / (2^4));
