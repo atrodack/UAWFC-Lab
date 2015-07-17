@@ -1,4 +1,4 @@
-function [PSF_CUBE, PSF_poked_CUBE] = TestbeddOTF(DM,pokeact,verbose,Ppos_in)
+function [dOTF, PSF_CUBE, PSF_poked_CUBE] = TestbeddOTF(DM,pokeact,verbose,Ppos_in)
 % function [dOTF, PSF, PSF_poked, OTF, OTF_poked] = TestbeddOTF(DM, pokeact, verbose, Ppos_in)
 %[dOTF, PSF, PSF_poked, OTF, OTF_poked] = TestbeddOTF(DM, pokeact, verbose, Ppos_in)
 %
@@ -90,11 +90,6 @@ input('Press Enter once Mirror has Updated to Start Taking Images');
 PSF_CUBE = Testbed_run_cam(Run_Cam_Parameters);
 
 
-% Set the Pathway to Where the Images Were Saved, and The Base Image Name
-% (Get from run_cam?)
-% varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
-% varargin{3} = 'RAW_scienceIM_frame_';
-
 input('Press Enter to Modify Pupil');
 
 %% Modified Setup
@@ -131,69 +126,14 @@ input('Press Enter once Mirror has Updated to Start Taking Images');
 
 PSF_poked_CUBE = Testbed_run_cam(Run_Cam_Parameters);
 
-Num_files_per_folder = Run_Cam_Parameters{1};
 
-% Set the Pathway to Where the Images Were Saved, and The Base Image Name
-% (Get from run_cam?)
-% varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
-% varargin{4} = 'RAW_scienceIM_frame_';
+%% Process the Pictures
+[PSF_CUBE] = ExtractAverageCUBEPSFs(PSF_CUBE);
 
+[PSF_poked_CUBE] = ExtractAverageCUBEPSFs(PSF_poked_CUBE);
 
-% %% Process the Pictures
-% % Average Together Taken Images, Center/Crop PSFs, Compute OTFs and dOTF
-% 
-% % Read in the Images
-% testbedPSFs = BatchRead(2,Num_files_per_folder, false, varargin{1,:});
-% 
-% % Average Images Together
-% img_Finger = testbedPSFs{1};
-% img_Finger = AddImages(img_Finger);
-% img_No_Finger = testbedPSFs{2};
-% img_No_Finger = AddImages(img_No_Finger);
-% 
-% % Getting Central Pixel of PSFs
-% imagesc(img_Finger);
-% sqar;
-% centerpoint1 = pickPoint(1);
-% 
-% % Cenering PSFs
-% img_Finger = circshift(img_Finger,1-centerpoint1);
-% img_Finger = fftshift(img_Finger);
-% img_No_Finger = circshift(img_No_Finger,1-centerpoint1);
-% img_No_Finger = fftshift(img_No_Finger);
-% 
-% 
-% % Crop the PSFs to 256x256 Pixels about Center Point
-% imagesc(img_Finger);
-% sqar;
-% centerpoint = pickPoint(1);
-% 
-% img_Finger = img_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
-% img_Finger = img_Finger(1:end-1,1:end-1);
-% img_No_Finger = img_No_Finger(centerpoint(1) - 128:centerpoint(1) + 128,centerpoint(2) - 128:centerpoint(2) + 128);
-% img_No_Finger = img_No_Finger(1:end-1,1:end-1);
-% 
-% % Store PSFs to Output
-% PSF = img_No_Finger;
-% PSF_poked = img_Finger;
-% 
-% % Shift PSFs to Corners
-% centerpoint2 = [129,129];
-% img_Finger = circshift(img_Finger,1-centerpoint2);
-% img_No_Finger = circshift(img_No_Finger,1-centerpoint2);
-% 
-% % Compute the OTFs
-% OTF_Finger = fftshift(fft2(img_Finger));
-% OTF_Finger(centerpoint2(1),centerpoint2(2)) = 0;
-% OTF_No_Finger = fftshift(fft2(img_No_Finger));
-% OTF_No_Finger(centerpoint2(1),centerpoint2(2)) = 0;
-% 
-% % Store OTFs to Output
-% OTF = OTF_No_Finger;
-% OTF_poked = OTF_Finger;
-% 
-% % Compute dOTF and Store to Output
-% dOTF = OTF - OTF_poked;
+% Average Together Taken Images, Center/Crop PSFs, Compute OTFs and dOTF
+dOTF = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE);
 
 
 DM.setActs(Ppos_flat);

@@ -1,15 +1,11 @@
 function CUBE = Testbed_run_cam(Run_Cam_Parameters)
 %________________________________________________________________________
-%Contact: K.Miller [millerk2@email.arizona.edu]               August 2014
+%Contact: K.Miller [millerk2@email.arizona.edu]               July 2015
 %Contact: A.Rodack [atrodack@email.arizona.edu]
 %Contact: J.Knight [jknight@optics.arizona.edu]
 %
-%Opens imaqtool, identifies all cameras and sets camera settings. Can run
-%a live video preview or take data.  For the latter, must be in
-%/home/genius2/Desktop directory.  Allows for taking dark and background
-%images for improved final image quality. To use previous dark and
-%background images, they must be stored in the Data folder, NOT in
-%an individual batch folder.
+%Opens imaqtool and take takes some pictures. Input sets all controllable
+%commands. Output are data structures for the Darks (if taken) and the PSFs
 %_________________________________________________________________________
 % INPUTS:
 % Run_Cam_Parameters{}
