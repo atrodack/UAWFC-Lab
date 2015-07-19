@@ -52,37 +52,36 @@ end
 % Initializing a Couple Variables
 varargin = cell(1,4);
 Ppos_flat = Ppos_in;
-Run_Cam_Parameters{1} = 10;
-Run_Cam_Parameters{2} = 28;
-Run_Cam_Parameters{3} = true;
+Run_Cam_Parameters{1} = 200;
+Run_Cam_Parameters{2} = 48;
+Run_Cam_Parameters{3} = false;
 Run_Cam_Parameters{4} = 1;
 Run_Cam_Parameters{5} = 'HeNe';
 Run_Cam_Parameters{6} = 'OD3';
 
 %% Initial Setup
 % Set DM and Take the First PSF Image
-DM.setActs(Ppos_flat);
-DM_Pistons = reshape(DM.actuators(:,3),[32,32]);
-DM_Pistons(1,1) = 0; DM_Pistons(32,32) = 0; DM_Pistons(32,1) = 0; DM_Pistons(1,32) = 0;
-DM_Pistons = single(DM_Pistons);
-
-
+% DM.setActs(Ppos_flat);
+% DM_Pistons = reshape(DM.actuators(:,3),[32,32]);
+% DM_Pistons(1,1) = 0; DM_Pistons(32,32) = 0; DM_Pistons(32,1) = 0; DM_Pistons(1,32) = 0;
+% DM_Pistons = single(DM_Pistons);
+% 
+% 
 tempdir = pwd;
 cd /home/lab/src/scripts/
-fitswrite(DM_Pistons,'DM_Pistons.fits');
-img = fitsread('DM_Pistons.fits');
-
-if verbose == true
-    figure(5);
-    imagesc(img);
-    input('Press Enter');
-    close
-end
+% fitswrite(DM_Pistons,'DM_Pistons.fits');
+% img = fitsread('DM_Pistons.fits');
+% 
+% if verbose == true
+%     figure(5);
+%     imagesc(img);
+%     input('Press Enter');
+%     close
+% end
 
 %SEND TO MIRROR
 input('Press Enter to Send to Mirror');
-% ! ~/src/scripts/dmzeroch 1
-% ! ~/src/scripts/dmloadch DM_Pistons.fits 1
+! ~/src/scripts/dmloadch DISK.fits 0
 cd(tempdir);
 
 
@@ -92,33 +91,33 @@ PSF_CUBE = Testbed_run_cam(Run_Cam_Parameters);
 
 
 input('Press Enter to Modify Pupil');
+! ~/src/scripts/dmzeroch 0
 
 %% Modified Setup
 % Set DM and Take the Second PSF Image
-Ppos_poked = Ppos_flat;
-Ppos_poked(pokeact) = Ppos_poked(pokeact) + (AOField.HeNe_Laser*10^6) / 4;
-
-DM.setActs(Ppos_poked);
-DM_Pistons_poked = reshape(DM.actuators(:,3),[32,32]);
-DM_Pistons_poked(1,1) = 0; DM_Pistons_poked(32,32) = 0; DM_Pistons_poked(32,1) = 0; DM_Pistons_poked(1,32) = 0;
-DM_Pistons_poked = single(DM_Pistons_poked);
+% Ppos_poked = Ppos_flat;
+% Ppos_poked(pokeact) = Ppos_poked(pokeact) + (AOField.HeNe_Laser*10^6) / 4;
+% 
+% DM.setActs(Ppos_poked);
+% DM_Pistons_poked = reshape(DM.actuators(:,3),[32,32]);
+% DM_Pistons_poked(1,1) = 0; DM_Pistons_poked(32,32) = 0; DM_Pistons_poked(32,1) = 0; DM_Pistons_poked(1,32) = 0;
+% DM_Pistons_poked = single(DM_Pistons_poked);
 
 
 cd /home/lab/src/scripts
-fitswrite(DM_Pistons_poked,'DM_Pistons_poked.fits');
-img = fitsread('DM_Pistons_poked.fits');
-
-if verbose == true
-    figure(5);
-    imagesc(img);
-    input('Press Enter');
-    close
-end
+% fitswrite(DM_Pistons_poked,'DM_Pistons_poked.fits');
+% img = fitsread('DM_Pistons_poked.fits');
+% 
+% if verbose == true
+%     figure(5);
+%     imagesc(img);
+%     input('Press Enter');
+%     close
+% end
 
 %SEND TO MIRROR
 input('Press Enter to Send to Mirror');
-% ! ~/src/scripts/dmzeroch 1
-% ! ~/src/scripts/dmloadch DM_Pistons_poked.fits 1
+! ~/src/scripts/dmloadch DISKpoke.fits 0
 cd(tempdir);
 
 %CHECK FOR MIRROR UPDATE
@@ -126,7 +125,7 @@ input('Press Enter once Mirror has Updated to Start Taking Images');
 
 PSF_poked_CUBE = Testbed_run_cam(Run_Cam_Parameters);
 
-
+! ~/src/scripts/dmzeroch 0
 %% Process the Pictures
 [PSF_CUBE] = ExtractAverageCUBEPSFs(PSF_CUBE);
 

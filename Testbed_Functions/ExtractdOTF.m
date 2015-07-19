@@ -10,6 +10,7 @@ PSF = CUBE1.PSF_dark_corr;
 PSF_poked = CUBE2.PSF_dark_corr;
 
 % Getting Central Pixel of PSFs
+figure;
 imagesc(PSF_poked);
 sqar;
 centerpoint1 = pickPoint(1);

@@ -26,7 +26,7 @@ imaqtool
 
 %% Camera Acquistion and Settings
 %Recognizes and labels FPM and Science Image and sources
-scim = videoinput('dcam',2,'Y16_640x480'); %updated adaptorname to match matlab adaptorname from imaqhwinfo on 2/4/2015 by Justin
+scim = videoinput('dcam',1,'Y16_640x480'); %updated adaptorname to match matlab adaptorname from imaqhwinfo on 2/4/2015 by Justin
 % srcscim=getselectedsource(scim);
 % 
 % %Sets camera settings

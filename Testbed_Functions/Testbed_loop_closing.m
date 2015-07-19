@@ -66,9 +66,9 @@ OPL = uphase / k;
 
 
 %% Plot
-figure(1);
+figure;
 subplot(1,3,1);
-imagesc(PSF_CUBE.PSF_dark_corr); axis xy; axis off; sqar; bigtitle('PSF',15); %colormap(gray);
+imagesc(PSF_CUBE.PSF_centered_and_cropped); axis xy; axis off; sqar; bigtitle('PSF',15); %colormap(gray);
 
 subplot(1,3,2)
 plotComplex(dOTF,5); axis xy; axis off; sqar; bigtitle('dOTF',15);

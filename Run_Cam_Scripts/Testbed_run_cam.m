@@ -77,13 +77,19 @@ if TakeDarks == true
    end
     
    fprintf('Darks Complete\n');
-        
+else
+%     input('Press Enter to Close Preview');
+%     closepreview;
+    CUBE.DARKS = zeros(480,640,nframes);
+    CUBE.BACKGROUND = 0;
+   
 end
 
 
 %% PSFs
 
 input('Press Enter to Take PSFs');
+closepreview;
 metadata = cell(nframes,1);
 PSFs = 0;
 for n = 1:nframes

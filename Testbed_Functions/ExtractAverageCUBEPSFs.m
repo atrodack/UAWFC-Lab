@@ -19,7 +19,7 @@ IMG = IMG / nframes;
 IMG_CORR = 0;
 
 for n = 1:nframes
-    IMG_CORR = IMG_CORR + CUBE.PSFs(:,:,n) - CUBE.DARKS(:,:,n) - double(CUBE.BACKGROUND);
+    IMG_CORR = IMG_CORR + CUBE.PSFs(:,:,n) - CUBE.DARKS(:,:,n);
 end
 
 IMG_CORR = IMG_CORR / nframes;
