@@ -44,7 +44,7 @@ FoV_withoutIrisAO = 10.5e-3;
 RunSIM = true; %Run the simulation
 RunTESTBED = false; %Run the testbed equipment
 Plotting = true; % turn on/off plotting interesting pictures of the dOTF estimate, also dictates if debugging will print pictures
-debuggery = false; % Run intermediate steps of interest for debugging!
+debuggery = true; % Run intermediate steps of interest for debugging!
 looping = false; % change dOTF_Sim_Builder into a function which outputs pertinent data for deconvolution studies/debugging.  If looping is true, must manually uncomment the function and end lines.
 
 %% Simulation Flags
@@ -53,10 +53,12 @@ looping = false; % change dOTF_Sim_Builder into a function which outputs pertine
 IrisAO_on = true; % turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
 verbose_makeDM = false; % turns on/off plotting the mirror as it is constructed
 Scalloped_Field = false; % turns on/off returning an AOField Object that encodes the actual surface shape of the segments
-spiral = false; % turns on/off pattern used in NECO data
+spiral = true; % turns on/off pattern used in NECO data
 segment = true; % use a segment to generate the difference field.  Default to true, but if it is false, use a blocker to compute dOTF.
+exactDifference = false; % choose to use the exact difference, or compute the difference from the field objects - needs to be updated to be more efficient with what to calculate and to deal with partial obscurations
 Minus = true; % determines portion of the dOTF you wish to mask and deconvolve, default is the lower field (referred to as dO_Plus)
 manualPick = false; % turns on/off the ability to select pixel points for recentering of the difference field and the masked portion of the dOTF
+pointOverwrite = false; % only accessible when manualPick is true, in which case it will save the selected points for future use (overwrites the current point holding files)
 smoothing = true; % turns on/off smoothing the mask edge applied to the dOTF
 
 % BMC Flag
@@ -64,7 +66,7 @@ BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
 InjectAb = false; %Injects nzerns Zernike Terms
-InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
+InjectRandAb = true; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
 
 InjectKolm = false;
@@ -107,11 +109,12 @@ UseDM4Correction = true;
 UseNoise = false;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
-    Noise_Parameters{1} = 5;
+    Noise_Parameters{1} = 1;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 0.5;
-    Noise_Parameters{4} = 0.5;
+    Noise_Parameters{3} = 10;
+    Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
+    Noise_Parameters{6} = 5e6;
 else
     Noise_Parameters = cell(5,1);
     %     Noise_Parameters{1} = 1;
@@ -147,8 +150,9 @@ system_verbose = false; %Plots Created System Elements
 numRings = 3;
 numSeg = sum(1:numRings)*6 + 1;
 load MadeTestbedElements.mat;
-% load difftest.mat
 % maketestbedelements;
+A.lambdaRef = lambda;
+% Initialize exact difference field
 DMDiff = makeIrisAODM(1,verbose_makeDM,Scalloped_Field,0);
 DMDiff.lambdaRef = lambda;
 %% Inject Aberration
@@ -213,38 +217,25 @@ if RunSIM == true
         ABER = 1;
     end
     
-    if InjectKolm == true
-        
-        TURB = AOAtmo(A);
-        %         TURB.spacing(SPACING);
-        WFlow = AOScreen(fftsize,0.15,500e-9);
-        WFlow.name = 'Lower altitude turbulence';
-        WFhigh = AOScreen(2*fftsize,0.17,500e-9);
-        WFhigh.name = 'High altitude turbulence';
-        
-        TURB.addLayer(WFlow,1000);
-        TURB.addLayer(WFhigh,8000);
-        
-        TURB.layers{1}.Wind = [3 1];
-        TURB.layers{2}.Wind = [1 -1]*20;
-        
-        r0 = TURB.totalFriedScale;
-        th_scat = lambda/r0*206265;
-        
-        fprintf('The total r0 is %f cm.\n',100*r0);
-        fprintf('The seeing is %.2f arcsecs.\n',th_scat);
-        
-        % Turning this off is like using dynamic refocus.
-        TURB.GEOMETRY = true;
-        TURB.BEACON = [1 1 1e10];
+     if InjectKolm == true
+        TURB = AOScreen(A,4e-3,lambda);
+        TURB.spacing(SPACING);
+        TURB.name = 'Simulated Turbulence';
         TURB.make;
-        TURB.show
+        %         grid = TURB.grid;
+        %         TURB.grid(grid * 30);
+        wind_dir = randn(2,1);
+        wind_dir = wind_dir./abs(wind_dir);
+        wind_strength = randi(5,2,1);
+        Wind = wind_dir .* wind_strength;
         
-        aberration = TURB.grid;
-        
+        r0 = TURB.r0;
+        D_fit = D;
+        %  expected_strehl = exp(-(1.03 * (D_fit/r0) ^ (5/3)))
+        expected_strehl = exp(-(0.13 * (D_fit/r0) ^ (5/3)));
     else
         TURB = 1;
-    end
+     end
 end
 
 %% IrisAO Simulation
@@ -292,16 +283,16 @@ if segment == true
     end
     
     % Set Difference Field Position(s)
-    PTT1 = logical([0 1 0]); % turns on/off different piston, tip/tilt difference field injections for the first mirror
-    PTT2 = logical([0 0 0]); % turns on/off different piston, tip/tilt difference field injections
+    PTT1 = logical([0 0 1]); % turns on/off different piston, tip/tilt difference field injections for the first mirror
+    PTT2 = logical([1 1 1]); % turns on/off different piston, tip/tilt difference field injections
     
     if looping == true
         %     [TipEstimate] = input('Enter appropriate tip amount: ');
         PTTpositions1 = [Estimate{1} 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the first dOTF image
         PTTpositions2 = [lambda/4 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the second dOTF image
     else
-        PTTpositions1 = [lambda/4 1e-4 1e-3]; % default piston tip/tilt positions for the difference field segment for the first dOTF image
-        PTTpositions2 = [lambda/4 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the second dOTF image
+        PTTpositions1 = [lambda/8 1e-3 1e-3]; % default piston tip/tilt positions for the difference field segment for the first dOTF image
+        PTTpositions2 = [lambda/4 1e-3 -1e-3]; % default piston tip/tilt positions for the difference field segment for the second dOTF image
     end
     
     for i = 1:length(PTT1)
@@ -335,19 +326,31 @@ DMDiff.PTT(PTTpositions1);
 DMDiff.touch;
 DMDiff.render;
 
-mask.planewave * ABER * TURB * DMDiff;
-% mask.show;
-fdiffexact = mask.grid;
+FD.planewave * ABER * TURB * DMDiff;
+% FD.show;
+fdiffexact = FD.grid;
 FDIFFEXACT = fftshift(fft2(fftshift(fdiffexact)));
-% Render the poked mirror surface
+
+DMDiff.PTT([0 0 0]);
+DMDiff.touch;
+DMDiff.render;
+FD.planewave * DMDiff;
+% FD.show;
+
+fdiffoffset = FD.grid;
+
+fdiffmeasured = fdiffexact - fdiffoffset;
+FDIFFMEASURED = fftshift(fft2(fftshift(fdiffmeasured)));
+
+% Render the modified mirror surface
 DM1.PTT(PTT_poked1);
 DM1.touch;
 DM1.render;
 % figure;
 % DM1.show; colorbar;
 
-% F.planewave * ABER * TURB * A * DM1;
-F.planewave * ABER * TURB * DM1;
+F.planewave * ABER * TURB * A * DM1;
+% F.planewave * ABER * TURB * DM1;
 
 if segment ~= true
     [XF, YF] = F2.COORDS;
@@ -358,37 +361,41 @@ end
 
 f1 = F.grid; % save for computing the difference field
 
+
 DM1.PTT(PTT_poked2);
 DM1.touch;
 DM1.render;
 % figure;
 % DM1.show; colorbar;
 
-% F2.planewave * ABER * TURB * A * DM1;
-F2.planewave * ABER * TURB * DM1;
+F2.planewave * ABER * TURB * A * DM1;
+% F2.planewave * ABER * TURB * DM1;
 
 f2 = F2.grid; % save the update to the mirror surface
 
 %% dOTF
 
 % Generate Difference field
-fdiff = f2 - f1;
-% load fdifftest.mat
-% fdiff = f1 - f2;
-FD.grid(fdiff);
-load P.mat
-if manualPick == true
-    figure;
-    plotComplex(fdiff,2);
-    P = pickPoint;
+if exactDifference == true
+    fdiff = fdiffmeasured;
+    FDIFF = fftshift(fft2(fftshift((fdiff))));
+else
+    fdiff = f1 - f2;
+    load P.mat
+    if manualPick == true
+        figure;
+        plotComplex(fdiff,2);
+        P = pickPoint;
+        if pointOverwrite == true
+            save P.mat P
+        end
+    end
+    FDIFF = fftshift(fft2(circshift(conj(fdiff),1-P)));
 end
-FD.grid((circshift(FD.grid, 1 - P))); % place at corners
+% FD.grid((circshift(FD.grid, 1 - P))); % place at corners
 
 % set up comparison case
 halo = fftshift(fft2(fftshift(F.grid)));
-FDIFF = fftshift(fft2(circshift(fdiff,1-P))); % generate the blur "Airy pattern" directly
-% FDIFF = fftshift(fft2(fftshift(fdiff)));
-%     imagesc(abs(FDIFF).^2); colorbar; sqar;
 PupilP = fftshift(ifft2(ifftshift(halo.*FDIFF)));
 %     figure;
 %     plotComplex(PupilP,6); axis xy; sqar;
@@ -398,7 +405,7 @@ PSF1 = abs(fftshift(fft2(fftshift(f1)))).^2;
 PSF2 = abs(fftshift(fft2(fftshift(f2)))).^2;
 
 if Noise_Parameters{5} == true
-    [PSF1,PSF2] = average_noisy_images(PSF1,PSF2,f2,Noise_Parameters);
+    [PSF1,PSF2] = average_noisy_images(PSF1,PSF2,Noise_Parameters{6},Noise_Parameters);
 end
 
 OTF1 = fftshift(fft2(fftshift(PSF1)));
@@ -441,6 +448,11 @@ G * GT;
 if manualPick == true
     figure; plotComplex(G.grid,2); axis xy; sqar;
     PT = pickPoint;
+    if pointOverwrite == true && Minus == true
+        save POMinus.mat PT
+    elseif pointOverwrite == true && Minus == false
+        save PT.mat PT
+    end
 end
 
 G.grid(fftshift(circshift(G.grid, 1 - PT))); % centers the dOTF grid
@@ -461,9 +473,10 @@ G.grid(fftshift(circshift(G.grid, 1 - PT))); % centers the dOTF grid
 
 
 %% Deconvolution
+% Fourier Regularizated Deconvolution without noise statistics right now
 DOTF = fftshift(fft2(fftshift(G.grid)));
 TDOTF = fftshift(fft2(fftshift(dOTF)));
-gamma = .5e4; % regularization parameter
+gamma = .7e4; % regularization parameter
 if Minus == true
     Deconv = Hotdog(DOTF,FDIFF,gamma);
 else
@@ -482,10 +495,10 @@ if debuggery == true && Plotting == true
     fontsize = 10;
     
     figure;
-%     subplot(M1,M2,1);
-%     imagesc(log10([PSF1 PSF2]));
-%     axis xy; sqar;
-%     bigtitle('PSF1 Left, PSF2 Right',fontsize);
+    %     subplot(M1,M2,1);
+    %     imagesc(log10([PSF1 PSF2]));
+    %     axis xy; sqar;
+    %     bigtitle('PSF1 Left, PSF2 Right',fontsize);
     
     subplot(M1,M2,1);
     plotComplex([OTF1 OTF2],2);
@@ -508,9 +521,9 @@ if debuggery == true && Plotting == true
     bigtitle('Fourier transform of the exact difference field',fontsize);
     
     subplot(M1,M2,5);
-    plotComplex(DOTF,6);
+    plotComplex(FDIFFMEASURED,6);
     axis xy; sqar;
-    bigtitle('Fourier transform of the Masked dOTF',fontsize);
+    bigtitle('Difference Field Generation Test',fontsize);
     
     subplot(M1,M2,6);
     plotComplex(fftshift(fft2(fftshift(Deconv))),6);
@@ -568,11 +581,8 @@ if Plotting == true
     bigtitle('dOTF Deconvolution',fontsize);
     
     subplot(N1,N2,7)
-    % imagesc(abs(Deconv).^2);
-    plotComplex(DeconvTotal,2);
-    % colormap(gray); colorbar;
+    plotComplex(rot90(-DeconvTotal,2),2);
     axis xy; sqar;
-    % bigtitle('Magnitude of Deblurred dOTF',fontsize);
     bigtitle('Total Deconvolved dOTF',fontsize);
     
     subplot(N1,N2,8)
