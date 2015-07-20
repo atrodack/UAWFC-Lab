@@ -76,6 +76,10 @@ plotComplex(dOTF,5); axis xy; axis off; sqar; bigtitle('dOTF',15);
 subplot(1,3,3);
 imagesc(OPL); axis xy; axis off; sqar; bigtitle('OPL',15);
 
+[X,Y] = meshgrid(1:1:256);
+R = sqrt((X-128).^2 + (Y-152).^2);
+mask = double(R<=26);
 
+masked_OPL = mask.*OPL;
 
 

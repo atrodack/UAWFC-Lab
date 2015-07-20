@@ -52,7 +52,7 @@ end
 % Initializing a Couple Variables
 varargin = cell(1,4);
 Ppos_flat = Ppos_in;
-Run_Cam_Parameters{1} = 200;
+Run_Cam_Parameters{1} = 100;
 Run_Cam_Parameters{2} = 48;
 Run_Cam_Parameters{3} = false;
 Run_Cam_Parameters{4} = 1;
