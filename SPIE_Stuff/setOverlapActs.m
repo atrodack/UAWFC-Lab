@@ -4,12 +4,17 @@ function [Ppos_Full] = setOverlapActs(pistonlist, slaveActs)
 
 for n = 1:length(slaveActs)
     switch slaveActs(n)
+        
+        case 603
+            
+            NearbyActs = [pistonlist(570) pistonlist(571) pistonlist(604) pistonlist(602) pistonlist(634)];
+            pistonlist(slaveActs(n),1) = mean(NearbyActs);
+                
         case 572
             
             NearbyActs = [pistonlist(540) pistonlist(539) pistonlist(571) pistonlist(603)];
             pistonlist(slaveActs(n),1) = mean(NearbyActs);
-            
-            
+                        
         case 635
             
             NearbyActs = [pistonlist(603) pistonlist(602) pistonlist(634)];

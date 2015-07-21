@@ -32,7 +32,7 @@ SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
 nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
 % numiterations = 2;
-gain = -1; %gain for AO Corrections
+gain = -0.6; %gain for AO Corrections
 fftsize = 2^11;
 
 %% Scales
@@ -58,10 +58,11 @@ BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
 InjectAb = true; %Injects nzerns Zernike Terms
-InjectRandAb = true; %if InjectAB is true, picks Zernikes "Randomly"
-InjectKnownAb = false; %if InjectAB is true, picks provided Zernikes
+InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
+InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
 InjectKolm = true;
+InjectKnownKolm = true;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -94,13 +95,23 @@ if InjectKolm == true
     end
 end
 
-% Corrector Flag
-% UseDM4Correction = true;
 
 % Noise Flags
 UseNoise = true;
 
-N0 = 15e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
+% Compute the Number of Photons
+Quantum_Efficiency = 0.5;
+Bandpass = 0.1; %in microns
+Exposure_Time = 0.200; %in seconds (approximate current testbed camera time)
+Band_Flux = AOField.RBANDF; % in ph*um^-1*m^-2*s^-1
+Star_Visual_Mag = 7;
+D_Telescope = 6.5; %in meters (MMT)
+
+
+N0 = Quantum_Efficiency * Bandpass * Exposure_Time * Band_Flux * (2.512^(-Star_Visual_Mag)) * ((pi*D_Telescope^2)/4);
+
+
+% N0 = 7.5e6;
 if UseNoise == true
     Noise_Parameters = cell(5,1);
     Noise_Parameters{1} = 1;
@@ -119,21 +130,13 @@ else
     Noise_Parameters{6} = N0;
 end
 
-% Use Testbed PSF Instead of Simulated PSF
-UseRealPSF = false;
-if UseRealPSF == true
-    InjectAb = false;
-    Num_Folders = 2;
-    Num_files_per_folder = 100;
-    %     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
-    %     varargin{3} = 'RAW_scienceIM_frame_';
-    %     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
-    %     varargin{4} = 'RAW_scienceIM_frame_';
-    varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
-    varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
-    varargin{4} = 'RAW_scienceIM_frame_';
-end
+% Diameter = 6.5;
+% Area = pi * (Diameter/2)^2
+% 10^10 * Area
+% Q = 10^10 * Area * 0.2 * 0.33 * (1/1000)
+% Zero_mag = Q;
+% fith_mag = Zero_mag /100;
+
 
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
@@ -185,16 +188,16 @@ if RunSIM == true
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
         %                 n_zern = [2,2,2,3,3];
-                n_zern = [1,1,2,4];
+                n_zern = [1,4,4,3];
 %         n_zern = [1];
         %                 m = [-2,0,2,-1,3];
-                m = [-1,1,0,0];
+                m = [1,-4,-2,1];
 %         m = [1];
         
         %  coeffs = 1 * randn(1,length(n_zern));
         %  coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         %  coeffs = 0.25*randn(1,length(n_zern));
-        coeffs = [0.0661 	0.1545 	-0.0022 	0.1995 	];
+        coeffs = [0.4575 	0.4649 	-0.3424 	0.4706 	];
         %         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n_zern)
@@ -218,17 +221,21 @@ if RunSIM == true
     end
     
     if InjectKolm == true
-        TURB = AOScreen(A,4e-3,lambda);
-        TURB.spacing(SPACING);
-        TURB.name = 'Simulated Turbulence';
-        TURB.make;
-        %         grid = TURB.grid;
-        %         TURB.grid(grid * 30);
-        wind_dir = randn(2,1);
-        wind_dir = wind_dir./abs(wind_dir);
-        wind_strength = randi(5,2,1);
-        Wind = wind_dir .* wind_strength
-        
+        if InjectKnownKolm == false
+            TURB = AOScreen(A,4e-3,lambda);
+            TURB.spacing(SPACING);
+            TURB.name = 'Simulated Turbulence';
+            TURB.make;
+            %         grid = TURB.grid;
+            %         TURB.grid(grid * 30);
+            wind_dir = randn(2,1);
+            wind_dir = wind_dir./abs(wind_dir);
+            wind_strength = randi(5,2,1);
+            Wind = wind_dir .* wind_strength
+        else
+            load KnownTURB1.mat
+            Wind = [-2,2];
+        end
         r0 = TURB.r0;
         D_fit = D;
         %  expected_strehl = exp(-(1.03 * (D_fit/r0) ^ (5/3)))
@@ -248,38 +255,33 @@ end
 
 
 %% Write a Filename
-if Noise_Parameters{5} == true
-    s1 = sprintf('%d_photons',Noise_Parameters{6});
-    s3 = sprintf('%0.2f_ReadNoise',Noise_Parameters{3});
-    s4 = sprintf('%d_images_per_PSF',Noise_Parameters{1});
-else
-    s1 = 'No_Noise_Used';
-    s3 = '_';
-    s4 = '_';
-end
-if InjectAb == true
-    s2 = sprintf('Zernike');
-    if InjectKolm == true
-        s2 = sprintf('Zernike_with_Kolmogorov_added');
-    end
-else
-    if InjectKolm == true
-        s2 = sprintf('Kolmogorov');
-    else
-        s2 = sprintf('No_Aberration');
-    end
-end
+% if Noise_Parameters{5} == true
+%     s1 = sprintf('%d_photons',Noise_Parameters{6});
+%     s3 = sprintf('%0.2f_ReadNoise',Noise_Parameters{3});
+%     s4 = sprintf('%d_images_per_PSF',Noise_Parameters{1});
+% else
+%     s1 = 'No_Noise_Used';
+%     s3 = '_';
+%     s4 = '_';
+% end
+% if InjectAb == true
+%     s2 = sprintf('Zernike');
+%     if InjectKolm == true
+%         s2 = sprintf('Zernike_with_Kolmogorov_added');
+%     end
+% else
+%     if InjectKolm == true
+%         s2 = sprintf('Kolmogorov');
+%     else
+%         s2 = sprintf('No_Aberration');
+%     end
+% end
 
 
-dt = datestr(now,'mm_dd_yyyy_HH_MM_SS_FFF');
-filename = sprintf('BMC_Closed_loop_%s_%s_and_%s_with_%s',s2,s1,s3,s4);
-filename = sprintf('%s_%s',filename,dt) %add date and time to msec in order to avoid overwriting files
-% filename_movie_save = sprintf('%s.mat',filename);
+dt = datestr(now,'mm_dd_HH_MM_SS');
+filename = sprintf('BMC_Deconv_Test_YesD_%s',dt) %add date and time to msec in order to avoid overwriting files
 filename_movie_avi = sprintf('%s.avi',filename);
-% filename_txt = sprintf('%s.txt',filename);
-% filename_OTFa = sprintf('%s_OTFaCUBE.mat',filename);
-% filename_OTFb = sprintf('%s_OTFbCUBE.mat',filename);
-% filename_PTT = sprintf('%s_PTTCUBE.mat',filename);
+
 
 %% BMC Simulation
 
@@ -379,6 +381,9 @@ load circmask.mat;
 
 fprintf('Starting the loop\n\n');
 
+DECONVOLVE = true;
+
+
 while(nn <= numiterations)
     
     loopnum(nn) = nn;
@@ -417,9 +422,15 @@ while(nn <= numiterations)
     F.touch;
     
     
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB );
+    [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB, DECONVOLVE );
     dOTF = -1i * conj(dOTF);
+    dOTFD = -1i * conj(dOTFD);
     
+    if DECONVOLVE == true
+        dOTF2 = dOTF;
+        dOTF = dOTFD;
+        clear dOTFD;
+    end
     
     %Store the dOTF and PSF1 data for access later
 %     PSFaCUBE(:,:,nn) = PSF1;
@@ -445,7 +456,6 @@ while(nn <= numiterations)
         
         %Bump the Actuator Pistons
         DM2.bumpOnActs(gain * (Ppos2));
-        
         %Figure out the Slaves
         if nn == correction_start
             pistonlists = zeros(length(DM2.OnActs),2);
@@ -459,7 +469,8 @@ while(nn <= numiterations)
         Ppos2 = setOverlapActs(pistonlist,slaveActs);
         DM2.flatten;
         DM2.setActs(Ppos2);
-        
+        DM2.clip(STROKE);
+
         
         %Update the Mirror
         DM2.touch;
@@ -475,7 +486,7 @@ while(nn <= numiterations)
             Ppos2 = setOverlapActs(pistonlist,slaveActs);
             DM2.flatten;
             DM2.setActs(Ppos2);
-            
+            DM2.clip(STROKE);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -495,6 +506,7 @@ while(nn <= numiterations)
             Ppos2 = setOverlapActs(pistonlist,slaveActs);
             DM2.flatten;
             DM2.setActs(Ppos2);
+            DM2.clip(STROKE);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -506,6 +518,7 @@ while(nn <= numiterations)
             Ppos2 = setOverlapActs(pistonlist,slaveActs);
             DM2.flatten;
             DM2.setActs(Ppos2);
+            DM2.clip(STROKE);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -587,14 +600,29 @@ while(nn <= numiterations)
     axis xy;
     sqar;
     colorbar off;
-    bigtitle(sprintf('dOTF before Correction\n'),10);
-%     hold on
-%     for n = 1:length(DM2.OnActs)
-%         plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
-%     end
-%     hold off
+    if DECONVOLVE == false
+        bigtitle(sprintf('dOTF before Correction is Applied\n'),10);
+    else
+        bigtitle(sprintf('Deconvolved dOTF before Correction is Applied\n'),10);
+    end
     
-    subplot(2,3,5)
+    %     hold on
+    %     for n = 1:length(DM2.OnActs)
+    %         plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
+    %     end
+    %     hold off
+    if DECONVOLVE == true
+        subplot(2,3,5)
+        plotComplex(dOTF2,6);
+        axis off;
+        axis xy;
+        sqar;
+        colorbar off;
+        bigtitle(sprintf('Not Deconvolved dOTF before Correction is Applied\n'),10);
+    end
+    
+    
+    subplot(2,3,6)
     A_C = A.copy;
     A_C * DM2;
     A_C.show;
@@ -602,19 +630,10 @@ while(nn <= numiterations)
     bigtitle(sprintf('DM Shape\n'));
     axis off
     
-
-    subplot(2,3,6)
-    plot(loopnum,SNR,'-k');
-    xlim([0,numiterations]);
-    ylim([0,15]);
-    bigtitle('Approximate SNR of dOTF Signal',12);
-    xlabel('Loop Iteration');
-    ylabel('SNR');
-
-
+    
     drawnow;
     MOVIE(:,nn) = getframe(moviefig,winsize);
-    fprintf('Loop #%d Approximate Strehl: %0.6f\t\tApproximate SNR: %0.4f \n',nn,strehl(nn),SNR(nn));
+    fprintf('Loop #%d Approximate Strehl: %0.6f\t\tApproximate dOTF SNR: %0.4f \n',nn,strehl(nn),SNR(nn));
     nn = nn + 1;
 end
 
@@ -638,6 +657,13 @@ save('Movie_and_Noise_Parameters.mat', 'MOVIE', 'winsize', 'Noise_Parameters','-
 fid = fopen('Simulation_Output_Data.txt','w+');
 fprintf(fid,'Output Data from %s \r\n\n',filename);
 
+fprintf(fid,'Quantum Efficiency: %0.2f \r\n',Quantum_Efficiency);
+fprintf(fid,'Bandpass: %0.4f in microns \r\n',Bandpass);
+fprintf(fid,'Exposure Time: %0.3f in sec \r\n',Exposure_Time);
+fprintf(fid,'Band Flux: %d in ph * s^-1 * m^-2 * um^-1 \r\n',Band_Flux);
+fprintf(fid,'Apparent Star Magnitude: %0.2f \r\n',Star_Visual_Mag);
+fprintf(fid,'Telescope Diameter: %0.3f meters \r\n',D_Telescope);
+fprintf(fid,'\r\n');
 if Noise_Parameters{5} == true
     fprintf(fid,'Noise Parameters \r\n');
     fprintf(fid,'Number of Exposures per PSF: %d \r\n',Noise_Parameters{1});
@@ -646,7 +672,7 @@ if Noise_Parameters{5} == true
     fprintf(fid,'Standard Deviation of Read Noise: %0.2f \r\n',Noise_Parameters{3});
     fprintf(fid,'Dark Current Scale: %0.2f \r\n',Noise_Parameters{4});
 end
-
+fprintf(fid,'\r\n');
 if InjectAb == true
     fprintf(fid,'Zernike Aberrations Used: n, m, coefficient: \r\n');
     fprintf(fid,'%d \t',n_zern);
@@ -664,12 +690,9 @@ end
 fprintf(fid,'\r\nLoop Data \r\n');
 fprintf(fid,'Correction Signal Data \r\n');
 for n = 1:length(loopnum)
-    fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE \r\n',loopnum(n),strehl(n),WFE(n));
+    fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE, %0.5f SNR \r\n',loopnum(n),strehl(n),WFE(n),SNR(n));
 end
-for n = 1:length(loopnum)
-    fprintf(fid,'Loop %d: %0.5f SNR \r\n',loopnum(n),SNR(n));
-end
-fprintf(fid,'Uncorrected Signal Data \r\n');
+fprintf(fid,'\r\nUncorrected Signal Data \r\n');
 for n = 1:length(loopnum)
     fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE \r\n',loopnum(n),strehl_uncorr(n),WFE_uncor(n));
 end
@@ -687,12 +710,7 @@ cd(current_dir);
 
 
 
-% Diameter = 6.5;
-% Area = pi * (Diameter/2)^2
-% 10^10 * Area
-% Q = 10^10 * Area * 0.2 * 0.33 * (1/1000)
-% Zero_mag = Q;
-% fith_mag = Zero_mag /100;
+
 
 
 

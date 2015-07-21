@@ -9,7 +9,7 @@ Ppos_flat = Ppos_flat + DM.actuators(:,3);
 Ppos_flat(Ppos_flat~=0) = 1;
 
 DM.setActs(Ppos_flat);
-DM_Pistons = reshape(DM2.actuators(:,3),[32,32]);
+DM_Pistons = reshape(DM.actuators(:,3),[32,32]);
 DM_Pistons = single(DM_Pistons);
 
 tempdir = pwd;

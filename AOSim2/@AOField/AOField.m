@@ -6,6 +6,7 @@ classdef AOField < AOGrid
 	%% Properties
 	% Static Constants
 	properties(Constant=true, SetAccess = 'private')
+        %Wavelengths
 		VBAND = 0.5556e-6;
 		RBAND = 0.7e-6;
 		JBAND = 1.215e-6;
@@ -22,6 +23,15 @@ classdef AOField < AOGrid
 		Rayleigh_LGS = 532e-9;
 		Sodium_LGS = 589e-9;
 		HeNe_Laser = 632.8e-9;
+        
+        %Band Flux
+        BBANDF = 1.38e11;
+        VBANDF = 9.97e10;
+        RBANDF = 7.24e10;
+        IBANDF = 4.58e10;
+        JBANDF = 1.94e10;
+        HBANDF = 9.44e9;
+        KBANDF = 4.38e9;
 	end
 	
 	% Public properties

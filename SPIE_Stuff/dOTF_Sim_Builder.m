@@ -478,12 +478,12 @@ DOTF = fftshift(fft2(fftshift(G.grid)));
 TDOTF = fftshift(fft2(fftshift(dOTF)));
 gamma = .7e4; % regularization parameter
 if Minus == true
-    Deconv = Hotdog(DOTF,FDIFF,gamma);
+    Deconv = Wiener(DOTF,FDIFF,1,gamma);
 else
-    Deconv = Hotdog(DOTF,conj(FDIFF),gamma);
+    Deconv = Wiener(DOTF,conj(FDIFF),1,gamma);
 end
-DeconvP = Hotdog(fftshift(fft2(fftshift(PupilP))),FDIFF,gamma);
-DeconvTotal = Hotdog(TDOTF,FDIFF,gamma);
+DeconvP = Wiener(fftshift(fft2(fftshift(PupilP))),FDIFF,1,gamma);
+DeconvTotal = Wiener(TDOTF,FDIFF,1,gamma);
 
 
 %% Debugging
