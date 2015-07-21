@@ -1,4 +1,4 @@
-function [ dotf, psf1, psf2, otf1, otf2] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
+function [ dotf, psf1, psf2, otf1, otf2] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, DECONVOLVE )
 %[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %   
 load dOTF_act_698_mask.mat
@@ -6,8 +6,12 @@ load dOTF_act_698_mask.mat
 if nargin < 7
     Phasescreen1 = 1;
     Phasescreen2 = 1;
+    DECONVOLVE = false;
 elseif nargin < 8
     Phasescreen2 = 1;
+    DECONVOLVE = false;
+elseif nargin < 9
+    DECONVOLVE = false;
 end
 
 if ~iscell(Noise_Parameters)
@@ -49,6 +53,7 @@ Ppos_poked(pokeact) = Ppos_poked(pokeact) + (lambda/4);
 DM.setActs(Ppos_flat);
 DM.touch;
 DM.render;
+
 
 F1.planewave * Phasescreen1 * Phasescreen2 * A * DM;
 grid1 = F1.grid;
@@ -97,6 +102,23 @@ otf2 = fftshift(fft2(fftshift(psf2))) .* (1 / F2.dx)^2;
 
 % dOTF = OTF1 - OTF2;
 dotf = otf1 - otf2;
+
+
+
+%% Deconvolution
+if DECONVOLVE == true
+    fdiff = grid1 - grid2;
+    % figure;
+    % plotComplex(fdiff,2);
+    load ALEX_P.mat;
+    FDIFF = fftshift(fft2(circshift(conj(fdiff),1-ALEX_P)));
+    DOTF = fftshift(fft2(fftshift(dotf)));
+    gamma = 0.7e4;
+    Deconv = Wiener(DOTF,conj(FDIFF),10,gamma);
+    
+    dotf = Deconv;
+end
+
 
 
 DM.setActs(Ppos_flat);

@@ -32,7 +32,7 @@ SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
 nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
 % numiterations = 2;
-gain = -1; %gain for AO Corrections
+gain = -0.6; %gain for AO Corrections
 fftsize = 2^11;
 
 %% Scales
@@ -100,7 +100,7 @@ end
 % Noise Flags
 UseNoise = true;
 
-N0 = 15e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
+N0 = 7.5e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
 if UseNoise == true
     Noise_Parameters = cell(5,1);
     Noise_Parameters{1} = 1;
@@ -378,6 +378,8 @@ load dOTF_act_698_mask.mat;
 load circmask.mat;
 
 fprintf('Starting the loop\n\n');
+DECONVOLVE = true;
+
 
 while(nn <= numiterations)
     
@@ -417,7 +419,7 @@ while(nn <= numiterations)
     F.touch;
     
     
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB );
+    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB, DECONVOLVE );
     dOTF = -1i * conj(dOTF);
     
     
@@ -445,7 +447,6 @@ while(nn <= numiterations)
         
         %Bump the Actuator Pistons
         DM2.bumpOnActs(gain * (Ppos2));
-        
         %Figure out the Slaves
         if nn == correction_start
             pistonlists = zeros(length(DM2.OnActs),2);
@@ -459,7 +460,8 @@ while(nn <= numiterations)
         Ppos2 = setOverlapActs(pistonlist,slaveActs);
         DM2.flatten;
         DM2.setActs(Ppos2);
-        
+        DM2.clip(STROKE);
+
         
         %Update the Mirror
         DM2.touch;
@@ -475,7 +477,7 @@ while(nn <= numiterations)
             Ppos2 = setOverlapActs(pistonlist,slaveActs);
             DM2.flatten;
             DM2.setActs(Ppos2);
-            
+            DM2.clip(STROKE);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -495,6 +497,7 @@ while(nn <= numiterations)
             Ppos2 = setOverlapActs(pistonlist,slaveActs);
             DM2.flatten;
             DM2.setActs(Ppos2);
+            DM2.clip(STROKE);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -506,6 +509,7 @@ while(nn <= numiterations)
             Ppos2 = setOverlapActs(pistonlist,slaveActs);
             DM2.flatten;
             DM2.setActs(Ppos2);
+            DM2.clip(STROKE);
             DM2.touch;
             DM2.render;
 %             dOTF = masked_dOTF;
@@ -606,7 +610,7 @@ while(nn <= numiterations)
     subplot(2,3,6)
     plot(loopnum,SNR,'-k');
     xlim([0,numiterations]);
-    ylim([0,15]);
+    ylim([0,25]);
     bigtitle('Approximate SNR of dOTF Signal',12);
     xlabel('Loop Iteration');
     ylabel('SNR');
