@@ -81,5 +81,8 @@ R = sqrt((X-128).^2 + (Y-152).^2);
 mask = double(R<=26);
 
 masked_OPL = mask.*OPL;
-
-
+masked_OPL = fftshift(circshift(masked_OPL, 1- [152,128]));
+OPL_ = masked_OPL(129-27:129+27,129-27:129+27);
+OPL_ = rot90(OPL_,1);
+OPL_binned = downsampleCCD(OPL_,3,3);
+DM_shape = (padarray(OPL_binned,[(32-18)/2,(32-18)/2]));

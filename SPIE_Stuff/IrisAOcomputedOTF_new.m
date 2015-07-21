@@ -44,10 +44,10 @@ PTTpos_poked = PTTpos_in;
 
 %
 if NECO == false
-    PTTpos_poked(pokeseg,1) = (F1.lambda) / 8;
+    PTTpos_poked(pokeseg,1) = (F1.lambda) / 4;
 else
     PTTpos_poked(pokeseg,3) = 0.1e-3;
-    PTTpos_poked(pokeseg,1) = (F1.lambda) / 2;
+    PTTpos_poked(pokeseg,1) = (F1.lambda) / 4;
 end
 %
 

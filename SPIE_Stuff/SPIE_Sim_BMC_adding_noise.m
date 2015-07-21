@@ -100,12 +100,12 @@ end
 % Noise Flags
 UseNoise = true;
 
-N0 = 1.5e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
+N0 = 15e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
 if UseNoise == true
     Noise_Parameters = cell(5,1);
-    Noise_Parameters{1} = 5;
+    Noise_Parameters{1} = 1;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 1;
+    Noise_Parameters{3} = 10;
     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
     Noise_Parameters{6} = N0;
@@ -687,7 +687,12 @@ cd(current_dir);
 
 
 
-
+% Diameter = 6.5;
+% Area = pi * (Diameter/2)^2
+% 10^10 * Area
+% Q = 10^10 * Area * 0.2 * 0.33 * (1/1000)
+% Zero_mag = Q;
+% fith_mag = Zero_mag /100;
 
 
 
