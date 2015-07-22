@@ -85,11 +85,7 @@ Ppos_in = fitsread('Testpattern1.fits');
 % Do a dOTF with the testpattern
 [dOTF_cal, PSF_CUBE_cal, PSF_poked_CUBE_cal] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in);
 
-mkdir(filename);
-current_dir = pwd;
-cd(filename)
-save('Data_Cubes_cal.mat','PSF_CUBE_cal','PSF_poked_CUBE_cal');
-cd(current_dir);
+
 
 phase = angle(dOTF_cal);
 uphase = uwrap(phase,'unwt');
@@ -97,7 +93,7 @@ OPL = uphase / k;
 
 
 
-%% Plot
+% Plot
 figure;
 subplot(1,3,1);
 imagesc(PSF_CUBE_cal.PSF_centered_and_cropped); axis xy; axis off; sqar; bigtitle('PSF',15); %colormap(gray);
@@ -107,6 +103,55 @@ plotComplex(dOTF_cal,5); axis xy; axis off; sqar; bigtitle('dOTF',15);
 
 subplot(1,3,3);
 imagesc(OPL); axis xy; axis off; sqar; bigtitle('OPL',15);
+
+
+figure;
+plotComplex(dOTF_cal,6);
+axis xy;
+sqar;
+
+% For Testpattern1, Pick center point, then point to right, then CCW
+PT = pickPoint(9);
+PT_map = [529 817 727 538 343 241 331 520 715];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -122,7 +167,11 @@ imagesc(OPL); axis xy; axis off; sqar; bigtitle('OPL',15);
 % OPL_binned = downsampleCCD(OPL_,3,3);
 % DM_shape = (padarray(OPL_binned,[(32-18)/2,(32-18)/2]));
 
-
-
+% 
+% mkdir(filename);
+% current_dir = pwd;
+% cd(filename)
+% save('Data_Cubes_cal.mat','PSF_CUBE_cal','PSF_poked_CUBE_cal');
+% cd(current_dir);
 
 

@@ -47,7 +47,7 @@ else
 end
 
 
-if length(Ppos_in) ~= 1024
+if length(Ppos_in(:)) ~= 1024
     error('Ppos_in MUST HAVE 1024 Elements');
 end
 
