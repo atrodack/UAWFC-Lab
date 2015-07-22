@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 function [ dotf, psf1, psf2, otf1, otf2, dotfd] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, DECONVOLVE )
-=======
-function [ dotf, psf1, psf2, otf1, otf2] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, DECONVOLVE )
->>>>>>> a2ea6cc86f2a862cc6b91bf00ec6bad6b7fef117
 %[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %   
 load dOTF_act_698_mask.mat
@@ -117,19 +113,14 @@ if DECONVOLVE == true
     load ALEX_P.mat;
     FDIFF = fftshift(fft2(circshift(conj(fdiff),1-ALEX_P)));
     DOTF = fftshift(fft2(fftshift(dotf)));
-<<<<<<< HEAD
+
     gamma = 1.5e5;
     Deconv = Wiener(DOTF,conj(FDIFF),10,gamma);
     
     dotfd = Deconv;
 else
     dotfd = [];
-=======
-    gamma = 0.7e4;
-    Deconv = Wiener(DOTF,conj(FDIFF),10,gamma);
-    
-    dotf = Deconv;
->>>>>>> a2ea6cc86f2a862cc6b91bf00ec6bad6b7fef117
+
 end
 
 

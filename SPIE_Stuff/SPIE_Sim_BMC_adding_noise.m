@@ -99,7 +99,7 @@ end
 % Noise Flags
 UseNoise = true;
 
-<<<<<<< HEAD
+
 % Compute the Number of Photons
 Quantum_Efficiency = 0.5;
 Bandpass = 0.1; %in microns
@@ -112,10 +112,6 @@ D_Telescope = 6.5; %in meters (MMT)
 N0 = Quantum_Efficiency * Bandpass * Exposure_Time * Band_Flux * (2.512^(-Star_Visual_Mag)) * ((pi*D_Telescope^2)/4);
 
 
-% N0 = 7.5e6;
-=======
-N0 = 7.5e6; %1.5e5 -> SNR~1, 1.5e6 -> SNR~10
->>>>>>> a2ea6cc86f2a862cc6b91bf00ec6bad6b7fef117
 if UseNoise == true
     Noise_Parameters = cell(5,1);
     Noise_Parameters{1} = 1;
@@ -428,11 +424,8 @@ while(nn <= numiterations)
     F.touch;
     
     
-<<<<<<< HEAD
     [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB, DECONVOLVE );
-=======
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB, DECONVOLVE );
->>>>>>> a2ea6cc86f2a862cc6b91bf00ec6bad6b7fef117
+
     dOTF = -1i * conj(dOTF);
     dOTFD = -1i * conj(dOTFD);
     
@@ -640,20 +633,7 @@ while(nn <= numiterations)
     bigtitle(sprintf('DM Shape\n'));
     axis off
     
-<<<<<<< HEAD
-    
-=======
 
-    subplot(2,3,6)
-    plot(loopnum,SNR,'-k');
-    xlim([0,numiterations]);
-    ylim([0,25]);
-    bigtitle('Approximate SNR of dOTF Signal',12);
-    xlabel('Loop Iteration');
-    ylabel('SNR');
-
-
->>>>>>> a2ea6cc86f2a862cc6b91bf00ec6bad6b7fef117
     drawnow;
     MOVIE(:,nn) = getframe(moviefig,winsize);
     fprintf('Loop #%d Approximate Strehl: %0.6f\t\tApproximate dOTF SNR: %0.4f \n',nn,strehl(nn),SNR(nn));
