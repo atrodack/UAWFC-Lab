@@ -3,14 +3,14 @@ function [CUBE] = ExtractAverageCUBEPSFs( CUBE )
 %   Takes a data cube from Testbed_run_cam and computes the combined PSF
 %   and combined Dark Corrected PSF, and appends them to the data structure
 
-nframes = size(CUBE.PSFs,3);
+nframes = size(CUBE.PSFs,4);
 
 
 %% Uncorrected Average Image
 IMG = 0;
 
 for n = 1:nframes
-    IMG = IMG + CUBE.PSFs(:,:,n);
+    IMG = double(IMG) + double(CUBE.PSFs(:,:,1,n));
 end
 
 IMG = IMG / nframes;
@@ -19,7 +19,7 @@ IMG = IMG / nframes;
 IMG_CORR = 0;
 
 for n = 1:nframes
-    IMG_CORR = IMG_CORR + CUBE.PSFs(:,:,n) - CUBE.DARKS(:,:,n);
+    IMG_CORR = double(IMG_CORR) + double(CUBE.PSFs(:,:,1,n)) - double(CUBE.DARKS(:,:,1,n));
 end
 
 IMG_CORR = IMG_CORR / nframes;

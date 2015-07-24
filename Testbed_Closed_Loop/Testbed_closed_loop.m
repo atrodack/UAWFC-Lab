@@ -47,13 +47,15 @@ Off_Acts = actlist(actlist(:,2) ==0);
 
 
 
-Run_Cam_Parameters{1} = 100;
-Run_Cam_Parameters{2} = 48;
-Run_Cam_Parameters{3} = false;
-Run_Cam_Parameters{4} = 1;
-Run_Cam_Parameters{5} = 'HeNe';
-Run_Cam_Parameters{6} = 'OD3';
-
+Run_Cam_Parameters{1} = 9;
+Run_Cam_Parameters{2} = 25;
+Run_Cam_Parameters{3} = 100;
+Run_Cam_Parameters{4} = false;
+Run_Cam_Parameters{5} = 1;
+Run_Cam_Parameters{6} = 'HeNe';
+Run_Cam_Parameters{7} = 'OD3';
+Run_Cam_Parameters{8} = 17;
+Run_Cam_Parameters{9} = 60;
 
 %% Make DM Model
 load BMC_DM_Model.mat
@@ -79,13 +81,15 @@ fprintf('\n');
 
 %% Calibrate the Pixel-Actuator Map (if not done/saved somewhere)
 % calibrated_BMC_act_locations = computetestbedBMCactpixelmap(DM,pokeact);
+% Ppos_in = fitsread('Testpattern1.fits');
 Ppos_in = fitsread('Testpattern1.fits');
 
 
 % Do a dOTF with the testpattern
 [dOTF_cal, PSF_CUBE_cal, PSF_poked_CUBE_cal] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in);
 
-
+dOTF = dOTF_cal;
+dOTF(129,:) = 0;
 
 phase = angle(dOTF_cal);
 uphase = uwrap(phase,'unwt');
@@ -99,20 +103,20 @@ subplot(1,3,1);
 imagesc(PSF_CUBE_cal.PSF_centered_and_cropped); axis xy; axis off; sqar; bigtitle('PSF',15); %colormap(gray);
 
 subplot(1,3,2)
-plotComplex(dOTF_cal,5); axis xy; axis off; sqar; bigtitle('dOTF',15);
+plotComplex(dOTF,10); axis xy; axis off; sqar; bigtitle('dOTF',15);
 
 subplot(1,3,3);
 imagesc(OPL); axis xy; axis off; sqar; bigtitle('OPL',15);
 
 
 figure;
-plotComplex(dOTF_cal,6);
+plotComplex(dOTF,6);
 axis xy;
 sqar;
-
-% For Testpattern1, Pick center point, then point to right, then CCW
-PT = pickPoint(9);
-PT_map = [529 817 727 538 343 241 331 520 715];
+% % 
+% % For Testpattern1, Pick center point, then point to right, then CCW
+% PT = pickPoint(9);
+% PT_map = [529 817 727 538 343 241 331 520 715];
 
 
 

@@ -71,7 +71,7 @@ fitswrite(Ppos_flat,'DM_flat.fits');
 %SEND TO MIRROR
 % input('Press Enter to Send to Mirror');
 fprintf('Sending Commands to DM\n');
-! ~/src/scripts/dmloadch Ppos_flat.fits 0
+! ~/src/scripts/dmloadch DM_flat.fits 0
 cd(tempdir);
 
 
@@ -79,7 +79,7 @@ cd(tempdir);
 % input('Press Enter once Mirror has Updated to Start Taking Images');
 fprintf('Starting Camera...\n');
 pause(2);
-PSF_CUBE = Automated_Testbed_run_cam(Run_Cam_Parameters);
+PSF_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 
 
 % input('Press Enter to Modify Pupil');
@@ -90,7 +90,7 @@ pause(1);
 %% Modified Setup
 % Set DM and Take the Second PSF Image
 Ppos_poked = Ppos_flat;
-Ppos_poked(17,9) = Ppos_poked(17,9) + (AOField.HeNe_Laser*10^6) / 4;
+Ppos_poked(17,7) = Ppos_poked(17,7) + (AOField.HeNe_Laser*10^6) / 4;
 
 
 cd /home/lab/src/scripts
@@ -107,7 +107,7 @@ cd(tempdir);
 % input('Press Enter once Mirror has Updated to Start Taking Images');
 fprintf('Starting Camera...\n');
 pause(2);
-PSF_poked_CUBE = Automated_Testbed_run_cam(Run_Cam_Parameters);
+PSF_poked_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 
 ! ~/src/scripts/dmzeroch 0
 %% Process the Pictures
@@ -119,7 +119,7 @@ PSF_poked_CUBE = Automated_Testbed_run_cam(Run_Cam_Parameters);
 [dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE);
 
 
-DM.setActs(Ppos_flat);
+% DM.setActs(Ppos_flat);
 
 
 end
