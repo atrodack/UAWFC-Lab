@@ -25,12 +25,16 @@ if nargin < 2
     Ppos_in = DM.actuators(:,3);
     Ppos_in = reshape(Ppos_in,32,32);
     
-    Run_Cam_Parameters{1} = 100;
-    Run_Cam_Parameters{2} = 48;
-    Run_Cam_Parameters{3} = false;
-    Run_Cam_Parameters{4} = 1;
-    Run_Cam_Parameters{5} = 'HeNe';
-    Run_Cam_Parameters{6} = 'OD3';
+Run_Cam_Parameters{1} = 9;
+Run_Cam_Parameters{2} = 25;
+Run_Cam_Parameters{3} = 100;
+Run_Cam_Parameters{4} = false;
+Run_Cam_Parameters{5} = 1;
+Run_Cam_Parameters{6} = 'HeNe';
+Run_Cam_Parameters{7} = 'OD3';
+Run_Cam_Parameters{8} = 17;
+Run_Cam_Parameters{9} = 60;
+
 elseif nargin < 3
     DM.flatten;
     Ppos_in = DM.actuators(:,3);
@@ -84,8 +88,8 @@ PSF_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 
 % input('Press Enter to Modify Pupil');
 fprintf('Modifying the Pupil\n');
-pause(1);
-! ~/src/scripts/dmzeroch 0
+% pause(1);
+% ! ~/src/scripts/dmzeroch 0
 
 %% Modified Setup
 % Set DM and Take the Second PSF Image
