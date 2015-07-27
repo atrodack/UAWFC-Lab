@@ -48,8 +48,8 @@ Off_Acts = actlist(actlist(:,2) ==0);
 
 
 Run_Cam_Parameters{1} = 9;
-Run_Cam_Parameters{2} = 25;
-Run_Cam_Parameters{3} = 100;
+Run_Cam_Parameters{2} = 30;
+Run_Cam_Parameters{3} = 75;
 Run_Cam_Parameters{4} = false;
 Run_Cam_Parameters{5} = 1;
 Run_Cam_Parameters{6} = 'HeNe';
@@ -82,100 +82,124 @@ fprintf('\n');
 %% Calibrate the Pixel-Actuator Map (if not done/saved somewhere)
 % calibrated_BMC_act_locations = computetestbedBMCactpixelmap(DM,pokeact);
 % Ppos_in = fitsread('Testpattern1.fits');
-Ppos_in = fitsread('Testpattern1.fits');
-
-
-% Do a dOTF with the testpattern
-[dOTF_cal, PSF_CUBE_cal, PSF_poked_CUBE_cal] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in);
-
-dOTF = dOTF_cal;
-dOTF(129,:) = 0;
-
-phase = angle(dOTF_cal);
-uphase = uwrap(phase,'unwt');
-OPL = uphase / k;
+% Ppos_in = fitsread('Testpattern1.fits');
+% 
+% 
+% % Do a dOTF with the testpattern
+% [dOTF_cal, PSF_CUBE_cal, PSF_poked_CUBE_cal] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in);
+% 
+% dOTF = dOTF_cal;
+% dOTF(129,:) = 0;
+% 
+% phase = angle(dOTF_cal);
+% uphase = uwrap(phase,'unwt');
+% OPL = uphase / k;
 
 
 
 % Plot
-figure;
-subplot(1,3,1);
-imagesc(PSF_CUBE_cal.PSF_centered_and_cropped); axis xy; axis off; sqar; bigtitle('PSF',15); %colormap(gray);
+% figure;
+% subplot(1,3,1);
+% imagesc(PSF_CUBE_cal.PSF_centered_and_cropped); axis xy; axis off; sqar; bigtitle('PSF',15); %colormap(gray);
+% 
+% subplot(1,3,2)
+% plotComplex(dOTF,10); axis xy; axis off; sqar; bigtitle('dOTF',15);
+% 
+% subplot(1,3,3);
+% imagesc(OPL); axis xy; axis off; sqar; bigtitle('OPL',15);
 
-subplot(1,3,2)
-plotComplex(dOTF,10); axis xy; axis off; sqar; bigtitle('dOTF',15);
 
-subplot(1,3,3);
-imagesc(OPL); axis xy; axis off; sqar; bigtitle('OPL',15);
-
-
-figure;
-plotComplex(dOTF,6);
-axis xy;
-sqar;
+% figure;
+% plotComplex(dOTF,6);
+% axis xy;
+% sqar;
 % % 
 % % For Testpattern1, Pick center point, then point to right, then CCW
 % PT = pickPoint(9);
 % PT_map = [529 817 727 538 343 241 331 520 715];
 
+%% Closed Loop
+dOTF_CUBE = zeros(256,256);
+psf_CUBE = zeros(256,256);
+nn = 1;
+niterations = 2;
+mirror_shape = fitsread('GeomTest.fits');
+% mirror_shape = zeros(32,32);
+gain = 1;
+load PT.mat;
+while(nn <= niterations)
+fprintf('\nLoop Number %d\n\n',nn);
+Ppos_in = mirror_shape;
+
+
+
+if nn == 1
+    [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in,0,PT);
+%     centerpoint = PSF_CUBE.centerpoint;
+%     croppoint = PSF_CUBE.croppoint;
+%     PT{1} = centerpoint;
+%     PT{2} = croppoint;
+    
+else
+    Run_Cam_Parameters{3} = 50;
+    [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in,0,PT);
+end
+
+dOTF(129,:) = 0;
+dOTF_CUBE(:,:,nn) = dOTF;
+psf_CUBE(:,:,nn) = PSF_CUBE.PSF_centered_and_cropped;
+phase = angle(dOTF);
+uphase = uwrap(phase,'unwt');
+OPL = uphase / k;
+[ mirror_shape_new ] = computeAct_positions( dOTF );
+
+mirror_shape = Ppos_in + gain * mirror_shape_new;
+SELECT = mirror_shape(mirror_shape~=0);
+MEAN = mean(SELECT);
+for m = 1:32
+    for n = 1:32
+        if mirror_shape(m,n) ~= 0
+            mirror_shape(m,n) = mirror_shape(m,n) - MEAN;
+        end
+    end
+end
+
+
+figure(2);
+subplot(1,3,1)
+imagesc(PSF_CUBE.PSF_centered_and_cropped);
+axis xy;
+sqar;
+title('PSF');
+
+subplot(1,3,2)
+% plotComplex(dOTF,6);
+imagesc(OPL *1e6);
+axis xy;
+sqar;
+title('dOTF');
+
+subplot(1,3,3)
+imagesc(mirror_shape);
+axis xy; 
+sqar;
+title('Shape to be Sent to Mirror');
+drawnow;
+
+
+fprintf('Maximum Magnitude in mirror_shape is: %0.5f \n',max(max(abs(mirror_shape))));
+% input('Continue?');
+
+nn = nn+1;
+end
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%%
-% [X,Y] = meshgrid(1:1:256);
-% R = sqrt((X-128).^2 + (Y-152).^2);
-% mask = double(R<=26);
-% 
-% masked_OPL = mask.*OPL;
-% masked_OPL = fftshift(circshift(masked_OPL, 1- [152,128]));
-% OPL_ = masked_OPL(129-27:129+27,129-27:129+27);
-% OPL_ = rot90(OPL_,1);
-% OPL_binned = downsampleCCD(OPL_,3,3);
-% DM_shape = (padarray(OPL_binned,[(32-18)/2,(32-18)/2]));
-
-% 
-% mkdir(filename);
-% current_dir = pwd;
-% cd(filename)
-% save('Data_Cubes_cal.mat','PSF_CUBE_cal','PSF_poked_CUBE_cal');
-% cd(current_dir);
+mkdir(filename);
+current_dir = pwd;
+cd(filename)
+save('Data_Cubes.mat','PSF_CUBE','PSF_poked_CUBE','dOTF_CUBE','psf_CUBE');
+cd(current_dir);
 
 
