@@ -1,4 +1,4 @@
-function [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, NECO )
+function [ dOTF, PSF1, PSF2, OTF1, OTF2, dotfd ] = IrisAOcomputedOTF_new( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, NECO, DECONVOLVE )
 %[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %   
 
@@ -79,6 +79,24 @@ OTF2 = fftshift(fft2(fftshift(PSF2))*((1/dx)^2));
 dOTF = OTF1 - OTF2;
 
 
-% DM.setIrisAO(PTTpos_flat);
+%% Deconvolution
+if DECONVOLVE == true
+    fdiff = grid1 - grid2;
+%     figure;
+%     plotComplex(fdiff,2);
+%     ALEX_P = pickPoint;
+%     save('ALEX_P_IRISAO','ALEX_P');
+    load ALEX_P_IRISAO.mat;
+    FDIFF = fftshift(fft2(circshift(conj(fdiff),1-ALEX_P)));
+    DOTF = fftshift(fft2(fftshift(dOTF)));
+
+    gamma = 8.5e3;
+    Deconv = Wiener(DOTF,conj(FDIFF),10,gamma);
+    
+    dotfd = Deconv;
+else
+    dotfd = [];
+
+end
 
 end

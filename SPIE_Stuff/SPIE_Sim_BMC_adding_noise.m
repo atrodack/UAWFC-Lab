@@ -383,7 +383,6 @@ fprintf('Starting the loop\n\n');
 DECONVOLVE = true;
 
 
-DECONVOLVE = true;
 
 
 while(nn <= numiterations)

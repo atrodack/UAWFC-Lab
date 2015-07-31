@@ -1,5 +1,5 @@
 function [ dotf, psf1, psf2, otf1, otf2, dotfd] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, DECONVOLVE )
-%[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
+%[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = BMCcomputedOTF( DM, pokeact, actuators_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, DECONVOLVE )
 %   
 load dOTF_act_698_mask.mat
 

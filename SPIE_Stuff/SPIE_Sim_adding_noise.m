@@ -57,11 +57,12 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = false; %Injects nzerns Zernike Terms
+InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = false;
+InjectKolm = true;
+InjectKnownKolm = true;
 
 % Check Aberration Flags
 if InjectKolm == true
@@ -95,15 +96,29 @@ if InjectKolm == true
 end
 
 % Noise Flags
-UseNoise = false;
+UseNoise = true;
+
+
+% Compute the Number of Photons
+Quantum_Efficiency = 0.5;
+Bandpass = 0.1; %in microns
+Exposure_Time = 0.200; %in seconds (approximate current testbed camera time)
+Band_Flux = AOField.RBANDF; % in ph*um^-1*m^-2*s^-1
+Star_Visual_Mag = 7;
+D_Telescope = 6.5; %in meters (MMT)
+
+
+N0 = Quantum_Efficiency * Bandpass * Exposure_Time * Band_Flux * (2.512^(-Star_Visual_Mag)) * ((pi*D_Telescope^2)/4);
+
+
 if UseNoise == true
     Noise_Parameters = cell(5,1);
-    Noise_Parameters{1} = 5;
+    Noise_Parameters{1} = 1;
     Noise_Parameters{2} = true;
-    Noise_Parameters{3} = 0.5;
+    Noise_Parameters{3} = 10;
     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
-    Noise_Parameters{6} = 1.5e6;
+    Noise_Parameters{6} = N0;
 else
     Noise_Parameters = cell(5,1);
     %     Noise_Parameters{1} = 1;
@@ -111,24 +126,9 @@ else
     %     Noise_Parameters{3} = 0;
     %     Noise_Parameters{4} = 0;
     Noise_Parameters{5} = UseNoise;
-    Noise_Parameters{6} = 1e19;
+    Noise_Parameters{6} = N0;
 end
 
-% Use Testbed PSF Instead of Simulated PSF
-UseRealPSF = false;
-if UseRealPSF == true
-    InjectAb = false;
-    Num_Folders = 2;
-    Num_files_per_folder = 100;
-    %     varargin{1} = '/home/alex/Desktop/Data/2015612_Batch1_nofilter_PSFWithoutFinger/';
-    %     varargin{3} = 'RAW_scienceIM_frame_';
-    %     varargin{2} = '/home/alex/Desktop/Data/2015612_Batch2_nofilter_PSFWithFinger/';
-    %     varargin{4} = 'RAW_scienceIM_frame_';
-    varargin{1} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithoutFingerDMBox/';
-    varargin{3} = 'RAW_scienceIM_frame_';
-    varargin{2} = '/home/alex/Desktop/Data/2015615_Batch1_nofilter_PSFWithFingerDMBox/';
-    varargin{4} = 'RAW_scienceIM_frame_';
-end
 
 % Plotting Flag
 system_verbose = false; %Plots Created System Elements
@@ -180,16 +180,16 @@ if RunSIM == true
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
         %                 n_zern = [2,2,2,3,3];
-                n_zern = [1,1,2,4];
+                n_zern = [1,4,4,3];
 %         n_zern = [1];
         %                 m = [-2,0,2,-1,3];
-                m = [-1,1,0,0];
+                m = [1,-4,-2,1];
 %         m = [1];
         
         %  coeffs = 1 * randn(1,length(n_zern));
         %  coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         %  coeffs = 0.25*randn(1,length(n_zern));
-        coeffs = [0.0661 	0.1545 	-0.0022 	0.1995 	];
+        coeffs = [0.4575 	0.4649 	-0.3424 	0.4706 	];
         %         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n_zern)
@@ -213,49 +213,23 @@ if RunSIM == true
     end
     
     if InjectKolm == true
-        
-        %         TURB = AOAtmo(A);
-        % %         TURB.spacing(SPACING);
-        %         WFlow = AOScreen(fftsize,0.15,500e-9);
-        %         WFlow.spacing(SPACING);
-        %         WFlow.name = 'Lower altitude turbulence';
-        %         WFhigh = AOScreen(2*fftsize,0.17,500e-9);
-        %         WFhigh.spacing(SPACING);
-        %         WFhigh.name = 'High altitude turbulence';
-        %
-        %         TURB.addLayer(WFlow,1000);
-        %         TURB.addLayer(WFhigh,8000);
-        %
-        %         TURB.layers{1}.Wind = [3 1];
-        %         TURB.layers{2}.Wind = [1 -1]*20;
-        %
-        %         r0 = TURB.totalFriedScale;
-        %         th_scat = lambda/r0*206265;
-        %
-        %         fprintf('The total r0 is %f cm.\n',100*r0);
-        %         fprintf('The seeing is %.2f arcsecs.\n',th_scat);
-        %
-        %         % Turning this off is like using dynamic refocus.
-        %         TURB.GEOMETRY = false;
-        %         TURB.BEACON = [1 1 1e10];
-        %         TURB.make;
-        % %         TURB.show
-        %
-        %         aberration = TURB.grid;
-        
-        TURB = AOScreen(A,4e-3,lambda);
-        TURB.spacing(SPACING);
-        TURB.name = 'Simulated Turbulence';
-        TURB.make;
-        %         grid = TURB.grid;
-        %         TURB.grid(grid * 30);
-        wind_dir = randn(2,1);
-        wind_dir = wind_dir./abs(wind_dir);
-        wind_strength = randi(5,2,1);
-        Wind = wind_dir .* wind_strength
-        
+        if InjectKnownKolm == false
+            TURB = AOScreen(A,4e-3,lambda);
+            TURB.spacing(SPACING);
+            TURB.name = 'Simulated Turbulence';
+            TURB.make;
+            %         grid = TURB.grid;
+            %         TURB.grid(grid * 30);
+            wind_dir = randn(2,1);
+            wind_dir = wind_dir./abs(wind_dir);
+            wind_strength = randi(5,2,1);
+            Wind = wind_dir .* wind_strength
+        else
+            load KnownTURB1.mat
+            Wind = [-2,2];
+        end
         r0 = TURB.r0;
-        D_fit = 4e-3;
+        D_fit = D;
         %  expected_strehl = exp(-(1.03 * (D_fit/r0) ^ (5/3)))
         expected_strehl = exp(-(0.13 * (D_fit/r0) ^ (5/3)))
     else
@@ -271,40 +245,34 @@ if RunSIM == true
 end
 
 
-
 %% Write a Filename
-if Noise_Parameters{5} == true
-    s1 = sprintf('%d_photons',Noise_Parameters{6});
-    s3 = sprintf('%0.2f_ReadNoise',Noise_Parameters{3});
-    s4 = sprintf('%d_images_per_PSF',Noise_Parameters{1});
-else
-    s1 = 'No_Noise_Used';
-    s3 = '_';
-    s4 = '_';
-end
-if InjectAb == true
-    s2 = sprintf('Zernike');
-    if InjectKolm == true
-        s2 = sprintf('Zernike_with_Kolmogorov_added');
-    end
-else
-    if InjectKolm == true
-        s2 = sprintf('Kolmogorov');
-    else
-        s2 = sprintf('No_Aberration');
-    end
-end
+% if Noise_Parameters{5} == true
+%     s1 = sprintf('%d_photons',Noise_Parameters{6});
+%     s3 = sprintf('%0.2f_ReadNoise',Noise_Parameters{3});
+%     s4 = sprintf('%d_images_per_PSF',Noise_Parameters{1});
+% else
+%     s1 = 'No_Noise_Used';
+%     s3 = '_';
+%     s4 = '_';
+% end
+% if InjectAb == true
+%     s2 = sprintf('Zernike');
+%     if InjectKolm == true
+%         s2 = sprintf('Zernike_with_Kolmogorov_added');
+%     end
+% else
+%     if InjectKolm == true
+%         s2 = sprintf('Kolmogorov');
+%     else
+%         s2 = sprintf('No_Aberration');
+%     end
+% end
 
 
-dt = datestr(now,'mm_dd_yyyy_HH_MM_SS_FFF');
-filename = sprintf('Closed_loop_%s_%s_and_%s_with_%s',s2,s1,s3,s4);
-filename = sprintf('%s_%s',filename,dt) %add date and time to msec in order to avoid overwriting files
-filename_movie_save = sprintf('%s.mat',filename);
+dt = datestr(now,'mm_dd_HH_MM_SS');
+filename = sprintf('IrisAOTest_%s',dt) %add date and time to msec in order to avoid overwriting files
 filename_movie_avi = sprintf('%s.avi',filename);
-filename_txt = sprintf('%s.txt',filename);
-% filename_OTFa = sprintf('%s_OTFaCUBE.mat',filename);
-% filename_OTFb = sprintf('%s_OTFbCUBE.mat',filename);
-filename_PTT = sprintf('%s_PTTCUBE.mat',filename);
+
 
 
 
@@ -342,8 +310,8 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 DM1.isMirror = 0;
-numiterations = 11;%60;
-correction_start = 4;%6;
+numiterations = 60;%60;
+correction_start = 6;%6;
 pixelshift = [1,1];
 
 %movie setup
@@ -373,6 +341,8 @@ strehl_uncorr = zeros(1,1);
 
 load hexmask.mat; %removes smoothed edges from variance computation
 
+DECONVOLVE = false;
+NECO = false;
 
 fprintf('Starting the loop\n\n');
 fprintf('Pixel Shift for slopes calculation: [%d,%d]\n\n',pixelshift(1),pixelshift(2));
@@ -398,7 +368,7 @@ while(nn <= numiterations)
     %Comput the uncorrected PSF
     DM1.setIrisAO(PTT_flat);
     F.planewave * ABER * TURB * A * DM1;
-    W = angle(F.grid).*hexmask;
+     W = uwrap(angle(F.grid),'gold').*hexmask;
     WFE_uncor(nn) = var(W(abs(W)>0));
     strehl_uncorr(nn) = exp(-WFE_uncor(nn));
     
@@ -407,9 +377,16 @@ while(nn <= numiterations)
     F.touch;
     
     %Compute the dOTF
-    [ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, true);
-    dOTF = -1i * conj(dOTF);
+    [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO,DECONVOLVE);
     
+    dOTF = -1i * conj(dOTF);
+    dOTFD = -1i * conj(dOTFD);
+    
+    if DECONVOLVE == true
+        dOTF2 = dOTF;
+        dOTF = dOTFD;
+        clear dOTFD;
+    end
     
     %Store the dOTF and PSF1 data for access later
 %     PSFaCUBE(:,:,nn) = PSF1;
@@ -432,7 +409,7 @@ while(nn <= numiterations)
         [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
         
         %% Add Second dOTF to get overlap Region
-        [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+        [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB,NECO, DECONVOLVE );
         dOTF2 = conj(dOTF2);
         [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
         
@@ -459,7 +436,7 @@ while(nn <= numiterations)
         if InjectAb == true && InjectKolm == true %Simulate adding in some hair spray
             TURB = PHASESCREEN.copy;
             [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
-            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO, DECONVOLVE );
             dOTF2 = conj(dOTF2);
             [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
             PTTpos_mirror3 = PTTpos_mirror1;
@@ -482,7 +459,7 @@ while(nn <= numiterations)
             TURB = 1;
             
             [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
-            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO, DECONVOLVE );
             dOTF2 = conj(dOTF2);
             [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
             PTTpos_mirror3 = PTTpos_mirror1;
@@ -495,7 +472,7 @@ while(nn <= numiterations)
             
         else %Turn on correction again
             [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
-            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB );
+            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO, DECONVOLVE );
             dOTF2 = conj(dOTF2);
             [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
             PTTpos_mirror3 = PTTpos_mirror1;
@@ -516,7 +493,7 @@ while(nn <= numiterations)
     F.planewave * ABER * TURB * A * DM1;
 
     %Compute the RMS Wavefront Error
-    W = angle(F.grid).*hexmask;
+    W = uwrap(angle(F.grid),'gold').*hexmask;
 %     W_sqar = W.^2;
 %     W_sqar_mean = mean(W_sqar(abs(W_sqar)>0));
 %     W_mean = mean(W(abs(W)>0));
@@ -542,7 +519,7 @@ while(nn <= numiterations)
 %     strehl_cor(nn) = PSF_cor(ceil(length(PSF_cor)/2),ceil(length(PSF_cor)/2)) / PSF_difflim(ceil(length(PSF_difflim)/2),ceil(length(PSF_difflim)/2));
 %     strehl_uncorr(nn) = PSF_aberrated(ceil(length(PSF_aberrated)/2),ceil(length(PSF_aberrated)/2)) / PSF_difflim(ceil(length(PSF_difflim)/2),ceil(length(PSF_difflim)/2));
 %     strehl_uncorr(nn) = PSF_aberratedmax / PSF_difflimmax;
-    strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
+    strehl_notip(nn) = maxPSF_cor_noise / PSF_difflimmax;
     loopnum(nn) = nn;
     
     
@@ -710,6 +687,13 @@ fid = fopen('Simulation_Output_Data.txt','w+');
 fprintf(fid,'Output Data from %s Run \r\n\n',filename);
 fprintf(fid,'Pixel Shift Used: [%d %d] \r\n\n',pixelshift);
 
+fprintf(fid,'Quantum Efficiency: %0.2f \r\n',Quantum_Efficiency);
+fprintf(fid,'Bandpass: %0.4f in microns \r\n',Bandpass);
+fprintf(fid,'Exposure Time: %0.3f in sec \r\n',Exposure_Time);
+fprintf(fid,'Band Flux: %d in ph * s^-1 * m^-2 * um^-1 \r\n',Band_Flux);
+fprintf(fid,'Apparent Star Magnitude: %0.2f \r\n',Star_Visual_Mag);
+fprintf(fid,'Telescope Diameter: %0.3f meters \r\n',D_Telescope);
+fprintf(fid,'\r\n');
 if Noise_Parameters{5} == true
     fprintf(fid,'Noise Parameters \r\n');
     fprintf(fid,'Number of Exposures per PSF: %d \r\n',Noise_Parameters{1});
@@ -718,7 +702,7 @@ if Noise_Parameters{5} == true
     fprintf(fid,'Standard Deviation of Read Noise: %0.2f \r\n',Noise_Parameters{3});
     fprintf(fid,'Dark Current Scale: %0.2f \r\n',Noise_Parameters{4});
 end
-
+fprintf(fid,'\r\n');
 if InjectAb == true
     fprintf(fid,'Zernike Aberrations Used: n, m, coefficient: \r\n');
     fprintf(fid,'%d \t',n_zern);
@@ -738,12 +722,13 @@ fprintf(fid,'Correction Signal Data \r\n');
 for n = 1:length(loopnum)
     fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE \r\n',loopnum(n),strehl(n),WFE(n));
 end
-fprintf(fid,'Uncorrected Signal Data \r\n');
+fprintf(fid,'\r\nUncorrected Signal Data \r\n');
 for n = 1:length(loopnum)
     fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE \r\n',loopnum(n),strehl_uncorr(n),WFE_uncor(n));
 end
 fclose(fid);
 cd(current_dir);
+
 
 % movie(figure(1),MOVIE,1,10,winsize)
 % movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',7)
