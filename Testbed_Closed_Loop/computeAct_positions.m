@@ -19,7 +19,9 @@ load calibrated_Testbed_Acts.mat
 
 k = (2*pi) / AOField.HeNe_Laser;
 OPL = uwrap(angle(dOTF),'unwt') / k;
-OPL = OPL .* mask;
+% OPL = OPL - mean(mean(OPL));
+overlap_OPL = overlap.*OPL;
+OPL = OPL - overlap_OPL;
 OPL = OPL * 1e6;
 %OPL = angle(dOTF_) / k;
 
@@ -39,6 +41,14 @@ mirror_shape = padarray(mirror_shape,[5,5]);
 mirror_shape = mirror_shape(1:end-1,1:end-1);
 mirror_shape = circshift(mirror_shape,[-1,0]);
 mirror_shape = rot90(mirror_shape,-1);
+mirror_shape(:,6:7) = 0;
+mirror_shape(28,:) = 0;
+mirror_shape(27,27:28) = 0;
+mirror_shape(26,28) = 0;
+mirror_shape(6,26:28) = 0;
+mirror_shape(7,27:28) = 0;
+mirror_shape(8,28) = 0;
+
 if verbose == true
     figure;
     subplot(1,2,1);

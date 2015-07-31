@@ -14,10 +14,11 @@ PSF_poked = CUBE2.PSF_dark_corr;
 
 if isempty(centerpoint1)
     % Getting Central Pixel of PSFs
-    figure;
-    imagesc(PSF_poked);
-    sqar;
-    centerpoint1 = pickPoint(1);
+%     figure;
+%     imagesc(PSF_poked);
+%     sqar;
+%     centerpoint1 = pickPoint(1);
+centerpoint1 = findPeakCCD(PSF);
 end
 
 % Cenering PSFs
@@ -28,15 +29,16 @@ PSF = fftshift(PSF);
 
 if isempty(croppoint)
     % Crop the PSFs to 256x256 Pixels about Center Point
-    imagesc(PSF_poked);
-    sqar;
-    croppoint = pickPoint(1);
+%     imagesc(PSF_poked);
+%     sqar;
+%     croppoint = pickPoint(1);
+croppoint = findPeakCCD(PSF);
 end
 
-PSF_poked = PSF_poked(croppoint(1) - 128:croppoint(1) + 128,croppoint(2) - 128:croppoint(2) + 128);
-PSF_poked = PSF_poked(1:end-1,1:end-1);
-PSF = PSF(croppoint(1) - 128:croppoint(1) + 128,croppoint(2) - 128:croppoint(2) + 128);
-PSF = PSF(1:end-1,1:end-1);
+PSF_poked = PSF_poked(croppoint(1) - 127:croppoint(1) + 128,croppoint(2) - 127:croppoint(2) + 128);
+% PSF_poked = PSF_poked(1:end-1,1:end-1);
+PSF = PSF(croppoint(1) - 127:croppoint(1) + 128,croppoint(2) - 127:croppoint(2) + 128);
+% PSF = PSF(1:end-1,1:end-1);
 
 CUBE1.PSF_centered_and_cropped = PSF;
 CUBE2.PSF_centered_and_cropped = PSF_poked;

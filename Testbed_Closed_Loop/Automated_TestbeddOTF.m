@@ -17,7 +17,7 @@ function [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Par
 
 %% Input Argument Check
 % Checking the Input Arguments
-
+tic
 if nargin < 2
     DM.flatten;
     Ppos_in = DM.actuators(:,3);
@@ -125,9 +125,9 @@ PSF_poked_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 [PSF_poked_CUBE] = ExtractAverageCUBEPSFs(PSF_poked_CUBE);
 
 % Average Together Taken Images, Center/Crop PSFs, Compute OTFs and dOTF
-[dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE,PT{1},PT{2});
+% [dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE,PT{1},PT{2});
+[dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF2(PSF_CUBE, PSF_poked_CUBE);
 
-
-
+toc
 
 end
