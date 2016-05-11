@@ -4,7 +4,7 @@ function CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters)
 %Contact: A.Rodack [atrodack@email.arizona.edu]
 %Contact: J.Knight [jknight@optics.arizona.edu]
 %
-%Opens imaqtool and take takes some pictures. Input sets all controllable
+%Opens imaqtool and takes some pictures. Input sets all controllable
 %commands. Output are data structures for the Darks (if taken) and the PSFs
 %_________________________________________________________________________
 % INPUTS:

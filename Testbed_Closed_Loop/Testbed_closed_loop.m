@@ -48,13 +48,13 @@ Off_Acts = actlist(actlist(:,2) ==0);
 
 
 
-Run_Cam_Parameters{1} = 0;
+Run_Cam_Parameters{1} = 5;
 Run_Cam_Parameters{2} = 30;
-Run_Cam_Parameters{3} = 85;
+Run_Cam_Parameters{3} = 20;
 Run_Cam_Parameters{4} = false;
 Run_Cam_Parameters{5} = 1;
-Run_Cam_Parameters{6} = 'HeNe';
-Run_Cam_Parameters{7} = 'OD3';
+Run_Cam_Parameters{6} = 'SuperK';
+Run_Cam_Parameters{7} = 'bp10nm';
 Run_Cam_Parameters{8} = 16;
 Run_Cam_Parameters{9} = 60;
 
@@ -134,12 +134,12 @@ mask(mask~=0) = 1;
 
 
 %% Closed Loop
-dOTF_CUBE = zeros(256,256);
-psf_CUBE = zeros(256,256);
-mirrorshape_CUBE = zeros(32,32);
 nn = 1;
-niterations = 10;
-% mirror_shape = (fitsread('Testpattern3.fits')/4+fitsread('DISK.fits')/4)/2;
+niterations = 5;
+dOTF_CUBE = zeros(256,256,niterations);
+psf_CUBE = zeros(256,256,niterations);
+mirrorshape_CUBE = zeros(32,32,niterations);
+% mirror_shape = (fitsread('Pupil_mask_Correction.fits'));
 mirror_shape = zeros(32,32);
 gain = -0.5;
 load PT.mat;
@@ -157,88 +157,105 @@ load PT.mat;
 % fprintf('\n');
 
 while(nn <= niterations)
-fprintf('\nLoop Number %d\n',nn);
-Ppos_in = mirror_shape;
-
-
-
-if nn == 1
-    [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in,0);
-%     centerpoint = PSF_CUBE.centerpoint;
-%     croppoint = PSF_CUBE.croppoint;
-%     PT{1} = centerpoint;
-%     PT{2} = croppoint;
+    fprintf('\nLoop Number %d\n',nn);
+    Ppos_in = mirror_shape;
     
-else
-    Run_Cam_Parameters{3} = 50;
-    [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in,0);
-end
-
-dOTF(129,:) = 0;
-dOTF = -1i * conj(dOTF);
-dOTF_CUBE(:,:,nn) = dOTF;
-psf_CUBE(:,:,nn) = PSF_CUBE.PSF_centered_and_cropped;
-
-[ mirror_shape_new ] = computeAct_positions( dOTF );
-
-% mirror_shape = (Ppos_in + (gain * mirror_shape_new));
-
-% SELECT = mirror_shape(mirror_shape~=0);
-% MEAN = mean(SELECT);
-% for m = 1:32
-%     for n = 1:32
-%         if mirror_shape(m,n) ~= 0
-%             mirror_shape(m,n) = mirror_shape(m,n) - MEAN;
-%         end
-%     end
-% end
-mirrorshape_CUBE(:,:,nn) = mirror_shape;
-
-% figure(2);
-% subplot(1,3,1)
-% imagesc(PSF_CUBE.PSF_centered_and_cropped);
-% axis xy;
-% sqar;
-% title('PSF');
-% 
-% subplot(1,3,2)
-% plotComplex(dOTF,6);
-% % imagesc(OPL *1e6);
-% axis xy;
-% sqar;
-% title('dOTF');
-% 
-% subplot(1,3,3)
-% imagesc(mirror_shape_new);
-% axis ij; axis off;
-% sqar;
-% title('Shape to be Sent to Mirror');
-% drawnow;
-
-figure(2)
-subplot(1,3,1)
-imagesc(abs(dOTF));
-axis xy;
-sqar;
-
-subplot(1,3,2);
-imagesc(angle(dOTF));
-axis xy;
-sqar;
-
-subplot(1,3,3);
-% imagesc(mirror_shape_new);
-plotComplex(dOTF,6);
-axis xy;
-sqar;
-% colorbar;
-% caxis([-0.5 0.5])
-
-fprintf('Maximum Magnitude in mirror_shape is: %0.5f \n',max(max(abs(mirror_shape))));
-% pause(30);
-% input('Continue?');
-% MOVIE(:,nn) = getframe(moviefig,winsize);
-nn = nn+1;
+    
+    
+    if nn == 1
+        [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in,0);
+        %     centerpoint = PSF_CUBE.centerpoint;
+        %     croppoint = PSF_CUBE.croppoint;
+        %     PT{1} = centerpoint;
+        %     PT{2} = croppoint;
+        
+    else
+        Run_Cam_Parameters{3} = 15;
+        [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF(DM,Run_Cam_Parameters,Ppos_in,0);
+    end
+    
+    dOTF(129,:) = 0;
+    dOTF = -1i * conj(dOTF);
+    
+    figure(10);
+    plotComplex(dOTF,6);
+    axis xy;
+    
+    y = 'y';
+    Y = 'y';
+    n = 'n';
+    N = 'n';
+    display('Is this a usable dOTF?');
+    user_check = input('y/n: ');
+    if strcmpi(user_check,'y') == 1;
+        dOTF_CUBE(:,:,nn) = dOTF;
+        psf_CUBE(:,:,nn) = PSF_CUBE.PSF_centered_and_cropped;
+        
+        [ mirror_shape_new ] = computeAct_positions( dOTF );
+        
+        mirror_shape = (Ppos_in + (gain * mirror_shape_new));
+        
+        SELECT = mirror_shape(mirror_shape~=0);
+        MEAN = mean(SELECT);
+        for m = 1:32
+            for n = 1:32
+                if mirror_shape(m,n) ~= 0
+                    mirror_shape(m,n) = mirror_shape(m,n) - MEAN;
+                end
+            end
+        end
+        mirrorshape_CUBE(:,:,nn) = mirror_shape;
+        
+        figure(2);
+        subplot(1,3,1)
+        imagesc(PSF_CUBE.PSF_centered_and_cropped);
+        axis xy;
+        sqar;
+        title('PSF');
+        
+        subplot(1,3,2)
+        plotComplex(dOTF,6);
+        % imagesc(OPL *1e6);
+        axis xy;
+        sqar;
+        title('dOTF');
+        
+        subplot(1,3,3)
+        imagesc(mirror_shape);
+        axis ij; axis off;
+        sqar;
+        title('Shape to be Sent to Mirror');
+        drawnow;
+        
+%         figure(2)
+%         subplot(1,3,1)
+%         imagesc(abs(dOTF));
+%         axis xy;
+%         sqar;
+%         
+%         subplot(1,3,2);
+%         imagesc(angle(dOTF));
+%         axis xy;
+%         sqar;
+%         
+%         subplot(1,3,3);
+%         % imagesc(mirror_shape_new);
+%         plotComplex(dOTF,6);
+%         axis xy;
+%         sqar;
+%         % colorbar;
+%         % caxis([-0.5 0.5])
+        
+        fprintf('Maximum Magnitude in mirror_shape is: %0.5f \n',max(max(abs(mirror_shape))));
+        % pause(30);
+        % input('Continue?');
+        % MOVIE(:,nn) = getframe(moviefig,winsize);
+        nn = nn+1
+        
+    elseif strcmpi(user_check,'n') == 1
+        fprintf('Starting loop over to recompute dOTF\n\n');
+    end
+    
 end
 
 
@@ -250,26 +267,26 @@ cd(filename)
 save('Data_Cubes.mat','PSF_CUBE','PSF_poked_CUBE','dOTF_CUBE','psf_CUBE','mirrorshape_CUBE');
 cd(current_dir);
 
-%%
-figure(3);
-for n = 1:nn-1
-    imagesc(log10(normalize(psf_CUBE(:,:,n))),[-1.5 0]);
-    axis xy; sqar; colormap((gray));
-    drawnow;
-    pause(0.5);
-end
-
-for n = 1:nn-1
-    imagesc(mirrorshape_CUBE(:,:,n));
-    sqar; colormap((gray));
-    drawnow;
-    pause(0.5);
-end
+% %%
+% figure(3);
+% for n = 1:nn-1
+%     imagesc(log10(normalize(psf_CUBE(:,:,n))),[-1.5 0]);
+%     axis xy; sqar; colormap((gray));
+%     drawnow;
+%     pause(0.5);
+% end
 % 
-for n = 1:nn-1
-    plotComplex(dOTF_CUBE(:,:,n),6);
-    axis xy; sqar; colormap((gray));
-    drawnow;
-    pause(0.5);
-end
+% for n = 1:nn-1
+%     imagesc(mirrorshape_CUBE(:,:,n));
+%     sqar; colormap((gray));
+%     drawnow;
+%     pause(0.5);
+% end
+% % 
+% for n = 1:nn-1
+%     plotComplex(dOTF_CUBE(:,:,n),6);
+%     axis xy; sqar; colormap((gray));
+%     drawnow;
+%     pause(0.5);
+% end
 

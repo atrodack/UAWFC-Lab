@@ -27,7 +27,7 @@ if nargin < 2
     PT{2} = [];
 Run_Cam_Parameters{1} = 9;
 Run_Cam_Parameters{2} = 25;
-Run_Cam_Parameters{3} = 100;
+Run_Cam_Parameters{3} = 10;
 Run_Cam_Parameters{4} = false;
 Run_Cam_Parameters{5} = 1;
 Run_Cam_Parameters{6} = 'HeNe';
@@ -99,8 +99,11 @@ fprintf('\nModifying the Pupil\n\n');
 %% Modified Setup
 % Set DM and Take the Second PSF Image
 Ppos_poked = Ppos_flat;
-Ppos_poked(17,7) = Ppos_poked(17,7) + (AOField.HeNe_Laser*10^6) / 4;
-
+%Tilt finger
+% Ppos_poked(16,7:9) =  (AOField.HeNe_Laser*10^6);
+% Ppos_poked(17,7:9) =  0;
+% Ppos_poked(18,7:9) =  -(AOField.HeNe_Laser*10^6);
+Ppos_poked(17,8) = (AOField.HeNe_Laser*10^6) / 4;
 
 cd /home/lab/src/scripts
 fitswrite(Ppos_poked,'DM_poked.fits');
