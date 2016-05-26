@@ -30,7 +30,7 @@ spider = 0;
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
+nzerns = 5; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
 % numiterations = 2;
 gain = 0.7; %gain for AO Corrections
 fftsize = 2^11;
@@ -61,7 +61,7 @@ InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = true;
+InjectKolm = false;
 InjectKnownKolm = true;
 
 % Check Aberration Flags
@@ -104,7 +104,7 @@ Quantum_Efficiency = 0.5;
 Bandpass = 0.1; %in microns
 Exposure_Time = 0.200; %in seconds (approximate current testbed camera time)
 Band_Flux = AOField.RBANDF; % in ph*um^-1*m^-2*s^-1
-Star_Visual_Mag = 7;
+Star_Visual_Mag = 8;
 D_Telescope = 6.5; %in meters (MMT)
 
 
@@ -180,16 +180,16 @@ if RunSIM == true
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
         %                 n_zern = [2,2,2,3,3];
-                n_zern = [1,4,4,3];
+                n_zern = [1,2,2,3,2];
 %         n_zern = [1];
         %                 m = [-2,0,2,-1,3];
-                m = [1,-4,-2,1];
+                m = [1,-2,2,1,0];
 %         m = [1];
         
         %  coeffs = 1 * randn(1,length(n_zern));
         %  coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         %  coeffs = 0.25*randn(1,length(n_zern));
-        coeffs = [0.4575 	0.4649 	-0.3424 	0.4706 	];
+        coeffs = [0.4575 	0.4649 	-0.3424 	0.4706 0.5	];
         %         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n_zern)
@@ -201,6 +201,7 @@ if RunSIM == true
         T = table(n_zern,m,Number_of_waves);
         fprintf('\nInjected Aberrations:\n');
         disp(T);
+
         %         figure(1);
         %         ABER.show;
         wobble_dir = randn(2,1);
@@ -301,6 +302,12 @@ display('Making Diffraction Limited PSF');
 fprintf('\n');
 F.planewave * A * DM1;
 [PSF_difflim,plotx,ploty] = F.mkPSF(FOV,PLATE_SCALE);
+
+if Noise_Parameters{5} == true
+        PSF_difflim = addNoise(PSF_difflim,Noise_Parameters{6},Noise_Parameters{2},Noise_Parameters{3},Noise_Parameters{4});
+%         PSF_cor = abs(PSF_cor);
+end
+
 PSF_difflimmax = max(max(PSF_difflim));
 F.touch;
 
@@ -311,7 +318,7 @@ PTT_flat = zeros(37,3);
 nn = 1;
 DM1.isMirror = 0;
 numiterations = 60;%60;
-correction_start = 6;%6;
+correction_start = 10;%6;
 pixelshift = [1,1];
 
 %movie setup
@@ -349,13 +356,13 @@ fprintf('Pixel Shift for slopes calculation: [%d,%d]\n\n',pixelshift(1),pixelshi
 
 
 while(nn <= numiterations)
-    %     if InjectAb == true
-    %         wobble_dir = randn(2,1);
-    %         wobble_dir = wobble_dir./abs(wobble_dir);
-    %         wobble_strength = randi(3,2,1);
-    %         Wobble = wobble_dir .* wobble_strength;
-    %         ABER.grid(circshift(ABER.grid,Wobble));
-    %     end
+        if InjectAb == true
+            wobble_dir = randn(2,1);
+            wobble_dir = wobble_dir./abs(wobble_dir);
+            wobble_strength = randi(5,2,1);
+            Wobble = wobble_dir .* wobble_strength;
+            ABER.grid(circshift(ABER.grid,Wobble));
+        end
     
     if InjectKolm == true
         if InjectAb == true
@@ -404,7 +411,7 @@ while(nn <= numiterations)
         PTT_mirror = zeros(37,3);
         DM1.setIrisAO(PTT_mirror);
         
-    elseif nn >= correction_start && nn < 3*correction_start %close the loop
+    elseif nn >= correction_start && nn < 2*correction_start %close the loop
         %Get Segment PTT from dOTF
         [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
         
@@ -432,7 +439,7 @@ while(nn <= numiterations)
         %Apply the Correction to mirror
         DM1.setIrisAO(PTT_mirror);
         
-    elseif nn >= 3*correction_start && nn < 6*correction_start
+    elseif nn >= 2*correction_start && nn < 4*correction_start
         if InjectAb == true && InjectKolm == true %Simulate adding in some hair spray
             TURB = PHASESCREEN.copy;
             [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
@@ -448,13 +455,13 @@ while(nn <= numiterations)
             DM1.setIrisAO(PTT_mirror);
         else %Turn off correction for a bit
             %Flatten the DM
-            PTTpos_mirror = zeros(37,3);
-            PTT_mirror = zeros(37,3);
-            DM1.setIrisAO(PTT_mirror);
+%             PTTpos_mirror = zeros(37,3);
+%             PTT_mirror = zeros(37,3);
+%             DM1.setIrisAO(PTT_mirror);
         end
 
 %         
-    elseif nn >= 6*correction_start
+    elseif nn >= 4*correction_start
         if InjectAb == true && InjectKolm == true %Simulate taking the hair spray out
             TURB = 1;
             
@@ -507,10 +514,10 @@ while(nn <= numiterations)
     
     %Compute the Corrected PSF
     PSF_cor = F.mkPSF(FOV,PLATE_SCALE);
-    maxPSF_cor = max(max(PSF_cor));
+%     maxPSF_cor = max(max(PSF_cor));
     if Noise_Parameters{5} == true
         PSF_cor = addNoise(PSF_cor,Noise_Parameters{6},Noise_Parameters{2},Noise_Parameters{3},Noise_Parameters{4});
-        PSF_cor = abs(PSF_cor);
+%         PSF_cor = abs(PSF_cor);
     end
     
     maxPSF_cor_noise = max(max(PSF_cor));
@@ -605,10 +612,11 @@ while(nn <= numiterations)
     
     
     subplot(2,2,1);
-    imagesc(plotx,ploty,log10((PSF_cor / maxPSF_cor_noise)),[-4,0]);
-    %     imagesc(plotx,ploty,PSF_cor);
-    colormap(gray);
+    imagesc(plotx,ploty,log10(normalize(PSF_cor(125:275,125:275))),[-0.5,0]);
+%     imagesc(plotx(151:251),ploty(151:251),normalize(PSF_cor(151:251,151:251)));
+    colormap(gray(256));
     sqar;
+    axis off;
     colorbar;
     bigtitle(sprintf('PSF, loop #%d',nn),12);
     
@@ -731,7 +739,7 @@ cd(current_dir);
 
 
 % movie(figure(1),MOVIE,1,10,winsize)
-% movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',7)
+movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',10)
 
 
 

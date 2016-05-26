@@ -23,7 +23,7 @@ elseif nargin < 5
         Noisy_PSF = PSF*(1e-12*N0/Sum0);
         Noisy_PSF = 1e12*imnoise(Noisy_PSF,'poisson');
     else
-        Noisy_PSF = PSF + (randn(size(PSF)) * ReadNoise) + (max(max(PSF))/2);
+        Noisy_PSF = PSF + (randn(size(PSF)) * ReadNoise)+(max(max(Noisy_PSF))/2);
     end
     
     
@@ -33,11 +33,11 @@ elseif nargin < 6
         %         N0 = sum(sum(abs(Field)));
         Noisy_PSF = PSF*(1e-12*N0/Sum0);
         Noisy_PSF = 1e12*imnoise(Noisy_PSF,'poisson');
-        Noisy_PSF = Noisy_PSF + (randn(size(PSF)) * ReadNoise) + (max(max(PSF))/2);
-        Noisy_PSF = Noisy_PSF + (randn(size(PSF)) * DarkCurrent) + (max(max(PSF))/2);
+        Noisy_PSF = Noisy_PSF + (randn(size(PSF)) * ReadNoise) + (max(max(Noisy_PSF))/2);
+        Noisy_PSF = Noisy_PSF + randn(size(PSF)) * DarkCurrent;
     else
-        Noisy_PSF = PSF + (randn(size(PSF)) * ReadNoise) + (max(max(PSF))/2);
-        Noisy_PSF = Noisy_PSF + (randn(size(PSF)) * DarkCurrent) + (max(max(PSF))/2);
+        Noisy_PSF = PSF + (randn(size(PSF)) * ReadNoise)+(max(max(Noisy_PSF))/2);
+        Noisy_PSF = Noisy_PSF + randn(size(PSF)) * DarkCurrent;
     end
     
 end

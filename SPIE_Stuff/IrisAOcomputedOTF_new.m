@@ -1,4 +1,4 @@
-function [ dOTF, PSF1, PSF2, OTF1, OTF2, dotfd ] = IrisAOcomputedOTF_new( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, NECO, DECONVOLVE )
+function [ dOTF, PSF1, PSF2, OTF1, OTF2, dotfd ] = IrisAOcomputedOTF_new( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2, NECO, DECONVOLVE,bandpass )
 %[ dOTF, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF( DM, pokeseg, PTTpos_in, Noise_Parameters,Field, A, Phasescreen1, Phasescreen2 )
 %   
 
@@ -6,11 +6,22 @@ if nargin < 7
     Phasescreen1 = 1;
     Phasescreen2 = 1;
     NECO = false;
+    DECONVOLVE = false;
+    banpass = Field.lambda;
 elseif nargin < 8
     Phasescreen2 = 1;
     NECO = false;
+    DECONVOLVE = false;
+    bandpass = Field.lambda;
 elseif nargin < 9
     NECO = false;
+    DECONVOLVE = false;
+    bandpass = Field.lambda;
+elseif nargin < 10
+    bandpass = Field.lambda;
+    DECONVOLVE = false;
+elseif nargin < 11
+    bandpass = Field.lambda;
 end
 
 if ~iscell(Noise_Parameters)
@@ -54,30 +65,47 @@ end
 
 
 PTT_poked = mapSegments(PTTpos_poked);
+PSFBAND1 = 0;
+PSFBAND2 = 0;
+dOTFBAND = 0;
 
-% display('Flattening DM');
-DM.setIrisAO(PTT_flat);
-
-F1.planewave * Phasescreen1 * Phasescreen2 * A * DM;
-grid1 = F1.grid;
-PSF1 = abs(fftshift(fft2(fftshift(grid1)))*(dx^2)).^2;
-
-DM.setIrisAO(PTT_poked);
-
-F2.planewave * Phasescreen1 * Phasescreen2 * A * DM;
-grid2 = F2.grid;
-PSF2 = abs(fftshift(fft2(fftshift(grid2)))*(dx^2)).^2;
-
-if Noise_Parameters{5} == true
-    [ PSF1,PSF2 ] = average_noisy_images( PSF1, PSF2, N0, Noise_Parameters );
+for lambda_passband = 1:length(bandpass)
+    % display('Flattening DM');
+    DM.setIrisAO(PTT_flat);
+    F1.lambda = bandpass(lambda_passband);
+    fprintf('.');
+    F1.planewave * Phasescreen1 * Phasescreen2 * A * DM;
+    grid1 = F1.grid;
+    PSF1 = abs(fftshift(fft2(fftshift(grid1)))*(dx^2)).^2;
+    PSFBAND1 = PSFBAND1 + PSF1;
+    
+    
+    DM.setIrisAO(PTT_poked);
+    F2.lambda = bandpass(lambda_passband);
+    F2.planewave * Phasescreen1 * Phasescreen2 * A * DM;
+    grid2 = F2.grid;
+    PSF2 = abs(fftshift(fft2(fftshift(grid2)))*(dx^2)).^2;
+    PSFBAND2 = PSFBAND2 + PSF2;
+    
+    if Noise_Parameters{5} == true
+        [ PSF1,PSF2 ] = average_noisy_images( PSF1, PSF2, N0, Noise_Parameters );
+    end
+    
+    
+    OTF1 = fftshift(fft2(fftshift(PSF1)))*((1/dx)^2);
+    OTF1(1025,1025) = 0;
+    OTF2 = fftshift(fft2(fftshift(PSF2))*((1/dx)^2));
+    OTF2(1025,1025) = 0;
+    dOTF = OTF1 - OTF2;
+    dOTFBAND = dOTFBAND + dOTF;
 end
+fprintf('\n');
+PSF1 = PSFBAND1 / length(bandpass);
+PSF2 = PSFBAND2 / length(bandpass);
+dOTF = dOTFBAND / length(bandpass);
 
 
-OTF1 = fftshift(fft2(fftshift(PSF1)))*((1/dx)^2);
-OTF2 = fftshift(fft2(fftshift(PSF2))*((1/dx)^2));
-
-dOTF = OTF1 - OTF2;
-
+DM.setIrisAO(PTT_flat);
 
 %% Deconvolution
 if DECONVOLVE == true
@@ -90,7 +118,8 @@ if DECONVOLVE == true
     FDIFF = fftshift(fft2(circshift(conj(fdiff),1-ALEX_P)));
     DOTF = fftshift(fft2(fftshift(dOTF)));
 
-    gamma = 8.5e3;
+%     gamma = 8.5e3;
+gamma = 2.5e5;
     Deconv = Wiener(DOTF,conj(FDIFF),10,gamma);
     
     dotfd = Deconv;

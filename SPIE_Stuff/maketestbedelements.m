@@ -166,26 +166,26 @@ if RunSIM == true
         % Add Actuators
         DM2.addActs(BMC_ACTS,1,A_BMC);
         
-        % Turn Off Actuators that Aren't Illuminated
-        RHO = zeros(nacts,1);
-        for ii = 1:nacts
-            RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
-            if RHO(ii) > D/2
-                if RHO(ii) < (D/2)
-%                     DM2.actuators(ii,5) = 2;
-                else
-                    DM2.actuators(ii,5) = 0;
-                end
-            elseif RHO(ii) < secondary/2
-                %             DM2.actuators(ii,5) = 0;
-            end
-        end
-        
-        % Get List of Which Actuators are Being Used
-        DM2.setOnActs;
-        
-        %Turn Off Actuators so the Program Knows they are off
-        DM2.disableActuators(DM2.OffActs);
+%         % Turn Off Actuators that Aren't Illuminated
+%         RHO = zeros(nacts,1);
+%         for ii = 1:nacts
+%             RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
+%             if RHO(ii) > D/2
+%                 if RHO(ii) < (D/2)
+% %                     DM2.actuators(ii,5) = 2;
+%                 else
+%                     DM2.actuators(ii,5) = 0;
+%                 end
+%             elseif RHO(ii) < secondary/2
+%                 %             DM2.actuators(ii,5) = 0;
+%             end
+%         end
+%         
+%         % Get List of Which Actuators are Being Used
+%         DM2.setOnActs;
+%         
+%         %Turn Off Actuators so the Program Knows they are off
+%         DM2.disableActuators(DM2.OffActs);
         
         % Set the Convex Hull Boundary Conditions
         %     DM2.defineBC(D/2 + D/18,4,'circle');

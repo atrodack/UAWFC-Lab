@@ -20,7 +20,7 @@ lambda = AOField.HeNe_Laser;
 k = (2*pi) / lambda;
 
 % Pupil Specs
-D = 7e-3; % 7mm
+D = 5e-3; % 7mm
 % secondary  0.3*D; % 30% of Pupil Diameter
 secondary = 0;
 % spider = 0.02*D; % 2% of Pupil Diameter
@@ -30,14 +30,14 @@ spider = 0;
 %% Simulation Parameters
 SPACING = 1e-5; % fine spacing
 aa = 5*SPACING;  % for antialiasing.
-nzerns = 4; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
+nzerns = 5; %number of zernikes to inject (if InjectAb and InjectRandAb are both true)
 % numiterations = 2;
-gain = -0.6; %gain for AO Corrections
+gain = 0.7; %gain for AO Corrections
 fftsize = 2^11;
 
 %% Scales
 THld = lambda/D * 206265; % Lambda/D in arcsecs.
-FOV = 35*THld; % arcsecs
+FOV = 50*THld; % arcsecs
 PLATE_SCALE = THld/4;
 FoV_withIrisAO = 3.5e-3;
 FoV_withoutIrisAO = 10.5e-3;
@@ -49,12 +49,12 @@ RunTESTBED = false; %Run the testbed equipment
 %% Simulation Flags
 
 % IrisAO Flags
-IrisAO_on = false; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
+IrisAO_on = true; %turns on/off IrisAO Mirror (if false, DM1 variable set to 1)
 verbose_makeDM = false; %turns on/off plotting the mirror as it is constructed
-Scalloped_Field = false; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
+Scalloped_Field = true; %turns on/off returning an AOField Object that encodes the actual surface shape of the segments.
 
 % BMC Flag
-BMC_on = true; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
+BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
 InjectAb = true; %Injects nzerns Zernike Terms
@@ -95,7 +95,6 @@ if InjectKolm == true
     end
 end
 
-
 % Noise Flags
 UseNoise = true;
 
@@ -105,7 +104,7 @@ Quantum_Efficiency = 0.5;
 Bandpass = 0.1; %in microns
 Exposure_Time = 0.200; %in seconds (approximate current testbed camera time)
 Band_Flux = AOField.RBANDF; % in ph*um^-1*m^-2*s^-1
-Star_Visual_Mag = 7;
+Star_Visual_Mag = 8;
 D_Telescope = 6.5; %in meters (MMT)
 
 
@@ -129,13 +128,6 @@ else
     Noise_Parameters{5} = UseNoise;
     Noise_Parameters{6} = N0;
 end
-
-% Diameter = 6.5;
-% Area = pi * (Diameter/2)^2
-% 10^10 * Area
-% Q = 10^10 * Area * 0.2 * 0.33 * (1/1000)
-% Zero_mag = Q;
-% fith_mag = Zero_mag /100;
 
 
 % Plotting Flag
@@ -188,16 +180,16 @@ if RunSIM == true
     elseif InjectAb == true && InjectKnownAb == true
         ABER = AOScreen(A);
         %                 n_zern = [2,2,2,3,3];
-                n_zern = [1,4,4,3];
+                n_zern = [1,2,2,3,2];
 %         n_zern = [1];
         %                 m = [-2,0,2,-1,3];
-                m = [1,-4,-2,1];
+                m = [1,-2,2,1,0];
 %         m = [1];
         
         %  coeffs = 1 * randn(1,length(n_zern));
         %  coeffs = [0.2441,-0.0886884,2.75*-0.0980274,-0.05,0.12];
         %  coeffs = 0.25*randn(1,length(n_zern));
-        coeffs = [0.4575 	0.4649 	-0.3424 	0.4706 	];
+        coeffs = [0.4575 	0.4649 	-0.3424 	0.4706 0.5	];
         %         coeffs = [4];
         ABER.zero;
         for ii = 1:length(n_zern)
@@ -209,6 +201,7 @@ if RunSIM == true
         T = table(n_zern,m,Number_of_waves);
         fprintf('\nInjected Aberrations:\n');
         disp(T);
+
         %         figure(1);
         %         ABER.show;
         wobble_dir = randn(2,1);
@@ -253,7 +246,6 @@ if RunSIM == true
 end
 
 
-
 %% Write a Filename
 % if Noise_Parameters{5} == true
 %     s1 = sprintf('%d_photons',Noise_Parameters{6});
@@ -279,82 +271,55 @@ end
 
 
 dt = datestr(now,'mm_dd_HH_MM_SS');
-filename = sprintf('BMC_Deconv_Test_YesD_%s',dt) %add date and time to msec in order to avoid overwriting files
+filename = sprintf('IrisAOTest_%s',dt) %add date and time to msec in order to avoid overwriting files
 filename_movie_avi = sprintf('%s.avi',filename);
 
 
-%% BMC Simulation
-
-% load in calibration file
-% load BMC_calibrated_X_and_Y_dOTF_locations
-% calibrated_BMC_act_locations = cell(DM2.nActs,1);
-% counter = 1;
-% for n = 1:32
-%     for m = 1:32
-%         hold on
-%         calibrated_BMC_act_locations{counter} = [X(m,n),Y(m,n)];
-%         drawnow;
-%         pause(0.1);
-%         hold off
-%         counter = counter + 1;
-%     end
-% end
-
-load calibrated_BMC_dOTF_act_locations;
-
-%set actuators that are off equal to empty
-for n = 1:DM2.nActs
-    if DM2.actuators(n,5) == 0
-        calibrated_BMC_act_locations{n} = [];
-    end
-end
-%removie the off actuators from the dOTF "reconstructor" list
-onAct_locations =  calibrated_BMC_act_locations(~cellfun('isempty',calibrated_BMC_act_locations));
 
 
-% make a field object
+%% IrisAO Simulation
+
+% [pixel_seg_map,Areal_Averaging_radius] = computeIrisAOsegpixelmap(DM1, A, 23, FOV, PLATE_SCALE, FoV_withIrisAO);
+calibration_filename_23 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_23_no_aliasing.mat';
+calibration_filename_35 = 'calibrated_dOTF_segment_centers_for_phase_finger_segment_35_no_aliasing.mat';
+load(calibration_filename_23);
+% load(calibration_filename_35);
+
+new_spacing = DM1.spacing;
+
 display('Making Fields');
-new_spacing = DM2.spacing;
+
 F = AOField(fftsize);
 F.FFTSize = (fftsize);
 F.spacing(new_spacing);
 F.lambda = lambda;
 F.FOV = FOV;
 F.PLATE_SCALE = PLATE_SCALE;
-F.FoV = FoV_withoutIrisAO;
+F.FoV = FoV_withIrisAO;
 F.name = 'IrisAO Field 1';
 
-% make diffraction limited PSF
 display('Making Diffraction Limited PSF');
-F.planewave * A * DM2;
+fprintf('\n');
+F.planewave * A * DM1;
 [PSF_difflim,plotx,ploty] = F.mkPSF(FOV,PLATE_SCALE);
+
 if Noise_Parameters{5} == true
-    PSF_difflim = addNoise(PSF_difflim,Noise_Parameters{6},Noise_Parameters{2},Noise_Parameters{3},Noise_Parameters{4});
+        PSF_difflim = addNoise(PSF_difflim,Noise_Parameters{6},Noise_Parameters{2},Noise_Parameters{3},Noise_Parameters{4});
+%         PSF_cor = abs(PSF_cor);
 end
 
 PSF_difflimmax = max(max(PSF_difflim));
 F.touch;
 
 
-Ppos = zeros(DM2.nActs,1);
-Ppos2 = zeros(length(onAct_locations),1);
-
+PTTpos_mirror = zeros(37,3);
+PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
-no_actuators = [1,32,993,1024];
-numiterations = 24;%60;
-correction_start = 3;%6;
-
-centerpoint = [746,854];
-centerpoint2 = [1304,1196-9];
-radius = 550;
-radius2 = 350;
-[X,Y] = meshgrid(1:fftsize);
-R  = sqrt((X-centerpoint(2)).^2 + (Y - centerpoint(1)).^2);
-SNRmask = double(R<=radius);
-R2 = sqrt((X-centerpoint2(2)).^2 + (Y - centerpoint2(1)).^2);
-CONJmask = ~double(R2<=radius2);
-SNRmask = SNRmask .* CONJmask;
+DM1.isMirror = 0;
+numiterations = 60;%60;
+correction_start = 10;%6;
+pixelshift = [1,1];
 
 %movie setup
 moviefig = figure(1);
@@ -375,32 +340,34 @@ fprintf('Initializing Data Cubes\n\n');
 % PSFbCUBE = 0;
 % OTFaCUBE = zeros(fftsize,fftsize);
 % OTFbCUBE = zeros(fftsize,fftsize);
-DMCOMMANDSCUBE = zeros(DM2.nActs,1);
+DMCOMMANDSCUBE = zeros(37,3);
 
 strehl = zeros(1,1);
 strehl_notip = zeros(1,1);
 strehl_uncorr = zeros(1,1);
-load dOTF_act_698_mask.mat;
-load circmask.mat;
+
+load hexmask.mat; %removes smoothed edges from variance computation
+
+DECONVOLVE = false;
+NECO = false;
 
 fprintf('Starting the loop\n\n');
-DECONVOLVE = false;
+fprintf('Pixel Shift for slopes calculation: [%d,%d]\n\n',pixelshift(1),pixelshift(2));
 
 
+numlambdas = 21;
+bandwidth = 1e-8;
+bandpass = linspace(AOField.HeNe_Laser - bandwidth,AOField.HeNe_Laser + bandwidth,numlambdas);
 
 
 while(nn <= numiterations)
-    
-    loopnum(nn) = nn;
-    
-    
-    %     if InjectAb == true
-    %         wobble_dir = randn(2,1);
-    %         wobble_dir = wobble_dir./abs(wobble_dir);
-    %         wobble_strength = randi(3,2,1);
-    %         Wobble = wobble_dir .* wobble_strength;
-    %         ABER.grid(circshift(ABER.grid,Wobble));
-    %     end
+%         if InjectAb == true
+%             wobble_dir = randn(2,1);
+%             wobble_dir = wobble_dir./abs(wobble_dir);
+%             wobble_strength = randi(5,2,1);
+%             Wobble = wobble_dir .* wobble_strength;
+%             ABER.grid(circshift(ABER.grid,Wobble));
+%         end
     
     if InjectKolm == true
         if InjectAb == true
@@ -409,26 +376,30 @@ while(nn <= numiterations)
             TURB.grid(circshift(TURB.grid,Wind));
         end
     end
+    PSFBAND = 0;
     
-    %Comput the uncorrected PSF
-    Ppos = DM2.actuators(:,3);
-    DM2.flatten;
-    F.planewave * TURB *ABER * A * DM2;
-    PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
+    for lambda_passband = 1:numlambdas
+        %Compute the uncorrected PSF
+        DM1.setIrisAO(PTT_flat);
+        F.lambda = bandpass(lambda_passband);
+%         fprintf('wavelength: %g microns \n',1e6 * bandpass(lambda_passband));
+        F.planewave * ABER * TURB * A * DM1;
+        
+        PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
+        F.touch;
+        PSFBAND = PSFBAND + PSF_aberrated;
+        clear PSF_aberrated;
+    end
+    
+    PSF_aberrated = PSFBAND / numlambdas;
     PSF_aberratedmax = max(max(PSF_aberrated));
-    F.touch;
-
-    W = angle(F.grid).*circmask;
+    W = uwrap(angle(F.grid),'gold').*hexmask;
     WFE_uncor(nn) = var(W(abs(W)>0));
     strehl_uncorr(nn) = exp(-WFE_uncor(nn));
     
-    PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
-    PSF_aberratedmax = max(max(PSF_aberrated));
-    F.touch;
+    %Compute the dOTF
+    [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO,DECONVOLVE,bandpass);
     
-    
-    [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = BMCcomputedOTF( DM2, 698, Ppos, Noise_Parameters, F, A, ABER, TURB, DECONVOLVE );
-
     dOTF = -1i * conj(dOTF);
     dOTFD = -1i * conj(dOTFD);
     
@@ -444,103 +415,118 @@ while(nn <= numiterations)
 %     OTFaCUBE(:,:,nn) = OTF1;
 %     OTFbCUBE(:,:,nn) = OTF2;
 %     dOCUBE(:,:,nn) = dOTF;
-    azi_avg = azimuthal_average(fftshift(circshift(SNRmask .* abs(dOTF).^2,1-centerpoint)));
-%     plot(log10(azi_avg/max(azi_avg)));
-    S = mean((azi_avg(1:radius2)));
-    N = mean((azi_avg(radius2:radius)));
-    SNR(nn) = S/N;
+    
     
     
     %% Correction
     if nn < correction_start  %suffer the seeing limit for a bit
         %Flatten the DM for the seeing limit
-        DM2.flatten;
+        PTTpos_mirror = zeros(37,3);
+        PTT_mirror = zeros(37,3);
+        DM1.setIrisAO(PTT_mirror);
         
-    elseif nn >= correction_start && nn < 3*correction_start %close the loop
-        %Get Segment Piston from dOTF
-        [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2,lambda, onAct_locations,'gold');
+    elseif nn >= correction_start && nn < 2*correction_start %close the loop
+        %Get Segment PTT from dOTF
+        [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
         
-        %Bump the Actuator Pistons
-        DM2.bumpOnActs(gain * (Ppos2));
-        %Figure out the Slaves
-        if nn == correction_start
-            pistonlists = zeros(length(DM2.OnActs),2);
-            pistonlists(:,1) = linspace(1,length(DM2.OnActs),length(DM2.OnActs));
-            pistonlists(:,2) = Ppos2;
-            slaveActs_dOTF_space = pistonlists(pistonlists(:,2)==0);
-            slaveActs = DM2.OnActs(slaveActs_dOTF_space);
-        end
+        %% Add Second dOTF to get overlap Region
+        [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB,NECO, DECONVOLVE );
+        dOTF2 = conj(dOTF2);
+        [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
         
-        pistonlist(:,1) = DM2.actuators(:,3);
-        Ppos2 = setOverlapActs(pistonlist,slaveActs);
-        DM2.flatten;
-        DM2.setActs(Ppos2);
-        DM2.clip(STROKE);
-
+        %Replace Overlap Region with data from second dOTF computation
+        PTTpos_mirror3 = PTTpos_mirror1;
+        PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
         
-        %Update the Mirror
-        DM2.touch;
-        DM2.render;
-%         dOTF = masked_dOTF;
+        %Change the sign to correct
+        PTTpos_mirror3 = -PTTpos_mirror3;
         
-    elseif nn >= 3*correction_start && nn < 6*correction_start
+        %Apply the necessary scaling factor for the Piston
+        PTTpos_mirror3(:,1) = PTTpos_mirror3(:,1) * 0.654008264745021162;
+        
+        %Bump the Segment PTT's
+        PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
+        
+        %Map them to code order
+        PTT_mirror = mapSegments(PTTpos_mirror);
+        
+        %Apply the Correction to mirror
+        DM1.setIrisAO(PTT_mirror);
+        
+    elseif nn >= 2*correction_start && nn < 4*correction_start
         if InjectAb == true && InjectKolm == true %Simulate adding in some hair spray
             TURB = PHASESCREEN.copy;
-            [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
-            DM2.bumpOnActs(gain * (Ppos2));
-            pistonlist(:,1) = DM2.actuators(:,3);
-            Ppos2 = setOverlapActs(pistonlist,slaveActs);
-            DM2.flatten;
-            DM2.setActs(Ppos2);
-            DM2.clip(STROKE);
-            DM2.touch;
-            DM2.render;
-%             dOTF = masked_dOTF;
-                    
+            [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
+            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO, DECONVOLVE );
+            dOTF2 = conj(dOTF2);
+            [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
+            PTTpos_mirror3 = PTTpos_mirror1;
+            PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
+            PTTpos_mirror3 = -PTTpos_mirror3;
+            PTTpos_mirror3(:,1) = PTTpos_mirror3(:,1) * 0.654008264745021162;
+            PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
+            PTT_mirror = mapSegments(PTTpos_mirror);
+            DM1.setIrisAO(PTT_mirror);
         else %Turn off correction for a bit
             %Flatten the DM
-            DM2.flatten;
+%             PTTpos_mirror = zeros(37,3);
+%             PTT_mirror = zeros(37,3);
+%             DM1.setIrisAO(PTT_mirror);
         end
 
 %         
-    elseif nn >= 6*correction_start
+    elseif nn >= 4*correction_start
         if InjectAb == true && InjectKolm == true %Simulate taking the hair spray out
             TURB = 1;
-            [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
-            DM2.bumpOnActs(gain * (Ppos2));
-            pistonlist(:,1) = DM2.actuators(:,3);
-            Ppos2 = setOverlapActs(pistonlist,slaveActs);
-            DM2.flatten;
-            DM2.setActs(Ppos2);
-            DM2.clip(STROKE);
-            DM2.touch;
-            DM2.render;
-%             dOTF = masked_dOTF;
-
+            
+            [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
+            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO, DECONVOLVE );
+            dOTF2 = conj(dOTF2);
+            [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
+            PTTpos_mirror3 = PTTpos_mirror1;
+            PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
+            PTTpos_mirror3 = -PTTpos_mirror3;
+            PTTpos_mirror3(:,1) = PTTpos_mirror3(:,1) * 0.654008264745021162;
+            PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
+            PTT_mirror = mapSegments(PTTpos_mirror);
+            DM1.setIrisAO(PTT_mirror);
+            
         else %Turn on correction again
-            [ Ppos2, masked_dOTF ] = BMCgetP( dOTF, DM2, lambda, onAct_locations,'gold');
-            DM2.bumpOnActs(gain * (Ppos2));
-            pistonlist(:,1) = DM2.actuators(:,3);
-            Ppos2 = setOverlapActs(pistonlist,slaveActs);
-            DM2.flatten;
-            DM2.setActs(Ppos2);
-            DM2.clip(STROKE);
-            DM2.touch;
-            DM2.render;
-%             dOTF = masked_dOTF;
-
+            [ ~, PTTpos_mirror1] = IrisAOgetPTT_new( dOTF, pixelshift, lambda, [22,23,24], 23, calibration_filename_23);
+            [ dOTF2, PSF1, PSF2, OTF1, OTF2 ] = IrisAOcomputedOTF_new( DM1, 35, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO, DECONVOLVE );
+            dOTF2 = conj(dOTF2);
+            [ PTT_mirror2, PTTpos_mirror2] = IrisAOgetPTT_new( dOTF2, pixelshift, lambda, [34,35,36], 35, calibration_filename_35);
+            PTTpos_mirror3 = PTTpos_mirror1;
+            PTTpos_mirror3([22,23,24],:) = PTTpos_mirror2([22,23,24],:);
+            PTTpos_mirror3 = -PTTpos_mirror3;
+            PTTpos_mirror3(:,1) = PTTpos_mirror3(:,1) * 0.654008264745021162;
+            PTTpos_mirror = PTTpos_mirror + PTTpos_mirror3;
+            PTT_mirror = mapSegments(PTTpos_mirror);
+            DM1.setIrisAO(PTT_mirror);
         end
     end
     
     %store the commands sent to the DM
-    DMCOMMANDSCUBE(:,nn) = DM2.actuators(:,3);
+    DMCOMMANDSCUBE(:,:,nn) = PTT_mirror;
     
+    PSFBAND_Cor = 0;
+    fieldgrid = 0;
+    
+    for lambda_passband = 1:numlambdas
     %Get the Residual Field
     F.touch;
-    F.planewave * ABER * TURB * A * DM2;
+    F.lambda = bandpass(lambda_passband);
+    F.planewave * ABER * TURB * A * DM1;
+    PSF_cor = F.mkPSF(FOV,PLATE_SCALE);
+    PSFBAND_Cor = PSFBAND_Cor + PSF_cor;
+    fieldgrid = fieldgrid + F.grid;
+    end
+    F.grid(fieldgrid / numlambdas);
+    PSF_cor = PSFBAND_Cor / numlambdas;
+
 
     %Compute the RMS Wavefront Error
-    W = angle(F.grid).*circmask;
+    W = uwrap(angle(F.grid),'gold').*hexmask;
 %     W_sqar = W.^2;
 %     W_sqar_mean = mean(W_sqar(abs(W_sqar)>0));
 %     W_mean = mean(W(abs(W)>0));
@@ -553,30 +539,125 @@ while(nn <= numiterations)
     
     
     %Compute the Corrected PSF
-    PSF_cor = F.mkPSF(FOV,PLATE_SCALE);
+%     maxPSF_cor = max(max(PSF_cor));
     if Noise_Parameters{5} == true
         PSF_cor = addNoise(PSF_cor,Noise_Parameters{6},Noise_Parameters{2},Noise_Parameters{3},Noise_Parameters{4});
+%         PSF_cor = abs(PSF_cor);
     end
     
-    maxPSF_cor = max(max(PSF_cor));
+    maxPSF_cor_noise = max(max(PSF_cor));
 
-    strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
+    %Compute the approximate strehls in the old way
+%     strehl_cor(nn) = PSF_cor(ceil(length(PSF_cor)/2),ceil(length(PSF_cor)/2)) / PSF_difflim(ceil(length(PSF_difflim)/2),ceil(length(PSF_difflim)/2));
+%     strehl_uncorr(nn) = PSF_aberrated(ceil(length(PSF_aberrated)/2),ceil(length(PSF_aberrated)/2)) / PSF_difflim(ceil(length(PSF_difflim)/2),ceil(length(PSF_difflim)/2));
+%     strehl_uncorr(nn) = PSF_aberratedmax / PSF_difflimmax;
+    strehl_notip(nn) = maxPSF_cor_noise / PSF_difflimmax;
+    loopnum(nn) = nn;
     
     
     
     
+%     [DM1x,DM1y] = DM1.coords;
+%     
+    %     figure(1);
+    %     subplot(2,4,1)
+    %     imagesc(plotx,ploty,log10(PSF_difflim / PSF_difflimmax),[-4,0]);
+    %     sqar;
+    %     title('Diffraction Limited PSF');
+    %     subplot(2,4,2)
+    %     imagesc(plotx,ploty,log10(PSF_aberrated / PSF_aberratedmax),[-4,0])
+    %     sqar;
+    %     title('Aberrated PSF')
+    %     subplot(2,4,5);
+    %     imagesc(plotx,ploty,log10(PSF_cor / maxPSF_cor),[-4,0]);
+    %     sqar;
+    %     title(sprintf('Corrected PSF, loop #%d',nn));
+    %     subplot(2,4,6);
+    %     strehl(nn) = PSF_cor(401,401) / PSF_difflim(401,401);
+    %     strehl_uncorr(nn) = PSF_aberrated(401,401) / PSF_difflim(401,401);
+    %     strehl_notip(nn) = maxPSF_cor / PSF_difflimmax;
+    %     loopnum(nn) = nn;
+    %     plot(loopnum,strehl,'-r');
+    %     hold on
+    %     plot(loopnum,strehl_uncorr,'-b');
+    %     plot(loopnum,strehl_notip,'-g');
+    %     hold off
+    %     xlabel('Loop Iteration');
+    %     ylabel('Strehl Ratio');
+    %     legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
+    %     xlim([0,numiterations]);
+    %     ylim([0,1]);
+    %     title('Strehl Ratio');
+    %     %     drawnow;
+    %     %
+    %     %
+    %     %     figure(2)
+    %     subplot(2,4,3);
+    %     imagesc(DM1x,DM1y,angle(DM1.grid));
+    %     colorbar;
+    %     axis xy;
+    %     sqar;
+    %     bigtitle(sprintf('Phase of DM with Correction Applied\n'),10);
+    %     subplot(2,4,4);
+    %     F.planewave * TURB * ABER * DM1;
+    %     F.show;
+    %     axis xy;
+    %     sqar;
+    %     colorbar;
+    %     bigtitle('Field at DM',10);
+    %     subplot(2,4,7)
+    %     plotComplex(dOTF,3);
+    %     axis off;
+    %     axis xy;
+    %     sqar;
+    %     colorbar;
+    %     bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
+    %     hold on
+    %     for n = 1:37
+    %         if n ~= 23
+    %             plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
+    %         else
+    %         end
+    %     end
+    %     hold off
+    %     subplot(2,4,8)
+    %     if InjectKolm == true
+    %         TURB.show;
+    %         sqar;
+    %         bigtitle(sprintf('Turbulence Profile at loop %d \n',nn),10);
+    %         xlim([-2e-3,2e-3]);
+    %         ylim([-2e-3,2e-3]);
+    %     else
+    %         ABER.show;
+    %         bigtitle(sprintf('Injected Aberration at loop %d \n',nn),10);
+    %         xlim([-2e-3,2e-3]);
+    %         ylim([-2e-3,2e-3]);
+    %         sqar;
+    %     end
     
-    subplot(2,3,1);
-%     imagesc(plotx,ploty,log10((PSF_cor / maxPSF_cor_noise)),[-4,0]);
-        imagesc(plotx,ploty,normalize(PSF_cor));
-    colormap(gray);
+    
+    subplot(2,2,1);
+    imagesc(plotx,ploty,log10(normalize(PSF_cor(125:275,125:275))),[-0.5,0]);
+%     imagesc(plotx(151:251),ploty(151:251),normalize(PSF_cor(151:251,151:251)));
+    colormap(gray(256));
     sqar;
-    axis xy;
     axis off;
     colorbar;
     bigtitle(sprintf('PSF, loop #%d',nn),12);
     
-    subplot(2,3,4);
+    subplot(2,2,2);
+    %     plot(loopnum,strehl_cor,'-r');
+    %     hold on
+    %     plot(loopnum,strehl_uncorr,'-b');
+    %     plot(loopnum,strehl_notip,'-g');
+    %     hold off
+    %     xlabel('Loop Iteration');
+    %     ylabel('Strehl Ratio');
+    %     legend('Strehl for Corrected PSF','Strehl for Uncorrected/Aberrated PSF','Tip/Tilt Independent Strehl','Location','Best');
+    %     xlim([0,numiterations]);
+    %     ylim([0,1]);
+    %     title('Strehl Ratio');
+    
     hold on
     plot(loopnum,strehl,'-b');
     plot(loopnum,strehl_notip,'--r');
@@ -584,60 +665,37 @@ while(nn <= numiterations)
     hold off;
     xlim([0,numiterations]);
     ylim([0,1]);
-    xlabel('Loop Iteration');
-    ylabel('Strehl Value');
     bigtitle('Strehl Ratio',10);
     legend('Marechal Strehl Ratio of Correction Signal','Maximum Intensity Strehl Ratio of Correction Signal','Marechal Strehl Ratio of Injected Aberration Signal','Location','SouthOutside');
     
     
-    subplot(2,3,3);
-    F.planewave * TURB * ABER * A * DM2;
+    subplot(2,2,3);
+    F.planewave * TURB * ABER * DM1;
     F.show;
     axis xy;
     sqar;
-    colorbar off;
+    colorbar;
     bigtitle('Residual Field',12);
     
-    subplot(2,3,2)
+    subplot(2,2,4)
     plotComplex(dOTF,6);
     axis off;
     axis xy;
     sqar;
-    colorbar off;
-    if DECONVOLVE == false
-        bigtitle(sprintf('dOTF before Correction is Applied\n'),10);
-    else
-        bigtitle(sprintf('Deconvolved dOTF before Correction is Applied\n'),10);
+    colorbar;
+    bigtitle(sprintf('dOTF and Segment Center Locations\n'),10);
+    hold on
+    for n = 1:37
+        if n ~= 23
+            plot(pixel_seg_map{n}(2),pixel_seg_map{n}(1),'r*');
+        else
+        end
     end
+    hold off
     
-    %     hold on
-    %     for n = 1:length(DM2.OnActs)
-    %         plot(onAct_locations{n}(1),onAct_locations{n}(2),'g.');
-    %     end
-    %     hold off
-    if DECONVOLVE == true
-        subplot(2,3,5)
-        plotComplex(dOTF2,6);
-        axis off;
-        axis xy;
-        sqar;
-        colorbar off;
-        bigtitle(sprintf('Not Deconvolved dOTF before Correction is Applied\n'),10);
-    end
-    
-    
-    subplot(2,3,6)
-    A_C = A.copy;
-    A_C * DM2;
-    A_C.show;
-    colormap(jet);
-    bigtitle(sprintf('DM Shape\n'));
-    axis off
-    
-
     drawnow;
     MOVIE(:,nn) = getframe(moviefig,winsize);
-    fprintf('Loop #%d Approximate Strehl: %0.6f\t\tApproximate dOTF SNR: %0.4f \n',nn,strehl(nn),SNR(nn));
+    fprintf('Loop #%d Approximate Strehl: %0.6f \n',nn,strehl(nn));
     nn = nn + 1;
 end
 
@@ -651,15 +709,16 @@ cd(filename);
 % 
 % fprintf('Saving OTFbCUBE\n');
 % save(filename_OTFb,'OTFbCUBE','-v7.3');
-% 
+
 fprintf('Saving DM Positions\n');
-save('DM_commands_for_each_loop.mat','DMCOMMANDSCUBE','-v7.3');
+save('PTT_commands_for_each_loop.mat','DMCOMMANDSCUBE','-v7.3');
 
 fprintf('Saving Movie Variable\n');
 save('Movie_and_Noise_Parameters.mat', 'MOVIE', 'winsize', 'Noise_Parameters','-v7.3')
 
 fid = fopen('Simulation_Output_Data.txt','w+');
-fprintf(fid,'Output Data from %s \r\n\n',filename);
+fprintf(fid,'Output Data from %s Run \r\n\n',filename);
+fprintf(fid,'Pixel Shift Used: [%d %d] \r\n\n',pixelshift);
 
 fprintf(fid,'Quantum Efficiency: %0.2f \r\n',Quantum_Efficiency);
 fprintf(fid,'Bandpass: %0.4f in microns \r\n',Bandpass);
@@ -694,7 +753,7 @@ end
 fprintf(fid,'\r\nLoop Data \r\n');
 fprintf(fid,'Correction Signal Data \r\n');
 for n = 1:length(loopnum)
-    fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE, %0.5f SNR \r\n',loopnum(n),strehl(n),WFE(n),SNR(n));
+    fprintf(fid,'Loop %d: %0.5f Strehl, %0.5f WFE \r\n',loopnum(n),strehl(n),WFE(n));
 end
 fprintf(fid,'\r\nUncorrected Signal Data \r\n');
 for n = 1:length(loopnum)
@@ -703,86 +762,7 @@ end
 fclose(fid);
 cd(current_dir);
 
+
 % movie(figure(1),MOVIE,1,10,winsize)
-% movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',7)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+% movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',10)
 
