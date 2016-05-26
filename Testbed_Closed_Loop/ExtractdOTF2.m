@@ -8,7 +8,7 @@ function [ dOTF, CUBE1, CUBE2] = ExtractdOTF2( CUBE1, CUBE2)
 PSF = CUBE1.PSF_dark_corr;
 PSF_poked = CUBE2.PSF_dark_corr;
 
-centerpoint = [263,346];
+centerpoint = [272,295];
 % Cenering PSFs
 PSF_poked = PSF_poked(centerpoint(1)-127:centerpoint(1)+128,centerpoint(2)-127:centerpoint(2)+128);
 PSF = PSF(centerpoint(1)-127:centerpoint(1)+128,centerpoint(2)-127:centerpoint(2)+128);
