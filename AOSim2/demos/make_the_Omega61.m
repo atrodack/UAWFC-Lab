@@ -53,7 +53,9 @@ Seg.make;
 
 clf;
 % Seg.touch.make.show;
-A = AOAperture;
+A = AOAperture;% RECON.adhocProgram(D/12*3);
+% RECON.show;
+)
 A.spacing(SPACING);
 A.name = 'Kuiper 61 inch';
 A.addSegment(Seg);
@@ -91,18 +93,18 @@ A.show; WFS.quiver(1); drawnow; % Show them.
 %% Now for some real work.  Building the RECONSTRUCTOR...
 RECON = AOReconstructor(A,DM,WFS);
 RECON.lambda = AOField.VBAND;
-
+RECON.verbose = true;
 % Now program this crazy thing.
 % We can look at the singular values and choose things manually later.  
 % For now, we will make default assumptions.  You can rebuild it quickly
 % later.  The MMT currently runs with 56 modes corrected.
 
-RECON.adhocProgram(D/12*3);
-RECON.show;
+% RECON.adhocProgram(D/12*3);
+% RECON.show;
 
 % OWD = sqrt(MAX_MODES/pi);
 % % RECON.program(D,6*sqrt(2)); % Use Fourier modes. OWD is ~6 lambda/D for programming.
-% RECON.zprogram(D,12);  % program using Zernikes.
+RECON.zprogram(D,12);  % program using Zernikes.
 % RECON.rebuild(56).show;
 
 % % RECON.dhprogram(D,11); % program using disk harmonics.
