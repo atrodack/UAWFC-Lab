@@ -11,11 +11,24 @@ if RunSIM == true
 %     play(John);
     
     %% Pupil Mask
-    PUPIL_DEFN = [
-        0 0 D         1 aa 0 0 0 0 0
-%         0 0 secondary 0 aa/2 0 0 0 0 0
-%         0 0 spider   -2 aa 4 0 D/1.9 0 0
-        ];
+    if secondary ~= 0
+        if spider ~= 0
+            PUPIL_DEFN = [
+                0 0 D         1 aa 0 0 0 0 0
+                0 0 secondary 0 aa/2 0 0 0 0 0
+                0 0 spider   -2 aa 4 0 D/1.9 0 0
+                ];
+        else
+            PUPIL_DEFN = [
+                0 0 D         1 aa 0 0 0 0 0
+                0 0 secondary 0 aa/2 0 0 0 0 0
+                ];
+        end
+    else
+        PUPIL_DEFN = [
+            0 0 D         1 aa 0 0 0 0 0
+            ];
+    end
     
     A = AOSegment;
     A.spacing(SPACING);
@@ -40,14 +53,14 @@ if RunSIM == true
         segpitch = 606e-6; %leave this alone
         magnification = 1; %leave this alone too
         FoV = FoV_withIrisAO;
-        numRings = 3;
+        numRings = 2;
         numSeg = sum(1:numRings)*6 + 1; % keep track of total segments
         % Make the Mirror
         if Scalloped_Field == true
             [DM1,F_scal] = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field,numRings);
             F_scal.grid(padarray(F_scal.grid,[ceil(271/2),ceil(207/2)]));
         else
-            DM1 = makeIrisAODM(magnfication,verbose_makeDM,Scalloped_Field,numRings);
+            DM1 = makeIrisAODM(magnification,verbose_makeDM,Scalloped_Field,numRings);
         end
         DM1.lambdaRef = lambda;
         
@@ -166,26 +179,26 @@ if RunSIM == true
         % Add Actuators
         DM2.addActs(BMC_ACTS,1,A_BMC);
         
-%         % Turn Off Actuators that Aren't Illuminated
-%         RHO = zeros(nacts,1);
-%         for ii = 1:nacts
-%             RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
-%             if RHO(ii) > D/2
-%                 if RHO(ii) < (D/2)
-% %                     DM2.actuators(ii,5) = 2;
-%                 else
-%                     DM2.actuators(ii,5) = 0;
-%                 end
-%             elseif RHO(ii) < secondary/2
-%                 %             DM2.actuators(ii,5) = 0;
-%             end
-%         end
-%         
-%         % Get List of Which Actuators are Being Used
-%         DM2.setOnActs;
-%         
-%         %Turn Off Actuators so the Program Knows they are off
-%         DM2.disableActuators(DM2.OffActs);
+        % Turn Off Actuators that Aren't Illuminated
+        RHO = zeros(nacts,1);
+        for ii = 1:nacts
+            RHO(ii) = sqrt(BMC_ACTS(ii,1)^2 + BMC_ACTS(ii,2)^2);
+            if RHO(ii) > D/2
+                if RHO(ii) < (D/2)
+%                     DM2.actuators(ii,5) = 2;
+                else
+                    DM2.actuators(ii,5) = 0;
+                end
+            elseif RHO(ii) < secondary/2
+                            DM2.actuators(ii,5) = 0;
+            end
+        end
+        
+        % Get List of Which Actuators are Being Used
+        DM2.setOnActs;
+        
+        %Turn Off Actuators so the Program Knows they are off
+        DM2.disableActuators(DM2.OffActs);
         
         % Set the Convex Hull Boundary Conditions
         %     DM2.defineBC(D/2 + D/18,4,'circle');

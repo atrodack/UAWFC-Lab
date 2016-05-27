@@ -61,7 +61,7 @@ InjectAb = true; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
-InjectKolm = false;
+InjectKolm = true;
 InjectKnownKolm = true;
 
 % Check Aberration Flags
