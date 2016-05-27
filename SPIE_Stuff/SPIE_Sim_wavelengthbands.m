@@ -14,7 +14,8 @@ global lambda k D secondary spider SPACING aa fftsize THld FOV PLATE_SCALE FoV_w
 
 % Set Wavelength
 % lambda = AOField.RBAND; % Red light.
-lambda = AOField.HeNe_Laser;
+% lambda = AOField.HeNe_Laser;
+lambda = 600*10^-9;
 
 % Compute Wavenumber
 k = (2*pi) / lambda;
@@ -57,7 +58,7 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
@@ -96,7 +97,7 @@ if InjectKolm == true
 end
 
 % Noise Flags
-UseNoise = true;
+UseNoise = false;
 
 
 % Compute the Number of Photons
@@ -317,7 +318,7 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 DM1.isMirror = 0;
-numiterations = 60;%60;
+numiterations = 1;%60;
 correction_start = 10;%6;
 pixelshift = [1,1];
 
@@ -355,9 +356,9 @@ fprintf('Starting the loop\n\n');
 fprintf('Pixel Shift for slopes calculation: [%d,%d]\n\n',pixelshift(1),pixelshift(2));
 
 
-numlambdas = 21;
-bandwidth = 1e-8;
-bandpass = linspace(AOField.HeNe_Laser - bandwidth,AOField.HeNe_Laser + bandwidth,numlambdas);
+numlambdas = 41;
+bandwidth = 4e-8;
+bandpass = linspace(lambda - bandwidth/2,lambda + bandwidth/2,numlambdas);
 
 
 while(nn <= numiterations)
