@@ -8,6 +8,8 @@ function [dOTF, PSF_CUBE, PSF_poked_CUBE] = Automated_TestbeddOTF_AO_demo(DM,Run
 % Ppos_in is the initial actuator piston matrix
 % Channel is the Cfits Channel to apply the update to
 % poke_act is the pixel location in a 32x32 array of the actuator to poke
+% poke_amp is the magnitude of the poke in microns
+%
 %
 % OUTPUTS:
 % dOTF is the differential Optical Transfer Function computed using the testbed PSFs
@@ -73,11 +75,13 @@ Ppos_flat = Ppos_in;
 
 
 %% Initial Setup
-% Set DM and Take the First PSF Image
+% Remove corner pixels (not really actuators)
 Ppos_flat(1,1) = 0; Ppos_flat(32,32) = 0; Ppos_flat(32,1) = 0; Ppos_flat(1,32) = 0;
+
+% Set DM
 Ppos_flat = single(Ppos_flat);
-%
-%
+
+% Take the First PSF Images
 tempdir = pwd;
 cd /home/lab/src/scripts/
 fitswrite(Ppos_flat,'DM_flat.fits');
@@ -92,7 +96,9 @@ cd(tempdir);
 
 %CHECK FOR MIRROR UPDATE
 % input('Press Enter once Mirror has Updated to Start Taking Images');
-pause(2);
+pause(2); % Probably can be reduced....
+
+%TAKE IMAGES
 PSF_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 
 
@@ -120,7 +126,9 @@ cd(tempdir);
 
 %CHECK FOR MIRROR UPDATE
 % input('Press Enter once Mirror has Updated to Start Taking Images');
-pause(2);
+pause(2); % Probably can be reduced.....
+
+%TAKE IMAGES
 PSF_poked_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 
 % system(cmd_flat);

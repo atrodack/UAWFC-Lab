@@ -199,7 +199,7 @@ elseif section_num == 9
     % [CUBE2.OTF_,TT2] = vernierAlignOTF(CUBE2.OTF_,RADIUS,CEN);
     
 elseif section_num == 10
-    %% Compute dOTF
+    %% Compute dOTF from shifted stacks
     % maxval1 = mean(mean(real(CUBE1.OTF_)));
     % maxval2 = mean(mean(real(CUBE2.OTF_)));
     
@@ -219,7 +219,7 @@ elseif section_num == 10
     plotComplex(dOTF,3)
     
 elseif section_num == 11
-    %% Scan Power
+    %% Scan Power and find dOTF
     const = linspace(0.90,1.1,5000);
     x = linspace(1,256,256);
     [X,Y] = meshgrid(x);
@@ -238,13 +238,14 @@ elseif section_num == 11
     end
     scale = const(GRAB);
     fprintf('scale = %g\n',scale)
+    CUBE1.Scale_Factor = scale;
     CUBE1.OTF_ = scale .* CUBE1.OTF_;
     dOTF = CUBE2.OTF_ - CUBE1.OTF_;
-    dOTF(129,:) = 0;
-    dOTF(:,129) = 0;
-    dOTF = -1i * conj(dOTF);
-    figure(23);
-    plotComplex(dOTF,3)
+%     dOTF(129,:) = 0;
+%     dOTF(:,129) = 0;
+%     dOTF = -1i * conj(dOTF);
+%     figure(23);
+%     plotComplex(dOTF,3)
 end %if
 
 end %function
