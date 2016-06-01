@@ -14,7 +14,8 @@ global lambda k D secondary spider SPACING aa fftsize THld FOV PLATE_SCALE FoV_w
 
 % Set Wavelength
 % lambda = AOField.RBAND; % Red light.
-lambda = AOField.HeNe_Laser;
+% lambda = AOField.HeNe_Laser;
+lambda = 600*10^-9;
 
 % Compute Wavenumber
 k = (2*pi) / lambda;
@@ -57,7 +58,7 @@ Scalloped_Field = true; %turns on/off returning an AOField Object that encodes t
 BMC_on = false; %turns on/off BMC Mirror (if false, DM2 variable is set to 1)
 
 % Aberration Flags
-InjectAb = true; %Injects nzerns Zernike Terms
+InjectAb = false; %Injects nzerns Zernike Terms
 InjectRandAb = false; %if InjectAB is true, picks Zernikes "Randomly"
 InjectKnownAb = true; %if InjectAB is true, picks provided Zernikes
 
@@ -96,7 +97,7 @@ if InjectKolm == true
 end
 
 % Noise Flags
-UseNoise = true;
+UseNoise = false;
 
 
 % Compute the Number of Photons
@@ -317,7 +318,7 @@ PTT_flat = zeros(37,3);
 %% Control Loop
 nn = 1;
 DM1.isMirror = 0;
-numiterations = 60;%60;
+numiterations = 1;%60;
 correction_start = 10;%6;
 pixelshift = [1,1];
 
@@ -355,14 +356,19 @@ fprintf('Starting the loop\n\n');
 fprintf('Pixel Shift for slopes calculation: [%d,%d]\n\n',pixelshift(1),pixelshift(2));
 
 
+numlambdas = 41;
+bandwidth = 4e-8;
+bandpass = linspace(lambda - bandwidth/2,lambda + bandwidth/2,numlambdas);
+
+
 while(nn <= numiterations)
-        if InjectAb == true
-            wobble_dir = randn(2,1);
-            wobble_dir = wobble_dir./abs(wobble_dir);
-            wobble_strength = randi(5,2,1);
-            Wobble = wobble_dir .* wobble_strength;
-            ABER.grid(circshift(ABER.grid,Wobble));
-        end
+%         if InjectAb == true
+%             wobble_dir = randn(2,1);
+%             wobble_dir = wobble_dir./abs(wobble_dir);
+%             wobble_strength = randi(5,2,1);
+%             Wobble = wobble_dir .* wobble_strength;
+%             ABER.grid(circshift(ABER.grid,Wobble));
+%         end
     
     if InjectKolm == true
         if InjectAb == true
@@ -371,20 +377,29 @@ while(nn <= numiterations)
             TURB.grid(circshift(TURB.grid,Wind));
         end
     end
+    PSFBAND = 0;
     
-    %Comput the uncorrected PSF
-    DM1.setIrisAO(PTT_flat);
-    F.planewave * ABER * TURB * A * DM1;
-     W = uwrap(angle(F.grid),'gold').*hexmask;
+    for lambda_passband = 1:numlambdas
+        %Compute the uncorrected PSF
+        DM1.setIrisAO(PTT_flat);
+        F.lambda = bandpass(lambda_passband);
+%         fprintf('wavelength: %g microns \n',1e6 * bandpass(lambda_passband));
+        F.planewave * ABER * TURB * A * DM1;
+        
+        PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
+        F.touch;
+        PSFBAND = PSFBAND + PSF_aberrated;
+        clear PSF_aberrated;
+    end
+    
+    PSF_aberrated = PSFBAND / numlambdas;
+    PSF_aberratedmax = max(max(PSF_aberrated));
+    W = uwrap(angle(F.grid),'gold').*hexmask;
     WFE_uncor(nn) = var(W(abs(W)>0));
     strehl_uncorr(nn) = exp(-WFE_uncor(nn));
     
-    PSF_aberrated = F.mkPSF(FOV,PLATE_SCALE);
-    PSF_aberratedmax = max(max(PSF_aberrated));
-    F.touch;
-    
     %Compute the dOTF
-    [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO,DECONVOLVE);
+    [ dOTF, PSF1, PSF2, OTF1, OTF2, dOTFD ] = IrisAOcomputedOTF_new( DM1, 23, PTTpos_mirror, Noise_Parameters, F, A, ABER, TURB, NECO,DECONVOLVE,bandpass);
     
     dOTF = -1i * conj(dOTF);
     dOTFD = -1i * conj(dOTFD);
@@ -495,9 +510,21 @@ while(nn <= numiterations)
     %store the commands sent to the DM
     DMCOMMANDSCUBE(:,:,nn) = PTT_mirror;
     
+    PSFBAND_Cor = 0;
+    fieldgrid = 0;
+    
+    for lambda_passband = 1:numlambdas
     %Get the Residual Field
     F.touch;
+    F.lambda = bandpass(lambda_passband);
     F.planewave * ABER * TURB * A * DM1;
+    PSF_cor = F.mkPSF(FOV,PLATE_SCALE);
+    PSFBAND_Cor = PSFBAND_Cor + PSF_cor;
+    fieldgrid = fieldgrid + F.grid;
+    end
+    F.grid(fieldgrid / numlambdas);
+    PSF_cor = PSFBAND_Cor / numlambdas;
+
 
     %Compute the RMS Wavefront Error
     W = uwrap(angle(F.grid),'gold').*hexmask;
@@ -513,7 +540,6 @@ while(nn <= numiterations)
     
     
     %Compute the Corrected PSF
-    PSF_cor = F.mkPSF(FOV,PLATE_SCALE);
 %     maxPSF_cor = max(max(PSF_cor));
     if Noise_Parameters{5} == true
         PSF_cor = addNoise(PSF_cor,Noise_Parameters{6},Noise_Parameters{2},Noise_Parameters{3},Noise_Parameters{4});
@@ -684,7 +710,7 @@ cd(filename);
 % 
 % fprintf('Saving OTFbCUBE\n');
 % save(filename_OTFb,'OTFbCUBE','-v7.3');
-% 
+
 fprintf('Saving DM Positions\n');
 save('PTT_commands_for_each_loop.mat','DMCOMMANDSCUBE','-v7.3');
 
@@ -739,17 +765,5 @@ cd(current_dir);
 
 
 % movie(figure(1),MOVIE,1,10,winsize)
-movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',10)
+% movie2avi(MOVIE,filename_movie_avi,'compression','None','fps',10)
 
-
-
-
-% Zernike_Number = [2];
-% Zernike_Coefficient_waves = 4;
-% PTTpos = IrisAOComputeZernPositions( lambda, Zernike_Number, Zernike_Coefficient_waves);
-% PTT = mapSegments(PTTpos);
-% pistonlist_zern = PTT(:,1);
-% pistonlist = PTT_mirror(:,1);
-% pistonlist = horzcat(pistonlist,pistonlist_zern);
-% tiplist = horzcat(PTT_mirror(:,2),PTT(:,2));
-% tiltlist = horzcat(PTT_mirror(:,3),PTT(:,3));

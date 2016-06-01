@@ -91,8 +91,9 @@ end
 % OTF2 = F2.mkOTF2(FoV,new_spacing(1));
 
 otf1 = fftshift(fft2(fftshift(psf1))) .* (1 / F1.dx)^2;
+otf1(1025,1025) = 0;
 otf2 = fftshift(fft2(fftshift(psf2))) .* (1 / F2.dx)^2;
-
+otf2(1025,1025) = 0;
 
 
 
