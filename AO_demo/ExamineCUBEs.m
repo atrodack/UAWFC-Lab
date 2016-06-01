@@ -37,7 +37,8 @@ elseif section_num == 2
         % centerpoint = [272,305]; %[y,x] in ij
         
         % SuperK (needs recalibration after input of OD filter)
-        centerpoint = [254,316]; %no OD filter
+%         centerpoint = [254,316]; %no OD filter
+        centerpoint = [227,309]; %no OD filter, camera adjustment
         
         % Cenering PSFs and cropping to 256x256
         PSF1 = PSF1(centerpoint(1)-127:centerpoint(1)+128,centerpoint(2)-127:centerpoint(2)+128);
@@ -103,12 +104,14 @@ elseif section_num == 4
     OTF1_avg = OTF1_avg / nframes;
     CUBE1.PSF = PSF1_avg;
     CUBE1.OTF = OTF1_avg;
+    CUBE1.OTF_ = OTF1_avg; %set for power scaling (overwritten when vernier aligning OTFs)
     
     PSF2_avg = PSF2_avg / nframes;
     OTF2_avg = OTF2_avg / nframes;
     CUBE2.PSF = PSF2_avg;
     CUBE2.OTF = OTF2_avg;
-    
+    CUBE2.OTF_ = OTF2_avg; %set for power scaling (overwritten when vernier aligning OTFs)
+
 elseif section_num == 5
     %% Compute dOTF
     % maxval1 = mean(mean(real(CUBE1.OTF)));
@@ -123,11 +126,11 @@ elseif section_num == 5
     % end
     
     dOTF = CUBE2.OTF - CUBE1.OTF;
-    dOTF(129,:) = 0;
-    dOTF(:,129) = 0;
-    dOTF = -1i * conj(dOTF);
-    figure(21);
-    plotComplex(dOTF,3)
+%     dOTF(129,:) = 0;
+%     dOTF(:,129) = 0;
+%     dOTF = -1i * conj(dOTF);
+%     figure(21);
+%     plotComplex(dOTF,3)
     
     
 elseif section_num == 6
@@ -223,7 +226,7 @@ elseif section_num == 11
     const = linspace(0.90,1.1,5000);
     x = linspace(1,256,256);
     [X,Y] = meshgrid(x);
-    circ = sqrt((X-92).^2 + (Y-126).^2);
+    circ = sqrt((X-72).^2 + (Y-126).^2);
     mask = double(circ<10);
     data = zeros(1,length(const));
     GRAB = logical(data);

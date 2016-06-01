@@ -134,14 +134,17 @@ PSF_poked_CUBE = Automated_Testbed_run_cam_ver2(Run_Cam_Parameters);
 % system(cmd_flat);
 
 %% Process the Pictures
-[PSF_CUBE] = ExtractAverageCUBEPSFs_AO_demo(PSF_CUBE);
 
-[PSF_poked_CUBE] = ExtractAverageCUBEPSFs_AO_demo(PSF_poked_CUBE);
+% USING NEW WAY IN ExtractdOTF2_AO_demo SHOULDN'T REQUIRE THESE STEPS
+% [PSF_CUBE] = ExtractAverageCUBEPSFs_AO_demo(PSF_CUBE);
+% [PSF_poked_CUBE] = ExtractAverageCUBEPSFs_AO_demo(PSF_poked_CUBE);
 
 % Average Together Taken Images, Center/Crop PSFs, Compute OTFs and dOTF
 % [dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF(PSF_CUBE, PSF_poked_CUBE,PT{1},PT{2});
 % [dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF2(PSF_CUBE, PSF_poked_CUBE);
-[dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF2_AO_demo(PSF_CUBE, PSF_poked_CUBE);
+
+% Use the NEW WAY
+[dOTF, PSF_CUBE, PSF_poked_CUBE] = ExtractdOTF2_AO_demo(PSF_CUBE, PSF_poked_CUBE,2);
 
 toc
 
